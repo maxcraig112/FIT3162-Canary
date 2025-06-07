@@ -5,7 +5,7 @@ subgraph D [Phase 4. Annotation and Usability]
 
   subgraph D1 [4.1 Annotation Tools]
   
-    BB1[place Bounding Boxes]
+    BB1[Place Bounding Boxes]
     BB2[Label boxes]
     BB3[Save boxes]
     BB1 --> BB2 --> BB3
