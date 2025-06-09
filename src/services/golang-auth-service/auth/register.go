@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"regexp"
+	"unicode"
 
 	"auth-service/gcp"
 	"auth-service/gcp/firestore"
@@ -17,10 +19,46 @@ type RegisterRequest struct {
 	ConfirmPassword string `json:"confirmPassword"`
 }
 
+// isValidEmail checks if the email is in a valid format.
+func isValidEmail(email string) bool {
+	// RFC 5322 regex for validating email address
+	re := regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
+	return re.MatchString(email)
+}
+
+// isSecurePassword checks if the password meets security requirements.
+func isSecurePassword(password string) bool {
+	if len(password) < 12 {
+		return false
+	}
+	var hasUpper, hasLower, hasNumber, hasSpecial bool
+	for _, c := range password {
+		switch {
+		case unicode.IsUpper(c):
+			hasUpper = true
+		case unicode.IsLower(c):
+			hasLower = true
+		case unicode.IsDigit(c):
+			hasNumber = true
+		case unicode.IsPunct(c) || unicode.IsSymbol(c):
+			hasSpecial = true
+		}
+	}
+	return hasUpper && hasLower && hasNumber && hasSpecial
+}
+
 func RegisterHandler(ctx context.Context, w http.ResponseWriter, r *http.Request, clients *gcp.Clients) {
 	var req RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+	if !isValidEmail(req.Email) {
+		http.Error(w, "Invalid email format", http.StatusBadRequest)
+		return
+	}
+	if !isSecurePassword(req.Password) {
+		http.Error(w, "Password must be at least 12 characters and include uppercase, lowercase, number, and special character", http.StatusBadRequest)
 		return
 	}
 	if req.Password != req.ConfirmPassword {

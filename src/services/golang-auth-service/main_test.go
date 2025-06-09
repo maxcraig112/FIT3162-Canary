@@ -32,17 +32,13 @@ func randomEmail() string {
 	return "testuser" + string(rune(rand.Intn(1000000))) + "@example.com"
 }
 
-func randomPassword() string {
-	return string(rune(rand.Intn(1000000)))
-}
-
 func TestRegisterAndLoginFlow(t *testing.T) {
 	ctx := context.Background()
 	server := setupTestServer(ctx)
 	defer server.Close()
 
 	email := randomEmail()
-	password := randomPassword()
+	password := "testPassword123!"
 
 	// Always attempt to delete the user at the end, even if test fails
 	defer func() {

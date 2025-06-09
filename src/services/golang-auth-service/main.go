@@ -26,6 +26,10 @@ func setupHandlers(ctx context.Context, r *mux.Router, clients *gcp.Clients) {
 	r.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
 		auth.LoginHandler(ctx, w, r, clients)
 	}).Methods("POST")
+
+	r.HandleFunc("/delete", func(w http.ResponseWriter, r *http.Request) {
+		auth.DeleteHandler(ctx, w, r, clients)
+	}).Methods("POST")
 }
 
 func main() {
