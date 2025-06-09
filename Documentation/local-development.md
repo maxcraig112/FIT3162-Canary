@@ -1,3 +1,10 @@
+## Authenticating to Google Cloud
+
+everyday you'll need to begin your development by logging into to Google Cloud so you can access the GCP project. this involves running the command
+`gcloud auth application-default login`
+
+Once logged in you should be able to use services on gcloud from your local
+
 ## Using Postman
 
 if you want to test sending requests to your api's with input parameters, your best bet is using Postman.
