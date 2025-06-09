@@ -34,3 +34,13 @@ func (s *UserStore) CreateUser(ctx context.Context, email, hashedPassword string
 	}
 	return docRef, nil
 }
+
+func (s *UserStore) DeleteUser(ctx context.Context, email, hashedPassword string) error {
+	iter := s.users.Where("email", "==", email).Where("password", "==", hashedPassword).Limit(1).Documents(ctx)
+	docs, err := iter.GetAll()
+	if err != nil {
+		return err
+	}
+	_, err = docs[0].Ref.Delete(ctx)
+	return err
+}
