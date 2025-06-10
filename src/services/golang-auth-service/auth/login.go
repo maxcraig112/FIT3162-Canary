@@ -50,5 +50,14 @@ func LoginHandler(ctx context.Context, w http.ResponseWriter, r *http.Request, c
 		return
 	}
 
-	w.Write([]byte("User logged in"))
+	token, err := GenerateJWT(ctx, clients, userData.Email)
+	if err != nil {
+		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"token": token,
+	})
 }

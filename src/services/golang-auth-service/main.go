@@ -27,9 +27,10 @@ func setupHandlers(ctx context.Context, r *mux.Router, clients *gcp.Clients) {
 		auth.LoginHandler(ctx, w, r, clients)
 	}).Methods("POST")
 
-	r.HandleFunc("/delete", func(w http.ResponseWriter, r *http.Request) {
+	// Protected route example:
+	r.Handle("/delete", auth.AuthMiddleware(clients)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth.DeleteHandler(ctx, w, r, clients)
-	}).Methods("POST")
+	}))).Methods("POST")
 }
 
 func main() {
@@ -41,7 +42,15 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize clients: %v", err)
 	}
-	defer clients.Firestore.Close()
+	// this will make sure to close the clients when the application ends
+	defer clients.CloseClients()
+
+	// get JWT secret and store it as ENV variable
+	secret, err := clients.GSM.GetJWTSecret(ctx) // your function to generate a secret
+	if err != nil {
+		log.Fatalf("Failed to retrieve JWT Secert: %v", err)
+	}
+	os.Setenv("JWT_SECRET", secret)
 
 	r := mux.NewRouter()
 	setupHandlers(ctx, r, clients)
