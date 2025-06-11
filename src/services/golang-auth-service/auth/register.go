@@ -14,9 +14,8 @@ import (
 )
 
 type RegisterRequest struct {
-	Email           string `json:"email"`
-	Password        string `json:"password"`
-	ConfirmPassword string `json:"confirmPassword"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 // isValidEmail checks if the email is in a valid format.
@@ -59,10 +58,6 @@ func RegisterHandler(ctx context.Context, w http.ResponseWriter, r *http.Request
 	}
 	if !isSecurePassword(req.Password) {
 		http.Error(w, "Password must be at least 12 characters and include uppercase, lowercase, number, and special character", http.StatusBadRequest)
-		return
-	}
-	if req.Password != req.ConfirmPassword {
-		http.Error(w, "Passwords do not match", http.StatusBadRequest)
 		return
 	}
 
