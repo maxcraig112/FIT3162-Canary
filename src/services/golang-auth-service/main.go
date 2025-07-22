@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"os"
 
-	"auth-service/auth"
+	"auth-service/api"
 
 	"pkg/gcp"
+	"pkg/jwt"
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -21,20 +22,20 @@ func setupHandlers(ctx context.Context, r *mux.Router, clients *gcp.Clients) {
 	}).Methods("GET")
 
 	r.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
-		auth.RegisterHandler(ctx, w, r, clients)
+		api.RegisterHandler(ctx, w, r, clients)
 	}).Methods("POST")
 
 	r.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
-		auth.LoginHandler(ctx, w, r, clients)
+		api.LoginHandler(ctx, w, r, clients)
 	}).Methods("POST")
 
 	// Protected route example:
-	r.Handle("/delete", auth.AuthMiddleware(clients)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		auth.DeleteHandler(ctx, w, r, clients)
-	}))).Methods("POST")
+	r.Handle("/user", jwt.AuthMiddleware(clients)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		api.DeleteHandler(ctx, w, r, clients)
+	}))).Methods("DELETE")
 
 	r.HandleFunc("/auth", func(w http.ResponseWriter, r *http.Request) {
-		auth.AuthHandler(ctx, w, r, clients)
+		api.AuthHandler(ctx, w, r, clients)
 	}).Methods("POST")
 }
 

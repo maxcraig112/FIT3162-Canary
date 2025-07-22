@@ -27,7 +27,10 @@ func setupTestServer(ctx context.Context) (*gcp.Clients, *httptest.Server) {
 	}
 	r := mux.NewRouter()
 	setupHandlers(ctx, r, clients)
-	return clients, httptest.NewServer(r)
+
+	// Wrap router with CORS middleware
+	corsWrapped := corsMiddleware(r)
+	return clients, httptest.NewServer(corsWrapped)
 }
 
 func randomEmail() string {
