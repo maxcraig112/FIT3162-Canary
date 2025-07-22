@@ -11,6 +11,24 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func RegisterBatchRoutes(ctx context.Context, r *mux.Router, clients *gcp.Clients, authMw func(http.Handler) http.Handler) {
+	routes := []route{
+		{"POST", "/batch", func(w http.ResponseWriter, r *http.Request) {
+			CreateBatchHandler(ctx, w, r, clients)
+		}},
+		{"PUT", "/batch/{batchID}", func(w http.ResponseWriter, r *http.Request) {
+			RenameBatchHandler(ctx, w, r, clients)
+		}},
+		{"DELETE", "/batch/{batchID}", func(w http.ResponseWriter, r *http.Request) {
+			DeleteBatchHandler(ctx, w, r, clients)
+		}},
+	}
+
+	for _, rt := range routes {
+		r.Handle(rt.pattern, authMw(rt.handlerFunc)).Methods(rt.method)
+	}
+}
+
 func LoadBatchInfoHandler(ctx context.Context, w http.ResponseWriter, r *http.Request, clients *gcp.Clients) {
 	vars := mux.Vars(r)
 	projectID := vars["projectID"]

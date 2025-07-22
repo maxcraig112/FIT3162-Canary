@@ -25,50 +25,12 @@ func setupHandlers(ctx context.Context, r *mux.Router, clients *gcp.Clients) {
 
 	authMw := jwt.AuthMiddleware(clients)
 
-	r.Handle("/projects/{userID}", authMw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Load all projects
-		api.LoadProjectsHandler(ctx, w, r, clients)
-	}))).Methods("GET")
+	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("OK"))
+	}).Methods("GET")
 
-	r.Handle("/projects", authMw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Create a new project
-		api.CreateProjectHandler(ctx, w, r, clients)
-	}))).Methods("POST")
-
-	r.Handle("/projects/{projectID}", authMw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Rename a project
-		api.RenameProjectHandler(ctx, w, r, clients)
-	}))).Methods("PUT")
-
-	r.Handle("/projects/{projectID}", authMw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Delete a project
-		api.DeleteProjectHandler(ctx, w, r, clients)
-	}))).Methods("DELETE")
-
-	r.Handle("/projects/{projectID}/numberoffiles", authMw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Increment the number of files in a project
-		api.UpdateNumberOfFilesHandler(ctx, w, r, clients)
-	}))).Methods("PATCH")
-
-	r.Handle("/projects/{projectID}/batches", authMw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Load batch info
-		api.LoadBatchInfoHandler(ctx, w, r, clients)
-	}))).Methods("GET")
-
-	r.Handle("/batch", authMw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Create a new batch
-		api.CreateBatchHandler(ctx, w, r, clients)
-	}))).Methods("POST")
-
-	r.Handle("/batch/{batchID}", authMw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Rename a batch
-		api.RenameBatchHandler(ctx, w, r, clients)
-	}))).Methods("PUT")
-
-	r.Handle("/batch/{batchID}", authMw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Delete a batch
-		api.DeleteBatchHandler(ctx, w, r, clients)
-	}))).Methods("DELETE")
+	api.RegisterProjectRoutes(ctx, r, clients, authMw)
+	api.RegisterBatchRoutes(ctx, r, clients, authMw)
 
 }
 

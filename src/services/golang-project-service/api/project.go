@@ -11,6 +11,33 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func RegisterProjectRoutes(ctx context.Context, r *mux.Router, clients *gcp.Clients, authMw func(http.Handler) http.Handler) {
+	routes := []route{
+		{"GET", "/projects/{userID}", func(w http.ResponseWriter, r *http.Request) {
+			LoadProjectsHandler(ctx, w, r, clients)
+		}},
+		{"POST", "/projects", func(w http.ResponseWriter, r *http.Request) {
+			CreateProjectHandler(ctx, w, r, clients)
+		}},
+		{"PUT", "/projects/{projectID}", func(w http.ResponseWriter, r *http.Request) {
+			RenameProjectHandler(ctx, w, r, clients)
+		}},
+		{"DELETE", "/projects/{projectID}", func(w http.ResponseWriter, r *http.Request) {
+			DeleteProjectHandler(ctx, w, r, clients)
+		}},
+		{"PATCH", "/projects/{projectID}/numberoffiles", func(w http.ResponseWriter, r *http.Request) {
+			UpdateNumberOfFilesHandler(ctx, w, r, clients)
+		}},
+		{"GET", "/projects/{projectID}/batches", func(w http.ResponseWriter, r *http.Request) {
+			LoadBatchInfoHandler(ctx, w, r, clients)
+		}},
+	}
+
+	for _, rt := range routes {
+		r.Handle(rt.pattern, authMw(rt.handlerFunc)).Methods(rt.method)
+	}
+}
+
 func LoadProjectsHandler(ctx context.Context, w http.ResponseWriter, r *http.Request, clients *gcp.Clients) {
 	vars := mux.Vars(r)
 	userID := vars["userID"]
