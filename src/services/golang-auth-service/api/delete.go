@@ -1,4 +1,4 @@
-package auth
+package api
 
 import (
 	"context"
@@ -11,19 +11,21 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type LoginRequest struct {
+type DeleteRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-func LoginHandler(ctx context.Context, w http.ResponseWriter, r *http.Request, clients *gcp.Clients) {
-	var req LoginRequest
+// DeleteHandler deletes a user account if the email and password are correct.
+func DeleteHandler(ctx context.Context, w http.ResponseWriter, r *http.Request, clients *gcp.Clients) {
+	var req DeleteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
 	userStore := firestore.NewUserStore(clients.Firestore)
+	// Find the user by email
 	doc, err := userStore.FindByEmail(ctx, req.Email)
 	if err != nil {
 		http.Error(w, "Error finding user", http.StatusInternalServerError)
@@ -38,7 +40,6 @@ func LoginHandler(ctx context.Context, w http.ResponseWriter, r *http.Request, c
 		Email    string `firestore:"email"`
 		Password string `firestore:"password"`
 	}
-
 	if err := doc.DataTo(&userData); err != nil {
 		http.Error(w, "Error reading user data", http.StatusInternalServerError)
 		return
@@ -50,14 +51,13 @@ func LoginHandler(ctx context.Context, w http.ResponseWriter, r *http.Request, c
 		return
 	}
 
-	token, err := GenerateJWT(ctx, clients, userData.Email)
+	// Use DeleteUser to delete the user
+	err = userStore.DeleteUser(ctx, req.Email, userData.Password)
 	if err != nil {
-		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		http.Error(w, "Error deleting user", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"token": token,
-	})
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("User deleted"))
 }
