@@ -31,6 +31,10 @@ func setupHandlers(ctx context.Context, r *mux.Router, clients *gcp.Clients) {
 	r.Handle("/delete", auth.AuthMiddleware(clients)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth.DeleteHandler(ctx, w, r, clients)
 	}))).Methods("POST")
+
+	r.HandleFunc("/auth", func(w http.ResponseWriter, r *http.Request) {
+		auth.AuthHandler(ctx, w, r, clients)
+	}).Methods("POST")
 }
 
 func corsMiddleware(next http.Handler) http.Handler {
