@@ -7,6 +7,11 @@ import (
 	"github.com/joho/godotenv"
 )
 
+const (
+	PROJECTID_ENV string = "FIRESTORE_PROJECTID"
+	DATABSEID_ENV string = "FIRESTORE_DATABASEID"
+)
+
 type FireStoreClientConfig struct {
 	ProjectID  string
 	DatabaseID string

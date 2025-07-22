@@ -3,15 +3,21 @@ package firestore
 import (
 	"context"
 
+	fs "pkg/gcp/firestore"
+
 	"cloud.google.com/go/firestore"
+)
+
+const (
+	userCollectionID = "users"
 )
 
 type UserStore struct {
 	users *firestore.CollectionRef
 }
 
-func NewUserStore(client FirestoreClientInterface) *UserStore {
-	return &UserStore{users: client.GetUsersCollection()}
+func NewUserStore(client fs.FirestoreClientInterface) *UserStore {
+	return &UserStore{users: client.GetCollection(userCollectionID)}
 }
 
 func (s *UserStore) FindByEmail(ctx context.Context, email string) (*firestore.DocumentSnapshot, error) {

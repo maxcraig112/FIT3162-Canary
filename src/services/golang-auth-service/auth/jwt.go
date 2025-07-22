@@ -1,11 +1,11 @@
 package auth
 
 import (
-	"auth-service/gcp"
 	"context"
 	"errors"
 	"net/http"
 	"os"
+	"pkg/gcp"
 	"strings"
 	"time"
 

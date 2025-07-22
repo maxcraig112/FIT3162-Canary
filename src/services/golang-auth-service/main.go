@@ -7,7 +7,8 @@ import (
 	"os"
 
 	"auth-service/auth"
-	"auth-service/gcp"
+
+	"pkg/gcp"
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -60,7 +61,10 @@ func main() {
 	_ = godotenv.Load()
 	port := os.Getenv("PORT")
 
-	clients, err := gcp.InitialiseClients(ctx)
+	opts := gcp.ClientOptions{}
+	opts.LoadClientOptions()
+
+	clients, err := gcp.InitialiseClients(ctx, opts)
 	if err != nil {
 		log.Fatalf("Failed to initialize clients: %v", err)
 	}
@@ -68,7 +72,9 @@ func main() {
 	defer clients.CloseClients()
 
 	// get JWT secret and store it as ENV variable
-	secret, err := clients.GSM.GetJWTSecret(ctx) // your function to generate a secret
+	projectID := os.Getenv("GCP_PROJECT_ID")
+	secretName := os.Getenv("JWT_SECRET_NAME")
+	secret, err := clients.GSM.GetSecret(ctx, projectID, secretName) // your function to generate a secret
 	if err != nil {
 		log.Fatalf("Failed to retrieve JWT Secert: %v", err)
 	}

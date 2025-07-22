@@ -20,9 +20,9 @@ func NewGSMClient(ctx context.Context) (*GSMClient, error) {
 }
 
 // GetJWTSecret retrieves the JWT secret from Google Secret Manager using the secret name in .env.
-func (g *GSMClient) GetSecret(ctx context.Context, projectID string, secretName string, secretVersion string) (string, error) {
-	// Format: projects/{project}/secrets/{secret}/versions/latest
-	secretPath := fmt.Sprintf("projects/%s/secrets/%s/versions/%s", projectID, secretName, secretVersion)
+func (g *GSMClient) GetSecret(ctx context.Context, projectID string, secretName string) (string, error) {
+	// Format: projects/{project}/secrets/{secret}/versions/{secretVersion}
+	secretPath := fmt.Sprintf("projects/%s/secrets/%s/versions/%s", projectID, secretName, "latest")
 	req := &secretmanagerpb.AccessSecretVersionRequest{
 		Name: secretPath,
 	}

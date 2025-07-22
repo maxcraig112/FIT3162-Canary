@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"auth-service/gcp"
-	"auth-service/gcp/firestore"
+	"auth-service/firestore"
+	"pkg/gcp"
 
 	"golang.org/x/crypto/bcrypt"
 )

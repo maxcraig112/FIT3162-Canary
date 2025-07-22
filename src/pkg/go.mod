@@ -1,19 +1,22 @@
-module github.com/maxcraig112/FIT3162-Canary/src/libs/go/gcp/gsm
+module pkg
 
 go 1.23.0
 
 toolchain go1.23.11
 
 require (
+	cloud.google.com/go/firestore v1.18.0
 	cloud.google.com/go/secretmanager v1.15.0
 	github.com/joho/godotenv v1.5.1
 )
 
 require (
+	cloud.google.com/go v0.120.0 // indirect
 	cloud.google.com/go/auth v0.16.2 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.7.0 // indirect
 	cloud.google.com/go/iam v1.5.2 // indirect
+	cloud.google.com/go/longrunning v0.6.7 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect

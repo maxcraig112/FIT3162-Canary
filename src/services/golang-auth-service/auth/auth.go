@@ -1,10 +1,10 @@
 package auth
 
 import (
-	"auth-service/gcp"
 	"context"
 	"net/http"
 	"os"
+	"pkg/gcp"
 
 	"github.com/golang-jwt/jwt/v5"
 )

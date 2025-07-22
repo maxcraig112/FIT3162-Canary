@@ -9,23 +9,25 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"auth-service/gcp"
-	"auth-service/gcp/firestore"
+	authFirestore "auth-service/firestore"
+	"pkg/gcp"
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
 )
 
-func setupTestServer(ctx context.Context) *httptest.Server {
+func setupTestServer(ctx context.Context) (*gcp.Clients, *httptest.Server) {
 	_ = godotenv.Load()
-	clients, err := gcp.InitialiseClients(ctx)
+	opts := gcp.ClientOptions{}
+	opts.LoadClientOptions()
+	clients, err := gcp.InitialiseClients(ctx, opts)
 	if err != nil {
 		panic(err)
 	}
 	r := mux.NewRouter()
 	setupHandlers(ctx, r, clients)
-	return httptest.NewServer(r)
+	return clients, httptest.NewServer(r)
 }
 
 func randomEmail() string {
@@ -34,7 +36,7 @@ func randomEmail() string {
 
 func TestRegisterAndLoginFlow(t *testing.T) {
 	ctx := context.Background()
-	server := setupTestServer(ctx)
+	clients, server := setupTestServer(ctx)
 	defer server.Close()
 
 	email := randomEmail()
@@ -42,12 +44,9 @@ func TestRegisterAndLoginFlow(t *testing.T) {
 
 	// Always attempt to delete the user at the end, even if test fails
 	defer func() {
-		clients, err := gcp.InitialiseClients(ctx)
-		if err == nil && clients != nil {
-			defer clients.Firestore.Close()
-			userStore := firestore.NewUserStore(clients.Firestore)
-			_ = userStore.DeleteUser(ctx, email, password)
-		}
+		defer clients.Firestore.Close()
+		userStore := authFirestore.NewUserStore(clients.Firestore)
+		_ = userStore.DeleteUser(ctx, email, password)
 	}()
 
 	// 1. Register user
