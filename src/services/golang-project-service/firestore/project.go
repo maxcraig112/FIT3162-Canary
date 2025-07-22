@@ -10,8 +10,6 @@ import (
 	"errors"
 
 	"cloud.google.com/go/firestore"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 var ErrSameProjectName = errors.New("new project name is the same as the current one")
@@ -48,18 +46,6 @@ type ProjectStore struct {
 
 func NewProjectStore(client fs.FirestoreClientInterface) *ProjectStore {
 	return &ProjectStore{projects: client.GetCollection(projectCollectionID)}
-}
-
-func (s *ProjectStore) getDoc(ctx context.Context, projectID string) (*firestore.DocumentRef, *firestore.DocumentSnapshot, error) {
-	docRef := s.projects.Doc(projectID)
-	docSnap, err := docRef.Get(ctx)
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			return nil, nil, fmt.Errorf("%w: %s", ErrProjectNotFound, projectID)
-		}
-		return nil, nil, err
-	}
-	return docRef, docSnap, nil
 }
 
 func (s *ProjectStore) GetProjectsByUserID(ctx context.Context, userID string) ([]Project, error) {
