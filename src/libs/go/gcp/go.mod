@@ -1,4 +1,4 @@
-module github.com/maxcraig112/FIT3165-Canary/libs/go/gcp
+module github.com/maxcraig112/FIT3162-Canary/libs/go/gcp
 
 go 1.23.0
 

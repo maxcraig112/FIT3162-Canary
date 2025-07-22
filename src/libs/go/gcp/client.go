@@ -3,8 +3,8 @@ package gcp
 import (
 	"context"
 
-	fs "github.com/maxcraig112/FIT3165-Canary/libs/go/gcp/firestore"
-	"github.com/maxcraig112/FIT3165-Canary/libs/go/gcp/gsm"
+	fs "github.com/maxcraig112/FIT3162-Canary/libs/go/gcp/firestore"
+	"github.com/maxcraig112/FIT3162-Canary/libs/go/gcp/gsm"
 )
 
 // ClientOptions should be populated by each service so they specify which clients they intend on using
