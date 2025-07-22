@@ -46,6 +46,7 @@ func setupHandlers(ctx context.Context, r *mux.Router, clients *gcp.Clients) {
 	}))).Methods("DELETE")
 
 	r.Handle("/projects/{projectID}/numberoffiles", authMw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Increment the number of files in a project
 		api.UpdateNumberOfFilesHandler(ctx, w, r, clients)
 	}))).Methods("PATCH")
 
@@ -53,6 +54,12 @@ func setupHandlers(ctx context.Context, r *mux.Router, clients *gcp.Clients) {
 		// Load batch info
 		api.LoadBatchInfoHandler(ctx, w, r, clients)
 	}))).Methods("GET")
+
+	r.Handle("/projects/{projectID}/batches", authMw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Load batch info
+		api.LoadBatchInfoHandler(ctx, w, r, clients)
+	}))).Methods("Post")
+
 }
 
 func corsMiddleware(next http.Handler) http.Handler {

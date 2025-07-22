@@ -63,8 +63,11 @@ func (s *ProjectStore) getDoc(ctx context.Context, projectID string) (*firestore
 }
 
 func (s *ProjectStore) GetProjectsByUserID(ctx context.Context, userID string) ([]Project, error) {
-	iter := s.projects.Where("userID", "==", userID).Documents(ctx)
-	docs, err := iter.GetAll()
+	queryParams := []fs.QueryParameter{
+		{Path: "userID", Op: "==", Value: userID},
+	}
+	genericStore := fs.NewGenericStore(s.projects)
+	docs, err := genericStore.ReadCollection(ctx, queryParams)
 	if err != nil {
 		return nil, err
 	}
@@ -88,60 +91,37 @@ func (s *ProjectStore) CreateProject(ctx context.Context, createProjectReq Creat
 		"numberOfFiles": 0,
 		"lastUpdated":   time.Now(),
 	}
-	docRef, _, err := s.projects.Add(ctx, projectData)
-	if err != nil {
-		return "", err
-	}
-	return docRef.ID, nil
+
+	genericStore := fs.NewGenericStore(s.projects)
+	return genericStore.CreateDoc(ctx, projectData)
+
 }
 
 func (s *ProjectStore) RenameProject(ctx context.Context, projectID string, renameProjectReq RenameProjectRequest) error {
-	docRef, docSnap, err := s.getDoc(ctx, projectID)
-	if err != nil {
-		return err
-	}
-
-	currentName, err := docSnap.DataAt("projectName")
-	if err != nil {
-		return err
-	}
-	if currentName == renameProjectReq.NewProjectName {
-		return ErrSameProjectName
-	}
-
-	_, err = docRef.Update(ctx, []firestore.Update{
+	updateParams := []firestore.Update{
 		{Path: "projectName", Value: renameProjectReq.NewProjectName},
 		{Path: "lastUpdated", Value: time.Now()},
-	})
-	return err
+	}
+
+	genericStore := fs.NewGenericStore(s.projects)
+	return genericStore.UpdateField(ctx, projectID, updateParams)
 }
 
 func (s *ProjectStore) DeleteProject(ctx context.Context, projectID string) error {
-	docRef := s.projects.Doc(projectID)
-
-	_, err := docRef.Get(ctx)
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			return fmt.Errorf("%w: %s", ErrProjectNotFound, projectID)
-		}
-		return err
-	}
-
-	_, err = docRef.Delete(ctx)
-	return err
+	genericStore := fs.NewGenericStore(s.projects)
+	return genericStore.DeleteDoc(ctx, projectID)
 }
 
 func (s *ProjectStore) IncrementNumberOfFiles(ctx context.Context, projectID string, req UpdateNumberOfFilesRequest) (int64, error) {
-	docRef, docSnap, err := s.getDoc(ctx, projectID)
+	genericStore := fs.NewGenericStore(s.projects)
+	docSnap, err := genericStore.GetDoc(ctx, projectID)
 	if err != nil {
 		return 0, err
 	}
-
 	currentVal, err := docSnap.DataAt("numberOfFiles")
 	if err != nil {
 		return 0, err
 	}
-
 	currentInt, ok := currentVal.(int64)
 	if !ok {
 		return 0, fmt.Errorf("invalid type for numberOfFiles")
@@ -151,10 +131,6 @@ func (s *ProjectStore) IncrementNumberOfFiles(ctx context.Context, projectID str
 	if newVal < 0 {
 		newVal = 0
 	}
-
-	_, err = docRef.Update(ctx, []firestore.Update{
-		{Path: "numberOfFiles", Value: newVal},
-		{Path: "lastUpdated", Value: time.Now()},
-	})
+	err = genericStore.UpdateField(ctx, projectID, []firestore.Update{{Path: "numberOfFiles", Value: newVal}})
 	return newVal, err
 }
