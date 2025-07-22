@@ -22,9 +22,11 @@ const (
 )
 
 type Project struct {
-	ProjectID   string `firestore:"projectID,omitempty" json:"projectID"`
-	UserID      string `firestore:"userID,omitempty" json:"userID"`
-	ProjectName string `firestore:"projectName,omitempty" json:"projectName"`
+	ProjectID     string    `firestore:"projectID,omitempty" json:"projectID"`
+	ProjectName   string    `firestore:"projectName,omitempty" json:"projectName"`
+	UserID        string    `firestore:"userID,omitempty" json:"userID"`
+	NumberOfFiles int       `firestore:"numberOfFiles,omitempty" json:"numberOfFiles"`
+	LastUpdated   time.Time `firestore:"lastUpdated,omitempty" json:"lastUpdated"`
 }
 
 type CreateProjectRequest struct {
@@ -36,12 +38,28 @@ type RenameProjectRequest struct {
 	NewProjectName string `json:"newProjectName"`
 }
 
+type UpdateNumberOfFilesRequest struct {
+	Quantity int `json:"quantity"`
+}
+
 type ProjectStore struct {
 	projects *firestore.CollectionRef
 }
 
 func NewProjectStore(client fs.FirestoreClientInterface) *ProjectStore {
 	return &ProjectStore{projects: client.GetCollection(projectCollectionID)}
+}
+
+func (s *ProjectStore) getDoc(ctx context.Context, projectID string) (*firestore.DocumentRef, *firestore.DocumentSnapshot, error) {
+	docRef := s.projects.Doc(projectID)
+	docSnap, err := docRef.Get(ctx)
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			return nil, nil, fmt.Errorf("%w: %s", ErrProjectNotFound, projectID)
+		}
+		return nil, nil, err
+	}
+	return docRef, docSnap, nil
 }
 
 func (s *ProjectStore) GetProjectsByUserID(ctx context.Context, userID string) ([]Project, error) {
@@ -65,9 +83,10 @@ func (s *ProjectStore) GetProjectsByUserID(ctx context.Context, userID string) (
 
 func (s *ProjectStore) CreateProject(ctx context.Context, createProjectReq CreateProjectRequest) (string, error) {
 	projectData := map[string]interface{}{
-		"projectName": createProjectReq.ProjectName,
-		"userID":      createProjectReq.UserID,
-		"lastOpened":  time.Now(),
+		"projectName":   createProjectReq.ProjectName,
+		"userID":        createProjectReq.UserID,
+		"numberOfFiles": 0,
+		"lastUpdated":   time.Now(),
 	}
 	docRef, _, err := s.projects.Add(ctx, projectData)
 	if err != nil {
@@ -76,14 +95,9 @@ func (s *ProjectStore) CreateProject(ctx context.Context, createProjectReq Creat
 	return docRef.ID, nil
 }
 
-func (s *ProjectStore) RenameProject(ctx context.Context, docID string, renameProjectReq RenameProjectRequest) error {
-	docRef := s.projects.Doc(docID)
-
-	docSnap, err := docRef.Get(ctx)
+func (s *ProjectStore) RenameProject(ctx context.Context, projectID string, renameProjectReq RenameProjectRequest) error {
+	docRef, docSnap, err := s.getDoc(ctx, projectID)
 	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			return fmt.Errorf("%w: %s", ErrProjectNotFound, docID)
-		}
 		return err
 	}
 
@@ -97,21 +111,50 @@ func (s *ProjectStore) RenameProject(ctx context.Context, docID string, renamePr
 
 	_, err = docRef.Update(ctx, []firestore.Update{
 		{Path: "projectName", Value: renameProjectReq.NewProjectName},
+		{Path: "lastUpdated", Value: time.Now()},
 	})
 	return err
 }
 
-func (s *ProjectStore) DeleteProject(ctx context.Context, docID string) error {
-	docRef := s.projects.Doc(docID)
+func (s *ProjectStore) DeleteProject(ctx context.Context, projectID string) error {
+	docRef := s.projects.Doc(projectID)
 
 	_, err := docRef.Get(ctx)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
-			return fmt.Errorf("%w: %s", ErrProjectNotFound, docID)
+			return fmt.Errorf("%w: %s", ErrProjectNotFound, projectID)
 		}
 		return err
 	}
 
 	_, err = docRef.Delete(ctx)
 	return err
+}
+
+func (s *ProjectStore) IncrementNumberOfFiles(ctx context.Context, projectID string, req UpdateNumberOfFilesRequest) (int64, error) {
+	docRef, docSnap, err := s.getDoc(ctx, projectID)
+	if err != nil {
+		return 0, err
+	}
+
+	currentVal, err := docSnap.DataAt("numberOfFiles")
+	if err != nil {
+		return 0, err
+	}
+
+	currentInt, ok := currentVal.(int64)
+	if !ok {
+		return 0, fmt.Errorf("invalid type for numberOfFiles")
+	}
+
+	newVal := currentInt + int64(req.Quantity)
+	if newVal < 0 {
+		newVal = 0
+	}
+
+	_, err = docRef.Update(ctx, []firestore.Update{
+		{Path: "numberOfFiles", Value: newVal},
+		{Path: "lastUpdated", Value: time.Now()},
+	})
+	return newVal, err
 }

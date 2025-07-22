@@ -76,7 +76,7 @@ func RenameProjectHandler(ctx context.Context, w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(fmt.Sprintf("Project %s named to %s", projectID, req.NewProjectName)))
 }
 
@@ -98,6 +98,26 @@ func DeleteProjectHandler(ctx context.Context, w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(fmt.Sprintf("Project %s deleted", projectID)))
+}
+
+func UpdateNumberOfFilesHandler(ctx context.Context, w http.ResponseWriter, r *http.Request, clients *gcp.Clients) {
+	vars := mux.Vars(r)
+	projectID := vars["projectID"]
+
+	var req firestore.UpdateNumberOfFilesRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	projectStore := firestore.NewProjectStore(clients.Firestore)
+	newVal, err := projectStore.IncrementNumberOfFiles(ctx, projectID, req)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error updating number of files for project %s", projectID), http.StatusInternalServerError)
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Project: %s numberOfFiles: %d", projectID, newVal)
 }

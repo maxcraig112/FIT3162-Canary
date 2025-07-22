@@ -45,6 +45,10 @@ func setupHandlers(ctx context.Context, r *mux.Router, clients *gcp.Clients) {
 		api.DeleteProjectHandler(ctx, w, r, clients)
 	}))).Methods("DELETE")
 
+	r.Handle("/projects/{projectID}/numberoffiles", authMw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		api.UpdateNumberOfFilesHandler(ctx, w, r, clients)
+	}))).Methods("PATCH")
+
 	r.Handle("/projects/{projectID}/batches", authMw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Load batch info
 		api.LoadBatchInfoHandler(ctx, w, r, clients)
