@@ -55,10 +55,20 @@ func setupHandlers(ctx context.Context, r *mux.Router, clients *gcp.Clients) {
 		api.LoadBatchInfoHandler(ctx, w, r, clients)
 	}))).Methods("GET")
 
-	r.Handle("/projects/{projectID}/batches", authMw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Load batch info
-		api.LoadBatchInfoHandler(ctx, w, r, clients)
-	}))).Methods("Post")
+	r.Handle("/batch", authMw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Create a new batch
+		api.CreateBatchHandler(ctx, w, r, clients)
+	}))).Methods("POST")
+
+	r.Handle("/batch/{batchID}", authMw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Rename a batch
+		api.RenameBatchHandler(ctx, w, r, clients)
+	}))).Methods("PUT")
+
+	r.Handle("/batch/{batchID}", authMw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Delete a batch
+		api.DeleteBatchHandler(ctx, w, r, clients)
+	}))).Methods("DELETE")
 
 }
 

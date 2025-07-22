@@ -3,31 +3,32 @@ package firestore
 import (
 	"context"
 	"fmt"
+	"time"
 
 	fs "pkg/gcp/firestore"
 
 	"errors"
 
 	"cloud.google.com/go/firestore"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 var ErrSameBatchName = errors.New("new batch name is the same as the current one")
 var ErrBatchNotFound = errors.New("batch not found")
 
 const (
-	batchCollectionID = "batchs"
+	batchCollectionID = "batches"
 )
 
 type Batch struct {
-	BatchID   string `firestore:"batchID,omitempty" json:"batchID"`
-	BatchName string `firestore:"batchName,omitempty" json:"batchName"`
-	ProjectID string `firestore:"userID,omitempty" json:"userID"`
+	BatchID                string `firestore:"batchID,omitempty" json:"batchID"`
+	BatchName              string `firestore:"batchName,omitempty" json:"batchName"`
+	ProjectID              string `firestore:"projectID,omitempty" json:"projectID"`
+	NumberOfTotalFiles     int    `firestore:"numberOfTotalFiles,omitempty" json:"numberOfTotalFiles"`
+	NumberOfAnnotatedFiles int    `firestore:"numberOfAnnotatedFiles,omitempty" json:"numberOfAnnotatedFiles"`
 }
 
 type CreateBatchRequest struct {
-	UserID    string `json:"userID"`
+	ProjectID string `json:"projectID"`
 	BatchName string `json:"batchName"`
 }
 
@@ -36,80 +37,106 @@ type RenameBatchRequest struct {
 }
 
 type BatchStore struct {
-	batchs *firestore.CollectionRef
+	batches *firestore.CollectionRef
 }
 
 func NewBatchStore(client fs.FirestoreClientInterface) *BatchStore {
-	return &BatchStore{batchs: client.GetCollection(batchCollectionID)}
+	return &BatchStore{batches: client.GetCollection(batchCollectionID)}
 }
 
-func (s *BatchStore) GetBatchsByUserID(ctx context.Context, userID string) ([]Batch, error) {
-	iter := s.batchs.Where("userID", "==", userID).Documents(ctx)
-	docs, err := iter.GetAll()
+func (s *BatchStore) GetBatchesByProjectID(ctx context.Context, projectID string) ([]Batch, error) {
+	queryParams := []fs.QueryParameter{
+		{Path: "projectID", Op: "==", Value: projectID},
+	}
+	genericStore := fs.NewGenericStore(s.batches)
+	docs, err := genericStore.ReadCollection(ctx, queryParams)
 	if err != nil {
 		return nil, err
 	}
 
-	batchs := make([]Batch, 0, len(docs))
+	batches := make([]Batch, 0, len(docs))
 	for _, doc := range docs {
 		var p Batch
 		if err := doc.DataTo(&p); err != nil {
 			return nil, err
 		}
 		p.BatchID = doc.Ref.ID
-		batchs = append(batchs, p)
+		batches = append(batches, p)
 	}
-	return batchs, nil
+	return batches, nil
 }
 
 func (s *BatchStore) CreateBatch(ctx context.Context, createBatchReq CreateBatchRequest) (string, error) {
 	batchData := map[string]interface{}{
-		"batchName": createBatchReq.BatchName,
-		"userID":    createBatchReq.UserID,
+		"batchName":              createBatchReq.BatchName,
+		"projectID":              createBatchReq.ProjectID,
+		"lastUpdated":            time.Now(),
+		"numberOfTotalFiles":     0,
+		"numberOfAnnotatedFiles": 0,
 	}
-	docRef, _, err := s.batchs.Add(ctx, batchData)
-	if err != nil {
-		return "", err
-	}
-	return docRef.ID, nil
+
+	genericStore := fs.NewGenericStore(s.batches)
+	return genericStore.CreateDoc(ctx, batchData)
+
 }
 
-func (s *BatchStore) RenameBatch(ctx context.Context, docID string, renameBatchReq RenameBatchRequest) error {
-	docRef := s.batchs.Doc(docID)
-
-	docSnap, err := docRef.Get(ctx)
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			return fmt.Errorf("%w: %s", ErrBatchNotFound, docID)
-		}
-		return err
-	}
-
-	currentName, err := docSnap.DataAt("batchName")
-	if err != nil {
-		return err
-	}
-	if currentName == renameBatchReq.NewBatchName {
-		return ErrSameBatchName
-	}
-
-	_, err = docRef.Update(ctx, []firestore.Update{
+func (s *BatchStore) RenameBatch(ctx context.Context, batchID string, renameBatchReq RenameBatchRequest) error {
+	updateParams := []firestore.Update{
 		{Path: "batchName", Value: renameBatchReq.NewBatchName},
-	})
-	return err
-}
-
-func (s *BatchStore) DeleteBatch(ctx context.Context, docID string) error {
-	docRef := s.batchs.Doc(docID)
-
-	_, err := docRef.Get(ctx)
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			return fmt.Errorf("%w: %s", ErrBatchNotFound, docID)
-		}
-		return err
+		{Path: "lastUpdated", Value: time.Now()},
 	}
 
-	_, err = docRef.Delete(ctx)
-	return err
+	genericStore := fs.NewGenericStore(s.batches)
+	return genericStore.UpdateField(ctx, batchID, updateParams)
+}
+
+func (s *BatchStore) DeleteBatch(ctx context.Context, batchID string) error {
+	genericStore := fs.NewGenericStore(s.batches)
+	return genericStore.DeleteDoc(ctx, batchID)
+}
+
+func (s *BatchStore) IncrementNumberOfTotalFiles(ctx context.Context, batchID string, req UpdateNumberOfFilesRequest) (int64, error) {
+	genericStore := fs.NewGenericStore(s.batches)
+	docSnap, err := genericStore.GetDoc(ctx, batchID)
+	if err != nil {
+		return 0, err
+	}
+	currentVal, err := docSnap.DataAt("numberOfTotalFiles")
+	if err != nil {
+		return 0, err
+	}
+	currentInt, ok := currentVal.(int64)
+	if !ok {
+		return 0, fmt.Errorf("invalid type for numberOfTotalFiles")
+	}
+
+	newVal := currentInt + int64(req.Quantity)
+	if newVal < 0 {
+		newVal = 0
+	}
+	err = genericStore.UpdateField(ctx, batchID, []firestore.Update{{Path: "numberOfTotalFiles", Value: newVal}})
+	return newVal, err
+}
+
+func (s *BatchStore) IncrementNumberOfAnnotatedFiles(ctx context.Context, batchID string, req UpdateNumberOfFilesRequest) (int64, error) {
+	genericStore := fs.NewGenericStore(s.batches)
+	docSnap, err := genericStore.GetDoc(ctx, batchID)
+	if err != nil {
+		return 0, err
+	}
+	currentVal, err := docSnap.DataAt("numberOfAnnotatedFiles")
+	if err != nil {
+		return 0, err
+	}
+	currentInt, ok := currentVal.(int64)
+	if !ok {
+		return 0, fmt.Errorf("invalid type for numberOfAnnotatedFiles")
+	}
+
+	newVal := currentInt + int64(req.Quantity)
+	if newVal < 0 {
+		newVal = 0
+	}
+	err = genericStore.UpdateField(ctx, batchID, []firestore.Update{{Path: "numberOfAnnotatedFiles", Value: newVal}})
+	return newVal, err
 }

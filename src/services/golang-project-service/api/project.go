@@ -57,20 +57,6 @@ func RenameProjectHandler(ctx context.Context, w http.ResponseWriter, r *http.Re
 	projectStore := firestore.NewProjectStore(clients.Firestore)
 	err := projectStore.RenameProject(ctx, projectID, req)
 
-	switch err {
-	case nil:
-		break
-	case firestore.ErrSameProjectName:
-		http.Error(w, firestore.ErrSameProjectName.Error(), http.StatusBadRequest)
-		return
-	case firestore.ErrProjectNotFound:
-		http.Error(w, firestore.ErrSameProjectName.Error(), http.StatusBadRequest)
-		return
-	default:
-		http.Error(w, "Error renaming project", http.StatusInternalServerError)
-		return
-	}
-
 	if err != nil {
 		http.Error(w, "Error renaming project", http.StatusInternalServerError)
 		return
@@ -87,14 +73,8 @@ func DeleteProjectHandler(ctx context.Context, w http.ResponseWriter, r *http.Re
 	projectStore := firestore.NewProjectStore(clients.Firestore)
 	err := projectStore.DeleteProject(ctx, projectID)
 
-	switch err {
-	case nil:
-		break
-	case firestore.ErrProjectNotFound:
-		http.Error(w, firestore.ErrSameProjectName.Error(), http.StatusBadRequest)
-		return
-	default:
-		http.Error(w, "Error renaming project", http.StatusInternalServerError)
+	if err != nil {
+		http.Error(w, "Error deleting project", http.StatusInternalServerError)
 		return
 	}
 

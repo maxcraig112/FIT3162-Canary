@@ -7,13 +7,8 @@ import (
 
 	fs "pkg/gcp/firestore"
 
-	"errors"
-
 	"cloud.google.com/go/firestore"
 )
-
-var ErrSameProjectName = errors.New("new project name is the same as the current one")
-var ErrProjectNotFound = errors.New("project not found")
 
 const (
 	projectCollectionID = "projects"
