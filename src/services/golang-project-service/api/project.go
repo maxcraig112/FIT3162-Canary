@@ -26,10 +26,15 @@ func RegisterProjectRoutes(r *mux.Router, h *handler.Handler) {
 	ph := newProjectHandler(h)
 
 	routes := []route{
+		// Get all projects owned by a user
 		{"GET", "/projects/{userID}", ph.LoadProjectsHandler},
+		// Create a project
 		{"POST", "/projects", ph.CreateProjectHandler},
+		// Update the name of the project
 		{"PUT", "/projects/{projectID}", ph.RenameProjectHandler},
+		// Delete a project
 		{"DELETE", "/projects/{projectID}", ph.DeleteProjectHandler},
+		// Increment the number of files a project has
 		{"PATCH", "/projects/{projectID}/numberoffiles", ph.UpdateNumberOfFilesHandler},
 	}
 
@@ -107,7 +112,7 @@ func (h *ProjectHandler) UpdateNumberOfFilesHandler(w http.ResponseWriter, r *ht
 	vars := mux.Vars(r)
 	projectID := vars["projectID"]
 
-	var req firestore.UpdateNumberOfFilesRequest
+	var req firestore.IncrementQuantityRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return

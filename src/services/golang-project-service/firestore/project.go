@@ -31,7 +31,7 @@ type RenameProjectRequest struct {
 	NewProjectName string `json:"newProjectName"`
 }
 
-type UpdateNumberOfFilesRequest struct {
+type IncrementQuantityRequest struct {
 	Quantity int `json:"quantity"`
 }
 
@@ -93,7 +93,7 @@ func (s *ProjectStore) DeleteProject(ctx context.Context, projectID string) erro
 	return genericStore.DeleteDoc(ctx, projectID)
 }
 
-func (s *ProjectStore) IncrementNumberOfFiles(ctx context.Context, projectID string, req UpdateNumberOfFilesRequest) (int64, error) {
+func (s *ProjectStore) IncrementNumberOfFiles(ctx context.Context, projectID string, req IncrementQuantityRequest) (int64, error) {
 	genericStore := fs.NewGenericStore(s.projects)
 	docSnap, err := genericStore.GetDoc(ctx, projectID)
 	if err != nil {

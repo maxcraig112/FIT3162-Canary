@@ -95,7 +95,7 @@ func (s *BatchStore) DeleteBatch(ctx context.Context, batchID string) error {
 	return genericStore.DeleteDoc(ctx, batchID)
 }
 
-func (s *BatchStore) IncrementNumberOfTotalFiles(ctx context.Context, batchID string, req UpdateNumberOfFilesRequest) (int64, error) {
+func (s *BatchStore) IncrementNumberOfTotalFiles(ctx context.Context, batchID string, req IncrementQuantityRequest) (int64, error) {
 	genericStore := fs.NewGenericStore(s.batches)
 	docSnap, err := genericStore.GetDoc(ctx, batchID)
 	if err != nil {
@@ -118,7 +118,7 @@ func (s *BatchStore) IncrementNumberOfTotalFiles(ctx context.Context, batchID st
 	return newVal, err
 }
 
-func (s *BatchStore) IncrementNumberOfAnnotatedFiles(ctx context.Context, batchID string, req UpdateNumberOfFilesRequest) (int64, error) {
+func (s *BatchStore) IncrementNumberOfAnnotatedFiles(ctx context.Context, batchID string, req IncrementQuantityRequest) (int64, error) {
 	genericStore := fs.NewGenericStore(s.batches)
 	docSnap, err := genericStore.GetDoc(ctx, batchID)
 	if err != nil {

@@ -26,10 +26,18 @@ func RegisterBatchRoutes(r *mux.Router, h *handler.Handler) {
 	bh := newBatchHandler(h)
 
 	routes := []route{
+		// Create a batch
 		{"POST", "/batch", bh.CreateBatchHandler},
+		// Rename a batch
 		{"PUT", "/batch/{batchID}", bh.RenameBatchHandler},
+		// Delete a batch
 		{"DELETE", "/batch/{batchID}", bh.DeleteBatchHandler},
+		// Get all batches associated with a project
 		{"GET", "/projects/{projectID}/batches", bh.LoadBatchInfoHandler},
+		// Increment numberOfTotalFiles
+		{"PATCH", "/batch/{batchID}/numberofTotalFiles", bh.UpdateNumberOfTotalFilesHandler},
+		// Increment numberOfAnnotatedFiles
+		{"PATCH", "/batch/{batchID}/numberofAnnotatedFiles", bh.UpdateNumberOfAnnotatedFilesHandler},
 	}
 
 	for _, rt := range routes {
@@ -100,4 +108,44 @@ func (h *BatchHandler) DeleteBatchHandler(w http.ResponseWriter, r *http.Request
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(fmt.Sprintf("Batch %s deleted", batchID)))
+}
+
+func (h *BatchHandler) UpdateNumberOfTotalFilesHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	batchID := vars["batchID"]
+
+	var req firestore.IncrementQuantityRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	newVal, err := h.BatchStore.IncrementNumberOfTotalFiles(h.Ctx, batchID, req)
+	if err != nil {
+		http.Error(w, "Error deleting batch", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Batch: %s numberOfTotalFiles: %d", batchID, newVal)
+}
+
+func (h *BatchHandler) UpdateNumberOfAnnotatedFilesHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	batchID := vars["batchID"]
+
+	var req firestore.IncrementQuantityRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	newVal, err := h.BatchStore.IncrementNumberOfAnnotatedFiles(h.Ctx, batchID, req)
+	if err != nil {
+		http.Error(w, "Error deleting batch", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Batch: %s numberOfAnnotatedFiles: %d", batchID, newVal)
 }
