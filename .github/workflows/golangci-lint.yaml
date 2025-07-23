@@ -18,11 +18,15 @@ jobs:
         with:
           go-version: 1.22
 
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v4
-        with:
-          version: v1.58.1
-          args: >
-            run
-            ./src/Services/...
-            ./src/pkg/...
+      - name: Run golangci-lint in src/pkg
+        working-directory: src/pkg
+        run: golangci-lint run ./...
+
+      - name: Run golangci-lint in src/Services
+        working-directory: src/Services/golang-project-service
+        run: golangci-lint run ./...
+
+      - name: Run golangci-lint in src/Services
+        working-directory: src/Services/golang-auth-service
+        run: golangci-lint run ./...
+
