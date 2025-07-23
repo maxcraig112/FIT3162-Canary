@@ -20,16 +20,16 @@ jobs:
 
       - name: Run golangci-lint in src/pkg
         uses: golangci/golangci-lint-action@v4
-        working-directory: src/pkg
-        run: golangci-lint run ./...
+        with:
+          working-directory: src/pkg
 
-      - name: Run golangci-lint in src/Services
+      - name: Run golangci-lint in src/Services/golang-project-service
         uses: golangci/golangci-lint-action@v4
-        working-directory: src/Services/golang-project-service
-        run: golangci-lint run ./...
+        with:
+          working-directory: src/Services/golang-project-service
 
-      - name: Run golangci-lint in src/Services
+      - name: Run golangci-lint in src/Services/golang-auth-service
         uses: golangci/golangci-lint-action@v4
-        working-directory: src/Services/golang-auth-service
-        run: golangci-lint run ./...
+        with:
+          working-directory: src/Services/golang-auth-service
 
