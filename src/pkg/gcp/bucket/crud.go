@@ -23,7 +23,10 @@ func NewGenericBucket(bucket BucketClientInterface) *GenericBucket {
 func (b *GenericBucket) CreateObject(ctx context.Context, objectName string, data io.Reader) (string, error) {
 	wc := b.bucket.Object(objectName).NewWriter(ctx)
 	if _, err := io.Copy(wc, data); err != nil {
-		wc.Close()
+		err := wc.Close()
+		if err != nil {
+			return "", fmt.Errorf("failed to close bucket writer: %w", err)
+		}
 		return "", fmt.Errorf("failed to write object: %w", err)
 	}
 	if err := wc.Close(); err != nil {
@@ -46,8 +49,4 @@ func (b *GenericBucket) CreateObjectsBatch(ctx context.Context, objects ObjectMa
 	}
 
 	return urls, nil
-}
-
-func (b *GenericBucket) DeleteObject(ctx context.Context, objectName string) error {
-	return b.DeleteObject(ctx, objectName)
 }
