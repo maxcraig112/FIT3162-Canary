@@ -36,6 +36,8 @@ func RegisterProjectRoutes(r *mux.Router, h *handler.Handler) {
 		{"DELETE", "/projects/{projectID}", ph.DeleteProjectHandler},
 		// Increment the number of files a project has
 		{"PATCH", "/projects/{projectID}/numberoffiles", ph.UpdateNumberOfFilesHandler},
+		// Update project settings
+		{"PATH", "/projects/{projectID}/settings", ph.UpdateSettingsHandler},
 	}
 
 	for _, rt := range routes {
@@ -54,6 +56,7 @@ func (h *ProjectHandler) LoadProjectsHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(projects)
 }
 
@@ -126,4 +129,25 @@ func (h *ProjectHandler) UpdateNumberOfFilesHandler(w http.ResponseWriter, r *ht
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "Project: %s numberOfFiles: %d", projectID, newVal)
+}
+
+func (h *ProjectHandler) UpdateSettingsHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	projectID := vars["projectID"]
+
+	var req firestore.ProjectSettings
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	settings, err := h.ProjectStore.UpdateProjectSettings(h.Ctx, projectID, req)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error updating project %s settings", projectID), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(settings)
 }
