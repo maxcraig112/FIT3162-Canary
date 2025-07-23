@@ -15,11 +15,12 @@ type QueryParameter struct {
 }
 
 type GenericStore struct {
+	client     FirestoreClientInterface
 	collection *firestore.CollectionRef
 }
 
-func NewGenericStore(collection *firestore.CollectionRef) *GenericStore {
-	return &GenericStore{collection: collection}
+func NewGenericStore(client FirestoreClientInterface, collectionID string) *GenericStore {
+	return &GenericStore{client: client, collection: client.GetCollection(collectionID)}
 }
 
 var ErrNotFound = status.Error(codes.NotFound, "document not found")
@@ -30,6 +31,34 @@ func (s *GenericStore) CreateDoc(ctx context.Context, data interface{}) (string,
 		return "", err
 	}
 	return docRef.ID, nil
+}
+
+func (s *GenericStore) CreateDocsBatch(ctx context.Context, docs []interface{}) ([]string, error) {
+	bulkWriter := s.client.BulkWriter(ctx)
+	ids := make([]string, len(docs))
+	errChan := make(chan error, len(docs))
+
+	for i, data := range docs {
+		docRef := s.collection.NewDoc()
+		ids[i] = docRef.ID
+
+		_, err := bulkWriter.Set(docRef, data)
+		if err != nil {
+			errChan <- err
+		}
+	}
+	// End sends all the documents simulatenously and closes the channel
+	bulkWriter.End()
+
+	// Check for individual errors
+	close(errChan)
+	for err := range errChan {
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return ids, nil
 }
 
 func (s *GenericStore) ReadCollection(ctx context.Context, query []QueryParameter) ([]*firestore.DocumentSnapshot, error) {

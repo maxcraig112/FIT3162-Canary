@@ -25,7 +25,7 @@ func newProjectHandler(h *handler.Handler) *ProjectHandler {
 func RegisterProjectRoutes(r *mux.Router, h *handler.Handler) {
 	ph := newProjectHandler(h)
 
-	routes := []route{
+	routes := []Route{
 		// Get all projects owned by a user
 		{"GET", "/projects/{userID}", ph.LoadProjectsHandler},
 		// Create a project

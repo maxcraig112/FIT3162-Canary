@@ -2,7 +2,7 @@ package api
 
 import "net/http"
 
-type route struct {
+type Route struct {
 	method      string
 	pattern     string
 	handlerFunc http.HandlerFunc

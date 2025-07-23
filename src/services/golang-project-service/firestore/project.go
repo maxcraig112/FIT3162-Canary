@@ -50,7 +50,7 @@ type ProjectStore struct {
 }
 
 func NewProjectStore(client fs.FirestoreClientInterface) *ProjectStore {
-	return &ProjectStore{genericStore: fs.NewGenericStore(client.GetCollection(projectCollectionID))}
+	return &ProjectStore{genericStore: fs.NewGenericStore(client, projectCollectionID)}
 }
 
 func (s *ProjectStore) GetProjectsByUserID(ctx context.Context, userID string) ([]Project, error) {

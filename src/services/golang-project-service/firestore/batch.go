@@ -37,19 +37,18 @@ type RenameBatchRequest struct {
 }
 
 type BatchStore struct {
-	batches *firestore.CollectionRef
+	genericStore *fs.GenericStore
 }
 
 func NewBatchStore(client fs.FirestoreClientInterface) *BatchStore {
-	return &BatchStore{batches: client.GetCollection(batchCollectionID)}
+	return &BatchStore{genericStore: fs.NewGenericStore(client, batchCollectionID)}
 }
 
 func (s *BatchStore) GetBatchesByProjectID(ctx context.Context, projectID string) ([]Batch, error) {
 	queryParams := []fs.QueryParameter{
 		{Path: "projectID", Op: "==", Value: projectID},
 	}
-	genericStore := fs.NewGenericStore(s.batches)
-	docs, err := genericStore.ReadCollection(ctx, queryParams)
+	docs, err := s.genericStore.ReadCollection(ctx, queryParams)
 	if err != nil {
 		return nil, err
 	}
@@ -75,8 +74,7 @@ func (s *BatchStore) CreateBatch(ctx context.Context, createBatchReq CreateBatch
 		"numberOfAnnotatedFiles": 0,
 	}
 
-	genericStore := fs.NewGenericStore(s.batches)
-	return genericStore.CreateDoc(ctx, batchData)
+	return s.genericStore.CreateDoc(ctx, batchData)
 
 }
 
@@ -86,18 +84,15 @@ func (s *BatchStore) RenameBatch(ctx context.Context, batchID string, renameBatc
 		{Path: "lastUpdated", Value: time.Now()},
 	}
 
-	genericStore := fs.NewGenericStore(s.batches)
-	return genericStore.UpdateField(ctx, batchID, updateParams)
+	return s.genericStore.UpdateField(ctx, batchID, updateParams)
 }
 
 func (s *BatchStore) DeleteBatch(ctx context.Context, batchID string) error {
-	genericStore := fs.NewGenericStore(s.batches)
-	return genericStore.DeleteDoc(ctx, batchID)
+	return s.genericStore.DeleteDoc(ctx, batchID)
 }
 
 func (s *BatchStore) IncrementNumberOfTotalFiles(ctx context.Context, batchID string, req IncrementQuantityRequest) (int64, error) {
-	genericStore := fs.NewGenericStore(s.batches)
-	docSnap, err := genericStore.GetDoc(ctx, batchID)
+	docSnap, err := s.genericStore.GetDoc(ctx, batchID)
 	if err != nil {
 		return 0, err
 	}
@@ -114,13 +109,12 @@ func (s *BatchStore) IncrementNumberOfTotalFiles(ctx context.Context, batchID st
 	if newVal < 0 {
 		newVal = 0
 	}
-	err = genericStore.UpdateField(ctx, batchID, []firestore.Update{{Path: "numberOfTotalFiles", Value: newVal}})
+	err = s.genericStore.UpdateField(ctx, batchID, []firestore.Update{{Path: "numberOfTotalFiles", Value: newVal}})
 	return newVal, err
 }
 
 func (s *BatchStore) IncrementNumberOfAnnotatedFiles(ctx context.Context, batchID string, req IncrementQuantityRequest) (int64, error) {
-	genericStore := fs.NewGenericStore(s.batches)
-	docSnap, err := genericStore.GetDoc(ctx, batchID)
+	docSnap, err := s.genericStore.GetDoc(ctx, batchID)
 	if err != nil {
 		return 0, err
 	}
@@ -137,6 +131,6 @@ func (s *BatchStore) IncrementNumberOfAnnotatedFiles(ctx context.Context, batchI
 	if newVal < 0 {
 		newVal = 0
 	}
-	err = genericStore.UpdateField(ctx, batchID, []firestore.Update{{Path: "numberOfAnnotatedFiles", Value: newVal}})
+	err = s.genericStore.UpdateField(ctx, batchID, []firestore.Update{{Path: "numberOfAnnotatedFiles", Value: newVal}})
 	return newVal, err
 }

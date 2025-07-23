@@ -25,7 +25,7 @@ func newBatchHandler(h *handler.Handler) *BatchHandler {
 func RegisterBatchRoutes(r *mux.Router, h *handler.Handler) {
 	bh := newBatchHandler(h)
 
-	routes := []route{
+	routes := []Route{
 		// Create a batch
 		{"POST", "/batch", bh.CreateBatchHandler},
 		// Rename a batch
