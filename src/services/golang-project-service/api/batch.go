@@ -1,42 +1,49 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"pkg/gcp"
+	"pkg/handler"
 	"project-service/firestore"
 
 	"github.com/gorilla/mux"
 )
 
-func RegisterBatchRoutes(ctx context.Context, r *mux.Router, clients *gcp.Clients, authMw func(http.Handler) http.Handler) {
-	routes := []route{
-		{"POST", "/batch", func(w http.ResponseWriter, r *http.Request) {
-			CreateBatchHandler(ctx, w, r, clients)
-		}},
-		{"PUT", "/batch/{batchID}", func(w http.ResponseWriter, r *http.Request) {
-			RenameBatchHandler(ctx, w, r, clients)
-		}},
-		{"DELETE", "/batch/{batchID}", func(w http.ResponseWriter, r *http.Request) {
-			DeleteBatchHandler(ctx, w, r, clients)
-		}},
-	}
+type BatchHandler struct {
+	*handler.Handler
+	BatchStore *firestore.BatchStore
+}
 
-	for _, rt := range routes {
-		r.Handle(rt.pattern, authMw(rt.handlerFunc)).Methods(rt.method)
+func newBatchHandler(h *handler.Handler) *BatchHandler {
+	return &BatchHandler{
+		Handler:    h,
+		BatchStore: firestore.NewBatchStore(h.Clients.Firestore),
 	}
 }
 
-func LoadBatchInfoHandler(ctx context.Context, w http.ResponseWriter, r *http.Request, clients *gcp.Clients) {
+func RegisterBatchRoutes(r *mux.Router, h *handler.Handler) {
+	bh := newBatchHandler(h)
+
+	routes := []route{
+		{"POST", "/batch", bh.CreateBatchHandler},
+		{"PUT", "/batch/{batchID}", bh.RenameBatchHandler},
+		{"DELETE", "/batch/{batchID}", bh.DeleteBatchHandler},
+		{"GET", "/projects/{projectID}/batches", bh.LoadBatchInfoHandler},
+	}
+
+	for _, rt := range routes {
+		r.Handle(rt.pattern, h.AuthMw(http.HandlerFunc(rt.handlerFunc))).Methods(rt.method)
+	}
+}
+
+func (h *BatchHandler) LoadBatchInfoHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	projectID := vars["projectID"]
 
-	batchStore := firestore.NewBatchStore(clients.Firestore)
-	batches, err := batchStore.GetBatchesByProjectID(ctx, projectID)
+	batches, err := h.BatchStore.GetBatchesByProjectID(h.Ctx, projectID)
 	if err != nil {
-		http.Error(w, "Error getting projects", http.StatusInternalServerError)
+		http.Error(w, "Error getting batches", http.StatusInternalServerError)
 		return
 	}
 
@@ -44,25 +51,24 @@ func LoadBatchInfoHandler(ctx context.Context, w http.ResponseWriter, r *http.Re
 	json.NewEncoder(w).Encode(batches)
 }
 
-func CreateBatchHandler(ctx context.Context, w http.ResponseWriter, r *http.Request, clients *gcp.Clients) {
+func (h *BatchHandler) CreateBatchHandler(w http.ResponseWriter, r *http.Request) {
 	var req firestore.CreateBatchRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	batchStore := firestore.NewBatchStore(clients.Firestore)
-	batcheID, err := batchStore.CreateBatch(ctx, req)
+	batchID, err := h.BatchStore.CreateBatch(h.Ctx, req)
 	if err != nil {
 		http.Error(w, "Error creating batch", http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(fmt.Sprintf("Batch %s created", batcheID)))
+	w.Write([]byte(fmt.Sprintf("Batch %s created", batchID)))
 }
 
-func RenameBatchHandler(ctx context.Context, w http.ResponseWriter, r *http.Request, clients *gcp.Clients) {
+func (h *BatchHandler) RenameBatchHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	batchID := vars["batchID"]
 
@@ -72,9 +78,7 @@ func RenameBatchHandler(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	batchStore := firestore.NewBatchStore(clients.Firestore)
-	err := batchStore.RenameBatch(ctx, batchID, req)
-
+	err := h.BatchStore.RenameBatch(h.Ctx, batchID, req)
 	if err != nil {
 		http.Error(w, "Error renaming batch", http.StatusInternalServerError)
 		return
@@ -84,13 +88,11 @@ func RenameBatchHandler(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	w.Write([]byte(fmt.Sprintf("Batch %s named to %s", batchID, req.NewBatchName)))
 }
 
-func DeleteBatchHandler(ctx context.Context, w http.ResponseWriter, r *http.Request, clients *gcp.Clients) {
+func (h *BatchHandler) DeleteBatchHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	batchID := vars["batchID"]
 
-	batchStore := firestore.NewBatchStore(clients.Firestore)
-	err := batchStore.DeleteBatch(ctx, batchID)
-
+	err := h.BatchStore.DeleteBatch(h.Ctx, batchID)
 	if err != nil {
 		http.Error(w, "Error deleting batch", http.StatusInternalServerError)
 		return

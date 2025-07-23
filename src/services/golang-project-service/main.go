@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"pkg/gcp"
+	"pkg/handler"
 	"pkg/jwt"
 	"project-service/api"
 
@@ -29,8 +30,9 @@ func setupHandlers(ctx context.Context, r *mux.Router, clients *gcp.Clients) {
 		w.Write([]byte("OK"))
 	}).Methods("GET")
 
-	api.RegisterProjectRoutes(ctx, r, clients, authMw)
-	api.RegisterBatchRoutes(ctx, r, clients, authMw)
+	h := handler.NewHandler(ctx, clients, authMw)
+	api.RegisterProjectRoutes(r, h)
+	api.RegisterBatchRoutes(r, h)
 
 }
 
