@@ -12,7 +12,14 @@ tasks:
     interactive: true
     cmds:
       - go run main.go
-  
+
+  runProjectService:
+    desc: Run the Go project service in its own terminal
+    dir: src/Services/golang-project-service
+    interactive: true
+    cmds:
+      - go run main.go
+
   runWebpage:
     desc: Run the Vite Webpage
     dir: src/Canary
