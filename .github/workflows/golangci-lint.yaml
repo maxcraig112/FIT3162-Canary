@@ -19,14 +19,17 @@ jobs:
           go-version: 1.22
 
       - name: Run golangci-lint in src/pkg
+        uses: golangci/golangci-lint-action@v4
         working-directory: src/pkg
         run: golangci-lint run ./...
 
       - name: Run golangci-lint in src/Services
+        uses: golangci/golangci-lint-action@v4
         working-directory: src/Services/golang-project-service
         run: golangci-lint run ./...
 
       - name: Run golangci-lint in src/Services
+        uses: golangci/golangci-lint-action@v4
         working-directory: src/Services/golang-auth-service
         run: golangci-lint run ./...
 
