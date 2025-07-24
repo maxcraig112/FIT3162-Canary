@@ -1,20 +1,28 @@
+# Project Requests
 
+| Method | Endpoint                            | Description                                   | JSON/Form Data                                                            |
+| ------ | ----------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------- |
+| GET    | /projects/{userID}                  | Returns all projects owned by a user as JSON. | None                                                                      |
+| POST   | /projects                           | Creates a new project.                        | { "userID": "string", "projectName": "string" }                           |
+| PUT    | /projects/{projectID}               | Renames a project.                            | { "newProjectName": "string" }                                            |
+| DELETE | /projects/{projectID}               | Deletes a project.                            | None                                                                      |
+| PATCH  | /projects/{projectID}/numberoffiles | Increments the number of files in a project.  | { "quantity": int }                                                       |
+| PATH   | /projects/{projectID}/settings      | Updates project settings.                     | { "tagLabels": { "keyPoints": ["string"], "boundingBoxes": ["string"] } } |
 
-# Project & Batch API Reference
+# Batch Requests
 
-| Method | API Prefix                                    | Description                                    | Raw JSON Input Example                                                      | RequiredAuth |
-| ------ | --------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------- | ------------ |
-| GET    | /projects/{userID}                           | List all projects for a user                   | None                                                                        | Yes          |
-| POST   | /projects                                    | Create a new project                           | { "userID": "string", "projectName": "string" }                          | Yes          |
-| PUT    | /projects/{projectID}                        | Rename a project                               | { "newProjectName": "string" }                                            | Yes          |
-| DELETE | /projects/{projectID}                        | Delete a project                               | None                                                                        | Yes          |
-| PATCH  | /projects/{projectID}/numberoffiles          | Increment number of files in a project         | { "quantity": int }                                                        | Yes          |
-| PATH   | /projects/{projectID}/settings               | Update project settings                        | { "tagLabels": { "keyPoints": ["string"], "boundingBoxes": ["string"] } } | Yes          |
-| POST   | /batch                                       | Create a new batch                             | { "projectID": "string", "batchName": "string" }                          | Yes          |
-| PUT    | /batch/{batchID}                             | Rename a batch                                 | { "newBatchName": "string" }                                              | Yes          |
-| DELETE | /batch/{batchID}                             | Delete a batch                                 | None                                                                        | Yes          |
-| GET    | /projects/{projectID}/batches                | List all batches for a project                 | None                                                                        | Yes          |
-| PATCH  | /batch/{batchID}/numberofTotalFiles          | Increment number of total files in a batch     | { "quantity": int }                                                        | Yes          |
-| PATCH  | /batch/{batchID}/numberofAnnotatedFiles      | Increment number of annotated files in a batch | { "quantity": int }                                                        | Yes          |
+| Method | Endpoint                                | Description                                            | JSON/Form Data                                   |
+| ------ | --------------------------------------- | ------------------------------------------------------ | ------------------------------------------------ |
+| POST   | /batch                                  | Creates a new batch.                                   | { "projectID": "string", "batchName": "string" } |
+| PUT    | /batch/{batchID}                        | Renames a batch.                                       | { "newBatchName": "string" }                     |
+| DELETE | /batch/{batchID}                        | Deletes a batch.                                       | None                                             |
+| GET    | /projects/{projectID}/batches           | Returns all batches associated with a project as JSON. | None                                             |
+| PATCH  | /batch/{batchID}/numberofTotalFiles     | Increments the number of total files in a batch.       | { "quantity": int }                              |
+| PATCH  | /batch/{batchID}/numberofAnnotatedFiles | Increments the number of annotated files in a batch.   | { "quantity": int }                              |
 
-All endpoints require authentication (AuthMw is applied).
+# Image Requests
+
+| Method | Endpoint                | Description                                                                                                                                           | JSON/Form Data      |
+| ------ | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| GET    | /batch/{batchID}/images | Returns all image metadata for a batch as JSON.                                                                                                       | None                |
+| POST   | /batch/{batchID}/images | Uploads multiple images to a batch. Multipart form-data field (files). Images are saved to the bucket and metadata is created in Firestore. | Multipart form-data |
