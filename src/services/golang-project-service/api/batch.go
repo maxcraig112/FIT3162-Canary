@@ -122,7 +122,7 @@ func (h *BatchHandler) UpdateNumberOfTotalFilesHandler(w http.ResponseWriter, r 
 
 	newVal, err := h.BatchStore.IncrementNumberOfTotalFiles(h.Ctx, batchID, req)
 	if err != nil {
-		http.Error(w, "Error deleting batch", http.StatusInternalServerError)
+		http.Error(w, "Error incrementing number of total files", http.StatusInternalServerError)
 		return
 	}
 
@@ -142,7 +142,7 @@ func (h *BatchHandler) UpdateNumberOfAnnotatedFilesHandler(w http.ResponseWriter
 
 	newVal, err := h.BatchStore.IncrementNumberOfAnnotatedFiles(h.Ctx, batchID, req)
 	if err != nil {
-		http.Error(w, "Error deleting batch", http.StatusInternalServerError)
+		http.Error(w, "Error incrementing number of annotated files", http.StatusInternalServerError)
 		return
 	}
 

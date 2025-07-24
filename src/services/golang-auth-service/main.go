@@ -77,7 +77,7 @@ func main() {
 	secretName := os.Getenv("JWT_SECRET_NAME")
 	secret, err := clients.GSM.GetSecret(ctx, projectID, secretName) // your function to generate a secret
 	if err != nil {
-		log.Fatalf("Failed to retrieve JWT Secert: %v", err)
+		log.Fatalf("Failed to retrieve JWT Secret: %v", err)
 	}
 	os.Setenv("JWT_SECRET", secret)
 

@@ -59,6 +59,6 @@ func (s *ImageStore) CreateImageMetadata(ctx context.Context, batchID string, im
 		})
 	}
 
-	s.genericStore.CreateDocsBatch(ctx, batch)
-	return nil
+	_, err := s.genericStore.CreateDocsBatch(ctx, batch)
+	return err
 }

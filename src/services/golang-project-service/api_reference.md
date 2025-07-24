@@ -7,7 +7,7 @@
 | PUT    | /projects/{projectID}               | Renames a project.                            | { "newProjectName": "string" }                                            |
 | DELETE | /projects/{projectID}               | Deletes a project.                            | None                                                                      |
 | PATCH  | /projects/{projectID}/numberoffiles | Increments the number of files in a project.  | { "quantity": int }                                                       |
-| PATH   | /projects/{projectID}/settings      | Updates project settings.                     | { "tagLabels": { "keyPoints": ["string"], "boundingBoxes": ["string"] } } |
+| PATCH   | /projects/{projectID}/settings      | Updates project settings.                     | { "tagLabels": { "keyPoints": ["string"], "boundingBoxes": ["string"] } } |
 
 # Batch Requests
 

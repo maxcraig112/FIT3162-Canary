@@ -37,7 +37,7 @@ func RegisterProjectRoutes(r *mux.Router, h *handler.Handler) {
 		// Increment the number of files a project has
 		{"PATCH", "/projects/{projectID}/numberoffiles", ph.UpdateNumberOfFilesHandler},
 		// Update project settings
-		{"PATH", "/projects/{projectID}/settings", ph.UpdateSettingsHandler},
+		{"PATCH", "/projects/{projectID}/settings", ph.UpdateSettingsHandler},
 	}
 
 	for _, rt := range routes {

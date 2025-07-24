@@ -50,3 +50,10 @@ func (b *GenericBucket) CreateObjectsBatch(ctx context.Context, objects ObjectMa
 
 	return urls, nil
 }
+func (b *GenericBucket) DeleteObject(ctx context.Context, objectName string) error {
+	err := b.bucket.Object(objectName).Delete(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to delete object %s: %w", objectName, err)
+	}
+	return nil
+}

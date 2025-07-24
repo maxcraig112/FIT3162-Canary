@@ -20,10 +20,6 @@ import (
 // load projects, create project, rename project, delete project, load batch info
 
 func setupHandlers(ctx context.Context, r *mux.Router, clients *gcp.Clients) {
-	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("OK"))
-	}).Methods("GET")
-
 	authMw := jwt.AuthMiddleware(clients)
 
 	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -75,7 +71,7 @@ func main() {
 	secretName := os.Getenv("JWT_SECRET_NAME")
 	secret, err := clients.GSM.GetSecret(ctx, projectID, secretName) // your function to generate a secret
 	if err != nil {
-		log.Fatalf("Failed to retrieve JWT Secert: %v", err)
+		log.Fatalf("Failed to retrieve JWT Secret: %v", err)
 	}
 	os.Setenv("JWT_SECRET", secret)
 
