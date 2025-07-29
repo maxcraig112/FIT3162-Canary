@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"pkg/gcp/bucket"
 	fs "pkg/gcp/firestore"
 	"pkg/gcp/gsm"
 
@@ -14,6 +15,7 @@ import (
 const (
 	USE_FIRESTORE_ENV string = "USE_FIRESTORE"
 	USE_GSM_ENV       string = "USE_GSM"
+	USE_BUCKET_ENV    string = "USE_BUCKET"
 )
 
 // ClientOptions should be populated by each service so they specify which clients they intend on using
@@ -21,14 +23,17 @@ const (
 type ClientOptions struct {
 	UseFirestore bool
 	UseGSM       bool
+	UseBucket    bool
 
 	FirestoreConfig fs.FireStoreClientConfig
+	BucketConfig    bucket.BucketClientConfig
 }
 
 // Clients holds all external service clients.
 type Clients struct {
 	Firestore fs.FirestoreClientInterface
 	GSM       gsm.GSMClientInterface
+	Bucket    bucket.BucketClientInterface
 }
 
 func getEnvBool(envName string) bool {
@@ -43,12 +48,18 @@ func (c *ClientOptions) LoadClientOptions() {
 	}
 
 	c.UseGSM = getEnvBool(USE_GSM_ENV)
+
+	c.UseBucket = getEnvBool(USE_BUCKET_ENV)
+	if c.UseBucket {
+		c.BucketConfig.BucketName = os.Getenv(bucket.BUCKETNAME_ENV)
+	}
 }
 
 // InitialiseClients creates and returns all required service clients.
 func InitialiseClients(ctx context.Context, opts ClientOptions) (*Clients, error) {
 	var firestoreClient *fs.FirestoreClient
 	var gsmClient *gsm.GSMClient
+	var bucketClient *bucket.BucketClient
 	var err error
 
 	if opts.UseFirestore {
@@ -67,10 +78,20 @@ func InitialiseClients(ctx context.Context, opts ClientOptions) (*Clients, error
 		}
 	}
 
+	if opts.UseBucket {
+		log.Printf("Initialising Bucket Client")
+		bucketClient, err = bucket.NewBucketClient(ctx, opts.BucketConfig)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &Clients{
 		Firestore: firestoreClient,
 		GSM:       gsmClient,
+		Bucket:    bucketClient,
 	}, nil
+
 }
 
 func (c *Clients) CloseClients() error {
@@ -83,6 +104,13 @@ func (c *Clients) CloseClients() error {
 
 	if c.GSM != nil {
 		err := c.GSM.Close()
+		if err != nil {
+			return err
+		}
+	}
+
+	if c.Bucket != nil {
+		err := c.Bucket.Close()
 		if err != nil {
 			return err
 		}

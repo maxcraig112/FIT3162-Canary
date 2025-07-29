@@ -6,37 +6,31 @@ import (
 	"net/http"
 	"os"
 
-	"auth-service/api"
-
 	"pkg/gcp"
+	"pkg/handler"
 	"pkg/jwt"
+	"project-service/api"
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 )
 
 // setupHandlers sets up all HTTP routes and handlers, injecting clients into handlers.
+
+// load projects, create project, rename project, delete project, load batch info
+
 func setupHandlers(ctx context.Context, r *mux.Router, clients *gcp.Clients) {
+	authMw := jwt.AuthMiddleware(clients)
+
 	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("OK"))
 	}).Methods("GET")
 
-	r.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
-		api.RegisterHandler(ctx, w, r, clients)
-	}).Methods("POST")
+	h := handler.NewHandler(ctx, clients, authMw)
+	api.RegisterProjectRoutes(r, h)
+	api.RegisterBatchRoutes(r, h)
+	api.RegisterImageRoutes(r, h)
 
-	r.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
-		api.LoginHandler(ctx, w, r, clients)
-	}).Methods("POST")
-
-	// Protected route example:
-	r.Handle("/user", jwt.AuthMiddleware(clients)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		api.DeleteHandler(ctx, w, r, clients)
-	}))).Methods("DELETE")
-
-	r.HandleFunc("/auth", func(w http.ResponseWriter, r *http.Request) {
-		api.AuthHandler(ctx, w, r, clients)
-	}).Methods("POST")
 }
 
 func corsMiddleware(next http.Handler) http.Handler {

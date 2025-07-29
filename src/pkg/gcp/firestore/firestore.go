@@ -32,6 +32,10 @@ func NewFirestoreClient(ctx context.Context, cfg FireStoreClientConfig) (*Firest
 	}, nil
 }
 
+func (fc *FirestoreClient) BulkWriter(ctx context.Context) *firestore.BulkWriter {
+	return fc.client.BulkWriter(ctx)
+}
+
 // GetUsersCollection returns a reference to the "users" collection.
 func (fc *FirestoreClient) GetCollection(path string) *firestore.CollectionRef {
 	return fc.client.Collection(path)
