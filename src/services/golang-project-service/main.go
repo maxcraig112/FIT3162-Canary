@@ -4,6 +4,9 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"pkg/gcp"
 	"pkg/handler"
@@ -56,7 +59,8 @@ func main() {
 	// Setup logger to give colourised, human friendly output
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 	_ = godotenv.Load()
 	port := os.Getenv("PORT")
 
@@ -67,7 +71,6 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize clients")
 	}
-	// this will make sure to close the clients when the application ends
 	defer func() {
 		if err := clients.CloseClients(); err != nil {
 			log.Err(err).Msg("Failed to close clients")
@@ -77,22 +80,36 @@ func main() {
 	// get JWT secret and store it as ENV variable
 	projectID := os.Getenv("GCP_PROJECT_ID")
 	secretName := os.Getenv("JWT_SECRET_NAME")
-	secret, err := clients.GSM.GetSecret(ctx, projectID, secretName) // your function to generate a secret
+	secret, err := clients.GSM.GetSecret(ctx, projectID, secretName)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve JWT Secret")
 	}
 	os.Setenv("JWT_SECRET", secret)
 
 	r := mux.NewRouter()
-
 	setupHandlers(ctx, r, clients)
 
-	// Wrap router with CORS middleware
 	corsWrapped := corsMiddleware(r)
 
-	log.Info().Str("port", port).Msg("Project service running")
-	err = http.ListenAndServe(":"+port, corsWrapped)
-	if err != nil {
-		log.Err(err).Msg("Failed to listen on port")
+	server := &http.Server{
+		Addr:    ":" + port,
+		Handler: corsWrapped,
 	}
+
+	go func() {
+		log.Info().Str("port", port).Msg("Project service running")
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal().Err(err).Msg("Failed to listen on port")
+		}
+	}()
+
+	<-ctx.Done()
+	log.Info().Msg("Shutting down gracefully...")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		log.Fatal().Err(err).Msg("Server forced to shutdown")
+	}
+	log.Info().Msg("Server exited")
 }

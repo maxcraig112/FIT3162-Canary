@@ -10,6 +10,7 @@ import (
 	"auth-service/firestore"
 	"pkg/gcp"
 
+	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -50,14 +51,17 @@ func RegisterHandler(ctx context.Context, w http.ResponseWriter, r *http.Request
 	var req RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
+		log.Error().Err(err).Msg("Invalid register request")
 		return
 	}
 	if !isValidEmail(req.Email) {
 		http.Error(w, "Invalid email format", http.StatusBadRequest)
+		log.Error().Str("email", req.Email).Msg("Invalid email format for register")
 		return
 	}
 	if !isSecurePassword(req.Password) {
 		http.Error(w, "Password must be at least 12 characters and include uppercase, lowercase, number, and special character", http.StatusBadRequest)
+		log.Error().Str("email", req.Email).Msg("Password does not meet security requirements for register")
 		return
 	}
 
@@ -65,27 +69,30 @@ func RegisterHandler(ctx context.Context, w http.ResponseWriter, r *http.Request
 	doc, err := userStore.FindByEmail(ctx, req.Email)
 	if err != nil {
 		http.Error(w, "Error processing email", http.StatusBadRequest)
+		log.Error().Err(err).Str("email", req.Email).Msg("Error processing email for register")
 		return
 	}
 	if doc != nil {
 		http.Error(w, "Email already in use", http.StatusBadRequest)
+		log.Error().Str("email", req.Email).Msg("Email already in use for register")
 		return
 	}
 
-	// hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		http.Error(w, "Error hashing password", http.StatusInternalServerError)
+		log.Error().Err(err).Str("email", req.Email).Msg("Error hashing password for register")
 		return
 	}
 
-	// create new user
 	_, err = userStore.CreateUser(ctx, req.Email, string(hashedPassword))
 	if err != nil {
 		http.Error(w, "Error creating user", http.StatusInternalServerError)
+		log.Error().Err(err).Str("email", req.Email).Msg("Error creating user for register")
 		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
+	log.Info().Str("email", req.Email).Msg("User registered successfully")
 	w.Write([]byte("User registered"))
 }

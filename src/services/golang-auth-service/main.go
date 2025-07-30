@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"auth-service/api"
 
@@ -13,6 +15,8 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 // setupHandlers sets up all HTTP routes and handlers, injecting clients into handlers.
@@ -58,7 +62,11 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
-	ctx := context.Background()
+	// Setup logger to give colourised, human friendly output
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 	_ = godotenv.Load()
 	port := os.Getenv("PORT")
 
@@ -67,26 +75,42 @@ func main() {
 
 	clients, err := gcp.InitialiseClients(ctx, opts)
 	if err != nil {
-		log.Fatalf("Failed to initialize clients: %v", err)
+		log.Fatal().Err(err).Msg("Failed to initialize clients")
 	}
-	// this will make sure to close the clients when the application ends
 	defer clients.CloseClients()
 
-	// get JWT secret and store it as ENV variable
 	projectID := os.Getenv("GCP_PROJECT_ID")
 	secretName := os.Getenv("JWT_SECRET_NAME")
-	secret, err := clients.GSM.GetSecret(ctx, projectID, secretName) // your function to generate a secret
+	secret, err := clients.GSM.GetSecret(ctx, projectID, secretName)
 	if err != nil {
-		log.Fatalf("Failed to retrieve JWT Secret: %v", err)
+		log.Fatal().Err(err).Msg("Failed to retrieve JWT Secret")
 	}
 	os.Setenv("JWT_SECRET", secret)
 
 	r := mux.NewRouter()
 	setupHandlers(ctx, r, clients)
 
-	// Wrap router with CORS middleware
 	corsWrapped := corsMiddleware(r)
 
-	log.Println("Service running on port", port)
-	log.Fatal(http.ListenAndServe(":"+port, corsWrapped))
+	server := &http.Server{
+		Addr:    ":" + port,
+		Handler: corsWrapped,
+	}
+
+	go func() {
+		log.Info().Str("port", port).Msg("Service running")
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal().Err(err).Msg("ListenAndServe failed")
+		}
+	}()
+
+	<-ctx.Done()
+	log.Info().Msg("Shutting down gracefully...")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		log.Fatal().Err(err).Msg("Server forced to shutdown")
+	}
+	log.Info().Msg("Server exited")
 }
