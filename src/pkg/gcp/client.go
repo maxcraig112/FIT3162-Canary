@@ -3,6 +3,7 @@ package gcp
 import (
 	"context"
 	"os"
+	"reflect"
 
 	"github.com/rs/zerolog/log"
 
@@ -96,8 +97,14 @@ func InitialiseClients(ctx context.Context, opts ClientOptions) (*Clients, error
 
 }
 
+// This is used to check if the client is actually in use, because the client
+// References in the struct are not pointers
+func isNil(i interface{}) bool {
+	return i == nil || reflect.ValueOf(i).IsNil()
+}
+
 func (c *Clients) CloseClients() error {
-	if c.Firestore != nil {
+	if !isNil(c.Firestore) {
 		err := c.Firestore.Close()
 		if err != nil {
 			return err
@@ -105,7 +112,7 @@ func (c *Clients) CloseClients() error {
 	}
 	log.Info().Msg("Firestore Client Closed")
 
-	if c.GSM != nil {
+	if !isNil(c.GSM) {
 		err := c.GSM.Close()
 		if err != nil {
 			return err
@@ -113,7 +120,7 @@ func (c *Clients) CloseClients() error {
 	}
 	log.Info().Msg("GSM Client Closed")
 
-	if c.Bucket != nil {
+	if !isNil(c.Bucket) {
 		err := c.Bucket.Close()
 		if err != nil {
 			return err
