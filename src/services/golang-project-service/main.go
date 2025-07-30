@@ -8,10 +8,10 @@ import (
 	"syscall"
 	"time"
 
-	"auth-service/api"
-
 	"pkg/gcp"
+	"pkg/handler"
 	"pkg/jwt"
+	"project-service/api"
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -20,27 +20,21 @@ import (
 )
 
 // setupHandlers sets up all HTTP routes and handlers, injecting clients into handlers.
+
+// load projects, create project, rename project, delete project, load batch info
+
 func setupHandlers(ctx context.Context, r *mux.Router, clients *gcp.Clients) {
+	authMw := jwt.AuthMiddleware(clients)
+
 	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("OK"))
 	}).Methods("GET")
 
-	r.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
-		api.RegisterHandler(ctx, w, r, clients)
-	}).Methods("POST")
+	h := handler.NewHandler(ctx, clients, authMw)
+	api.RegisterProjectRoutes(r, h)
+	api.RegisterBatchRoutes(r, h)
+	api.RegisterImageRoutes(r, h)
 
-	r.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
-		api.LoginHandler(ctx, w, r, clients)
-	}).Methods("POST")
-
-	// Protected route example:
-	r.Handle("/user", jwt.AuthMiddleware(clients)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		api.DeleteHandler(ctx, w, r, clients)
-	}))).Methods("DELETE")
-
-	r.HandleFunc("/auth", func(w http.ResponseWriter, r *http.Request) {
-		api.AuthHandler(ctx, w, r, clients)
-	}).Methods("POST")
 }
 
 func corsMiddleware(next http.Handler) http.Handler {
@@ -77,8 +71,13 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize clients")
 	}
-	defer clients.CloseClients()
+	defer func() {
+		if err := clients.CloseClients(); err != nil {
+			log.Err(err).Msg("Failed to close clients")
+		}
+	}()
 
+	// get JWT secret and store it as ENV variable
 	projectID := os.Getenv("GCP_PROJECT_ID")
 	secretName := os.Getenv("JWT_SECRET_NAME")
 	secret, err := clients.GSM.GetSecret(ctx, projectID, secretName)
@@ -98,9 +97,9 @@ func main() {
 	}
 
 	go func() {
-		log.Info().Str("port", port).Msg("Service running")
+		log.Info().Str("port", port).Msg("Project service running")
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatal().Err(err).Msg("ListenAndServe failed")
+			log.Fatal().Err(err).Msg("Failed to listen on port")
 		}
 	}()
 

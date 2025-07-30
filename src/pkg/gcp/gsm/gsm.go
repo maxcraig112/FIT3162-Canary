@@ -2,7 +2,7 @@ package gsm
 
 import (
 	"context"
-	"os"
+	"fmt"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
@@ -20,11 +20,9 @@ func NewGSMClient(ctx context.Context) (*GSMClient, error) {
 }
 
 // GetJWTSecret retrieves the JWT secret from Google Secret Manager using the secret name in .env.
-func (g *GSMClient) GetJWTSecret(ctx context.Context) (string, error) {
-	projectID := os.Getenv("GCP_PROJECT_ID")
-	secretName := os.Getenv("JWT_SECRET_NAME")
-	// Format: projects/{project}/secrets/{secret}/versions/latest
-	secretPath := "projects/" + projectID + "/secrets/" + secretName + "/versions/latest"
+func (g *GSMClient) GetSecret(ctx context.Context, projectID string, secretName string) (string, error) {
+	// Format: projects/{project}/secrets/{secret}/versions/{secretVersion}
+	secretPath := fmt.Sprintf("projects/%s/secrets/%s/versions/%s", projectID, secretName, "latest")
 	req := &secretmanagerpb.AccessSecretVersionRequest{
 		Name: secretPath,
 	}

@@ -1,31 +1,14 @@
-package auth
+package jwt
 
 import (
-	"auth-service/gcp"
 	"context"
-	"errors"
 	"net/http"
 	"os"
+	"pkg/gcp"
 	"strings"
-	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
-
-// generateJWT generates a JWT token valid for 2 hours for the given email.
-func GenerateJWT(ctx context.Context, clients *gcp.Clients, email string) (string, error) {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		return "", errors.New("JWT_SECRET ENVIRONMENT VARIABLE NOT SET")
-	}
-	claims := jwt.MapClaims{
-		"email": email,
-		"exp":   time.Now().Add(2 * time.Hour).Unix(),
-		"iat":   time.Now().Unix(),
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(secret))
-}
 
 func AuthMiddleware(clients *gcp.Clients) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {

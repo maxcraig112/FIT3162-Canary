@@ -8,7 +8,7 @@ import (
 
 // GSMClientInterface defines methods for GSM operations.
 type GSMClientInterface interface {
-	GetJWTSecret(context.Context) (string, error)
+	GetSecret(ctx context.Context, projectID string, secretName string) (string, error)
 	Close() error
 }
 
