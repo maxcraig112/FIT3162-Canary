@@ -8,14 +8,14 @@ tasks:
 
   runAuthService:
     desc: Run the Go authentication service in its own terminal
-    dir: src/Services/golang-auth-service
+    dir: src/services/golang-auth-service
     interactive: true
     cmds:
       - go run main.go
 
   runProjectService:
     desc: Run the Go project service in its own terminal
-    dir: src/Services/golang-project-service
+    dir: src/services/golang-project-service
     interactive: true
     cmds:
       - go run main.go
