@@ -2,8 +2,9 @@ package gcp
 
 import (
 	"context"
-	"log"
 	"os"
+
+	"github.com/rs/zerolog/log"
 
 	"pkg/gcp/bucket"
 	fs "pkg/gcp/firestore"
@@ -63,27 +64,28 @@ func InitialiseClients(ctx context.Context, opts ClientOptions) (*Clients, error
 	var err error
 
 	if opts.UseFirestore {
-		log.Printf("Initialising Firestone Client")
+
 		firestoreClient, err = fs.NewFirestoreClient(ctx, opts.FirestoreConfig)
 		if err != nil {
 			return nil, err
 		}
+		log.Info().Msg("Firestore Client Initialised")
 	}
 
 	if opts.UseGSM {
-		log.Printf("Initialising GSM Client")
 		gsmClient, err = gsm.NewGSMClient(ctx)
 		if err != nil {
 			return nil, err
 		}
+		log.Info().Msg("GSM Client Initialised")
 	}
 
 	if opts.UseBucket {
-		log.Printf("Initialising Bucket Client")
 		bucketClient, err = bucket.NewBucketClient(ctx, opts.BucketConfig)
 		if err != nil {
 			return nil, err
 		}
+		log.Info().Msg("Bucket Client Initialised")
 	}
 
 	return &Clients{
@@ -101,6 +103,7 @@ func (c *Clients) CloseClients() error {
 			return err
 		}
 	}
+	log.Info().Msg("Firestore Client Closed")
 
 	if c.GSM != nil {
 		err := c.GSM.Close()
@@ -108,6 +111,7 @@ func (c *Clients) CloseClients() error {
 			return err
 		}
 	}
+	log.Info().Msg("GSM Client Closed")
 
 	if c.Bucket != nil {
 		err := c.Bucket.Close()
@@ -115,6 +119,7 @@ func (c *Clients) CloseClients() error {
 			return err
 		}
 	}
+	log.Info().Msg("Bucket Client Closed")
 
 	return nil
 }

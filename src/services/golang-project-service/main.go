@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"os"
 
@@ -13,6 +12,8 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 // setupHandlers sets up all HTTP routes and handlers, injecting clients into handlers.
@@ -52,6 +53,9 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
+	// Setup logger to give colourised, human friendly output
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+
 	ctx := context.Background()
 	_ = godotenv.Load()
 	port := os.Getenv("PORT")
@@ -61,26 +65,34 @@ func main() {
 
 	clients, err := gcp.InitialiseClients(ctx, opts)
 	if err != nil {
-		log.Fatalf("Failed to initialize clients: %v", err)
+		log.Fatal().Err(err).Msg("Failed to initialize clients")
 	}
 	// this will make sure to close the clients when the application ends
-	defer clients.CloseClients()
+	defer func() {
+		if err := clients.CloseClients(); err != nil {
+			log.Err(err).Msg("Failed to close clients")
+		}
+	}()
 
 	// get JWT secret and store it as ENV variable
 	projectID := os.Getenv("GCP_PROJECT_ID")
 	secretName := os.Getenv("JWT_SECRET_NAME")
 	secret, err := clients.GSM.GetSecret(ctx, projectID, secretName) // your function to generate a secret
 	if err != nil {
-		log.Fatalf("Failed to retrieve JWT Secret: %v", err)
+		log.Fatal().Err(err).Msg("Failed to retrieve JWT Secret")
 	}
 	os.Setenv("JWT_SECRET", secret)
 
 	r := mux.NewRouter()
+
 	setupHandlers(ctx, r, clients)
 
 	// Wrap router with CORS middleware
 	corsWrapped := corsMiddleware(r)
 
-	log.Println("Service running on port", port)
-	log.Fatal(http.ListenAndServe(":"+port, corsWrapped))
+	log.Info().Str("port", port).Msg("Project service running")
+	err = http.ListenAndServe(":"+port, corsWrapped)
+	if err != nil {
+		log.Err(err).Msg("Failed to listen on port")
+	}
 }
