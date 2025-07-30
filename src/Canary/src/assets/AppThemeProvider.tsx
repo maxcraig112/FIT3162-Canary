@@ -1,7 +1,7 @@
-import React from 'react';
-import type { ReactNode } from 'react';
-import { ThemeProvider } from '@mui/material';
-import { darkTheme } from './muiTheme';
+import React from "react";
+import type { ReactNode } from "react";
+import { ThemeProvider } from "@mui/material";
+import { darkTheme } from "./muiTheme";
 
 interface AppThemeProviderProps {
   children: ReactNode;

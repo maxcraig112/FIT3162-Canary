@@ -1,19 +1,19 @@
-import { createTheme } from '@mui/material/styles';
+import { createTheme } from "@mui/material/styles";
 
 export const darkTheme = createTheme({
   palette: {
-    mode: 'dark',
+    mode: "dark",
     background: {
-      default: '#181A20',
-      paper: '#23272F',
+      default: "#181A20",
+      paper: "#23272F",
     },
     primary: {
-      main: '#00bcd4',
-      contrastText: '#fff',
+      main: "#00bcd4",
+      contrastText: "#fff",
     },
     secondary: {
-      main: '#ff9800',
-      contrastText: '#fff',
+      main: "#ff9800",
+      contrastText: "#fff",
     },
   },
   shape: {
