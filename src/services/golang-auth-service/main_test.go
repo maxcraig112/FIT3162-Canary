@@ -7,17 +7,27 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"strconv"
 	"testing"
 
+	"auth-service/api"
 	authFirestore "auth-service/firestore"
 	"pkg/gcp"
+	"pkg/handler"
+	"pkg/jwt"
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 )
 
 func setupTestServer(ctx context.Context) (*gcp.Clients, *httptest.Server) {
+	// Setup logger to give colourised, human friendly output
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+
 	_ = godotenv.Load()
 	opts := gcp.ClientOptions{}
 	opts.LoadClientOptions()
@@ -25,8 +35,19 @@ func setupTestServer(ctx context.Context) (*gcp.Clients, *httptest.Server) {
 	if err != nil {
 		panic(err)
 	}
+
+	projectID := os.Getenv("GCP_PROJECT_ID")
+	secretName := os.Getenv("JWT_SECRET_NAME")
+	secret, err := clients.GSM.GetSecret(ctx, projectID, secretName)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to retrieve JWT Secret")
+	}
+	os.Setenv("JWT_SECRET", secret)
+
 	r := mux.NewRouter()
-	setupHandlers(ctx, r, clients)
+	authMw := jwt.AuthMiddleware(clients)
+	h := handler.NewHandler(ctx, clients, authMw)
+	api.RegisterUserRoutes(r, h)
 
 	// Wrap router with CORS middleware
 	corsWrapped := corsMiddleware(r)
@@ -34,7 +55,7 @@ func setupTestServer(ctx context.Context) (*gcp.Clients, *httptest.Server) {
 }
 
 func randomEmail() string {
-	return "testuser" + string(rune(rand.Intn(1000000))) + "@example.com"
+	return "testuser" + strconv.Itoa(rand.Intn(1000000)) + "@example.com"
 }
 
 func TestRegisterAndLoginFlow(t *testing.T) {
@@ -87,5 +108,5 @@ func TestRegisterAndLoginFlow(t *testing.T) {
 	})
 	resp, err = http.Post(server.URL+"/login", "application/json", bytes.NewBuffer(loginBodyInvalidEmail))
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }

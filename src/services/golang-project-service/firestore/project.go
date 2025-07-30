@@ -75,14 +75,14 @@ func (s *ProjectStore) GetProjectsByUserID(ctx context.Context, userID string) (
 }
 
 func (s *ProjectStore) CreateProject(ctx context.Context, createProjectReq CreateProjectRequest) (string, error) {
-	projectData := map[string]interface{}{
-		"projectName":   createProjectReq.ProjectName,
-		"userID":        createProjectReq.UserID,
-		"numberOfFiles": 0,
-		"lastUpdated":   time.Now(),
+	project := Project{
+		ProjectName:   createProjectReq.ProjectName,
+		UserID:        createProjectReq.UserID,
+		NumberOfFiles: 0,
+		LastUpdated:   time.Now(),
 	}
 
-	return s.genericStore.CreateDoc(ctx, projectData)
+	return s.genericStore.CreateDoc(ctx, project)
 
 }
 

@@ -4,49 +4,54 @@ import (
 	"context"
 
 	fs "pkg/gcp/firestore"
-
-	"cloud.google.com/go/firestore"
 )
 
 const (
 	userCollectionID = "users"
 )
 
+type User struct {
+	Email    string `firestore:"email" json:"email"`
+	Password string `firestore:"password" json:"password"`
+}
 type UserStore struct {
-	users *firestore.CollectionRef
+	genericStore *fs.GenericStore
 }
 
 func NewUserStore(client fs.FirestoreClientInterface) *UserStore {
-	return &UserStore{users: client.GetCollection(userCollectionID)}
+	return &UserStore{genericStore: fs.NewGenericStore(client, userCollectionID)}
 }
 
-func (s *UserStore) FindByEmail(ctx context.Context, email string) (*firestore.DocumentSnapshot, error) {
-	iter := s.users.Where("email", "==", email).Limit(1).Documents(ctx)
-	docs, err := iter.GetAll()
-	if err != nil || len(docs) == 0 {
-		return nil, err
+func (s *UserStore) FindByEmail(ctx context.Context, email string) (*User, error) {
+	queryParams := []fs.QueryParameter{
+		{Path: "email", Op: "==", Value: email},
 	}
-	return docs[0], nil
-}
 
-func (s *UserStore) CreateUser(ctx context.Context, email, hashedPassword string) (*firestore.DocumentRef, error) {
-	userData := map[string]interface{}{
-		"email":    email,
-		"password": hashedPassword,
-	}
-	docRef, _, err := s.users.Add(ctx, userData)
+	doc, err := s.genericStore.GetDocByQuery(ctx, queryParams)
 	if err != nil {
 		return nil, err
 	}
-	return docRef, nil
+	// Convert to User
+	var user User
+	if err := doc.DataTo(&user); err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
-func (s *UserStore) DeleteUser(ctx context.Context, email, hashedPassword string) error {
-	iter := s.users.Where("email", "==", email).Where("password", "==", hashedPassword).Limit(1).Documents(ctx)
-	docs, err := iter.GetAll()
-	if err != nil {
-		return err
+func (s *UserStore) CreateUser(ctx context.Context, email, hashedPassword string) (string, error) {
+	user := User{
+		Email:    email,
+		Password: hashedPassword,
 	}
-	_, err = docs[0].Ref.Delete(ctx)
-	return err
+
+	return s.genericStore.CreateDoc(ctx, user)
+}
+
+func (s *UserStore) DeleteUser(ctx context.Context, email string, hashedPassword string) error {
+	queryParams := []fs.QueryParameter{
+		{Path: "email", Op: "==", Value: email},
+		{Path: "password", Op: "==", Value: hashedPassword},
+	}
+	return s.genericStore.DeleteDocByQuery(ctx, queryParams)
 }

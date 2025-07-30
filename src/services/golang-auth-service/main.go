@@ -1,6 +1,7 @@
 package main
 
 import (
+	"auth-service/api"
 	"context"
 	"net/http"
 	"os"
@@ -8,9 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	"auth-service/api"
-
 	"pkg/gcp"
+	"pkg/handler"
 	"pkg/jwt"
 
 	"github.com/gorilla/mux"
@@ -18,30 +18,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
-
-// setupHandlers sets up all HTTP routes and handlers, injecting clients into handlers.
-func setupHandlers(ctx context.Context, r *mux.Router, clients *gcp.Clients) {
-	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("OK"))
-	}).Methods("GET")
-
-	r.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
-		api.RegisterHandler(ctx, w, r, clients)
-	}).Methods("POST")
-
-	r.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
-		api.LoginHandler(ctx, w, r, clients)
-	}).Methods("POST")
-
-	// Protected route example:
-	r.Handle("/user", jwt.AuthMiddleware(clients)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		api.DeleteHandler(ctx, w, r, clients)
-	}))).Methods("DELETE")
-
-	r.HandleFunc("/auth", func(w http.ResponseWriter, r *http.Request) {
-		api.AuthHandler(ctx, w, r, clients)
-	}).Methods("POST")
-}
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -88,8 +64,15 @@ func main() {
 	os.Setenv("JWT_SECRET", secret)
 
 	r := mux.NewRouter()
-	setupHandlers(ctx, r, clients)
 
+	authMw := jwt.AuthMiddleware(clients)
+
+	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("OK"))
+	}).Methods("GET")
+
+	h := handler.NewHandler(ctx, clients, authMw)
+	api.RegisterUserRoutes(r, h)
 	corsWrapped := corsMiddleware(r)
 
 	server := &http.Server{

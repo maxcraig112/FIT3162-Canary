@@ -87,11 +87,41 @@ func (s *GenericStore) GetDoc(ctx context.Context, docID string) (*firestore.Doc
 	return docSnap, err
 }
 
+// GetDocByQuery returns a single document matching the query. Returns ErrNotFound if none, or error if not unique.
+func (s *GenericStore) GetDocByQuery(ctx context.Context, query []QueryParameter) (*firestore.DocumentSnapshot, error) {
+	docs, err := s.ReadCollection(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	if len(docs) == 0 {
+		return nil, ErrNotFound
+	}
+	if len(docs) > 1 {
+		return nil, status.Error(codes.FailedPrecondition, "query did not resolve to a unique document")
+	}
+	return docs[0], nil
+}
+
 func (s *GenericStore) DeleteDoc(ctx context.Context, docID string) error {
 	_, err := s.collection.Doc(docID).Delete(ctx)
 	if status.Code(err) == codes.NotFound {
 		return ErrNotFound
 	}
+	return err
+}
+
+func (s *GenericStore) DeleteDocByQuery(ctx context.Context, query []QueryParameter) error {
+	docs, err := s.ReadCollection(ctx, query)
+	if err != nil {
+		return err
+	}
+	if len(docs) == 0 {
+		return ErrNotFound
+	}
+	if len(docs) > 1 {
+		return status.Error(codes.FailedPrecondition, "query did not resolve to a unique document for delete")
+	}
+	_, err = docs[0].Ref.Delete(ctx)
 	return err
 }
 
