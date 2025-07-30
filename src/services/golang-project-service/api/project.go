@@ -103,7 +103,7 @@ func (h *ProjectHandler) RenameProjectHandler(w http.ResponseWriter, r *http.Req
 
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("projectID", projectID).Str("newName", req.NewProjectName).Msg("Project renamed successfully")
-	w.Write([]byte(fmt.Sprintf("Project %s named to %s", projectID, req.NewProjectName)))
+	w.Write([]byte(fmt.Sprintf("Project %s renamed to %s", projectID, req.NewProjectName)))
 }
 
 func (h *ProjectHandler) DeleteProjectHandler(w http.ResponseWriter, r *http.Request) {

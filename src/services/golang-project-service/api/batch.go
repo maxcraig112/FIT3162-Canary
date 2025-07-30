@@ -106,7 +106,7 @@ func (h *BatchHandler) RenameBatchHandler(w http.ResponseWriter, r *http.Request
 
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("batchID", batchID).Str("newName", req.NewBatchName).Msg("Batch renamed successfully")
-	w.Write([]byte(fmt.Sprintf("Batch %s named to %s", batchID, req.NewBatchName)))
+	w.Write([]byte(fmt.Sprintf("Batch %s renamed to %s", batchID, req.NewBatchName)))
 }
 
 func (h *BatchHandler) DeleteBatchHandler(w http.ResponseWriter, r *http.Request) {
