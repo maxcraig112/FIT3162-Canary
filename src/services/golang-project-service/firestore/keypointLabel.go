@@ -22,7 +22,7 @@ const (
 // }
 
 type KeypointLabel struct {
-	KeyPointLabelID string `firestore:"keyPointLabelID,omitempty" json:"keyPointLabelID"`
+	KeypointLabelID string `firestore:"keyPointLabelID,omitempty" json:"keyPointLabelID"`
 	KeypointLabel   string `firestore:"keypointLabel,omitempty" json:"keypointLabel"`
 	ProjectID       string `firestore:"projectID,omitempty" json:"projectID"`
 }
@@ -33,16 +33,16 @@ type CreateKeypointLabelRequest struct {
 }
 
 type GetKeypointLabelRequest struct {
-	KeyPointLabelID string `json:"keyPointLabelID"`
+	KeypointLabelID string `json:"keyPointLabelID"`
 }
 
 type UpdateKeypointLabelRequest struct {
-	KeyPointLabelID string `json:"keyPointLabelID"`
+	KeypointLabelID string `json:"keyPointLabelID"`
 	KeypointLabel   string `json:"keypointLabel"`
 }
 
 type DeleteKeypointLabelRequest struct {
-	KeyPointLabelID string `json:"keyPointLabelID"`
+	KeypointLabelID string `json:"keyPointLabelID"`
 }
 
 type KeypointLabelStore struct {
@@ -53,26 +53,30 @@ func NewKeypointLabelStore(client fs.FirestoreClientInterface) *KeypointLabelSto
 	return &KeypointLabelStore{genericStore: fs.NewGenericStore(client, keypointLabelCollectionID)}
 }
 
-func (s *KeypointLabelStore) GetProjectsByUserID(ctx context.Context, userID string) ([]Project, error) {
+func (s *KeypointLabelStore) GetKeypointLabelsByProjectID(ctx context.Context, projectID string) ([]KeypointLabel, error) {
 
 	queryParams := []fs.QueryParameter{
-		{Path: "userID", Op: "==", Value: userID},
+		{Path: "projectID", Op: "==", Value: projectID},
 	}
 	docs, err := s.genericStore.ReadCollection(ctx, queryParams)
 	if err != nil {
 		return nil, err
 	}
 
-	projects := make([]Project, 0, len(docs))
+	keypointLabels := make([]KeypointLabel, 0, len(docs))
 	for _, doc := range docs {
-		var p Project
-		if err := doc.DataTo(&p); err != nil {
+		var kp KeypointLabel
+		if err := doc.DataTo(&kp); err != nil {
 			return nil, err
 		}
-		p.ProjectID = doc.Ref.ID
-		projects = append(projects, p)
+		kp.KeypointLabelID = doc.Ref.ID
+		keypointLabels = append(keypointLabels, kp)
 	}
-	return projects, nil
+	return keypointLabels, nil
+}
+
+func (s *KeypointLabelStore) GetKeypointLabelByKeypointLabelID(ctx context.Context, keypointLabelID string) (KeypointLabel, error) {
+	return s.GetKeypointLabel(ctx, GetKeypointLabelRequest{KeypointLabelID: keypointLabelID})
 }
 
 func (s *KeypointLabelStore) CreateKeypointLabel(ctx context.Context, createKeypointLabelReq CreateKeypointLabelRequest) (string, error) {
@@ -85,7 +89,7 @@ func (s *KeypointLabelStore) CreateKeypointLabel(ctx context.Context, createKeyp
 }
 
 func (s *KeypointLabelStore) DeleteKeypointLabel(ctx context.Context, deleteKeypointLabelReq DeleteKeypointLabelRequest) error {
-	return s.genericStore.DeleteDoc(ctx, deleteKeypointLabelReq.KeyPointLabelID)
+	return s.genericStore.DeleteDoc(ctx, deleteKeypointLabelReq.KeypointLabelID)
 }
 
 func (s *KeypointLabelStore) UpdateKeypointLabelName(ctx context.Context, updateKeypointLabelReq UpdateKeypointLabelRequest) error {
@@ -93,11 +97,11 @@ func (s *KeypointLabelStore) UpdateKeypointLabelName(ctx context.Context, update
 		{Path: "keypointLabel", Value: updateKeypointLabelReq.KeypointLabel},
 	}
 
-	return s.genericStore.UpdateField(ctx, updateKeypointLabelReq.KeyPointLabelID, updateParams)
+	return s.genericStore.UpdateField(ctx, updateKeypointLabelReq.KeypointLabelID, updateParams)
 }
 
 func (s *KeypointLabelStore) GetKeypointLabel(ctx context.Context, getKeypointLabelRequest GetKeypointLabelRequest) (KeypointLabel, error) {
-	docSnap, err := s.genericStore.GetDoc(ctx, getKeypointLabelRequest.KeyPointLabelID)
+	docSnap, err := s.genericStore.GetDoc(ctx, getKeypointLabelRequest.KeypointLabelID)
 	if err != nil {
 		return KeypointLabel{}, err
 	}
@@ -106,6 +110,6 @@ func (s *KeypointLabelStore) GetKeypointLabel(ctx context.Context, getKeypointLa
 	if err != nil {
 		return KeypointLabel{}, err
 	}
-	k.KeyPointLabelID = docSnap.Ref.ID
+	k.KeypointLabelID = docSnap.Ref.ID
 	return k, nil
 }
