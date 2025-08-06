@@ -31,8 +31,8 @@ export async function handleLogin(
     const data = await postToAuthService("/login", { email, password });
     if (data && data.token) {
       console.log(data)
-      setCookie("auth_token", data.token, 7);
-      setCookie("user_id", data.userID, 7); // Assuming user_id is returned
+      setCookie("auth_token", data.token);
+      setCookie("user_id", data.userID); // Assuming user_id is returned
       if (setResult) setResult("Login successful");
       console.log("Login success, token set in cookie");
     } else {

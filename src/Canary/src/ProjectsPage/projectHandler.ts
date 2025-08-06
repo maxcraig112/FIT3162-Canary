@@ -6,15 +6,7 @@ export async function fetchProjects(): Promise<Project[]> {
   const userID = getUserIDFromCookie();
   const token = getAuthTokenFromCookie();
   const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
-  if (!baseUrl) throw new Error("VITE_PROJECT_SERVICE_URL is not defined");
-  if (!userID) throw new Error("User ID cookie not found");
-  if (!token) throw new Error("Auth token cookie not found");
-  // API: GET /projects/{userID}
   const url = `${baseUrl}/projects/${userID}`;
-
-  console.log(url);
-  console.log(userID);;
-  console.log(token);
   const res = await fetch(url, {
     headers: {
       "Authorization": `Bearer ${token}`,

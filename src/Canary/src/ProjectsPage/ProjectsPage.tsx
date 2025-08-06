@@ -48,7 +48,7 @@ const ProjectsPage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ flexGrow: 1, bgcolor: "#f5f5f5", minHeight: "100vh" }}>
+    <Box sx={{ mx: 'auto', maxWidth: '80vw', bgcolor: "#f5f5f5", minHeight: "100vh", minWidth: "fit-content" }}>
       <AppBar position="static" color="default" elevation={1}>
         <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
           <Typography variant="h4" sx={{ fontWeight: "bold" }}>Projects</Typography>
@@ -84,16 +84,16 @@ const ProjectsPage: React.FC = () => {
         </Box>
         <Grid container spacing={3} justifyContent="center">
           {filteredProjects.map((project) => (
-            <Grid>
+            <Grid sx={{ minHeight: "10vh", minWidth: "15vw" }}>
               <Paper elevation={3} sx={{ p: 3, textAlign: "center", position: "relative", minHeight: 180 }}>
-                <Typography variant="h5" sx={{ fontWeight: "bold", mb: 2 }}>
-                  {project.projectName}
-                </Typography>
-                <Box sx={{ position: "absolute", bottom: 16, left: 0, right: 0 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: "medium" }}>
-                    {project.numberOfFiles} files
-                  </Typography>
-                </Box>
+          <Typography variant="h5" sx={{ fontWeight: "bold", mb: 2 }}>
+            {project.projectName}
+          </Typography>
+          <Box sx={{ position: "absolute", bottom: 16, left: 0, right: 0 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: "medium" }}>
+              {project.numberOfFiles} files
+            </Typography>
+          </Box>
               </Paper>
             </Grid>
           ))}

@@ -164,4 +164,5 @@ func (h *UserHandler) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	log.Info().Msg("JWT token validated successfully")
 	w.Write([]byte("true"))
+
 }

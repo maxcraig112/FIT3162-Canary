@@ -59,6 +59,9 @@ func (s *ProjectStore) GetProjectsByUserID(ctx context.Context, userID string) (
 	}
 	docs, err := s.genericStore.ReadCollection(ctx, queryParams)
 	if err != nil {
+		if fs.ErrNotFound == err {
+			return []Project{}, nil
+		}
 		return nil, err
 	}
 
