@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Box, Typography, Toolbar, AppBar, Button, TextField, Paper, IconButton, InputAdornment, Modal } from "@mui/material";
+import { Box, Typography, Toolbar, AppBar, Button, TextField, Paper, IconButton, InputAdornment, Modal, Menu, MenuItem } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import SearchIcon from "@mui/icons-material/Search";
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import * as projectHandler from "./projectHandler";
+import { useNavigate } from "react-router-dom";
 
 // Project type based on Go struct
 export interface Project {
@@ -16,6 +18,8 @@ export interface Project {
 
 
 const ProjectsPage: React.FC = () => {
+  const navigate = useNavigate();
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [search, setSearch] = useState("");
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
@@ -23,6 +27,17 @@ const ProjectsPage: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [modalOpen, setModalOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
+  // Rename modal state
+  const [renameModalOpen, setRenameModalOpen] = useState(false);
+  const [renameProjectId, setRenameProjectId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  // Delete confirm state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
+
+  // State for project menu
+  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [menuProjectId, setMenuProjectId] = useState<string | null>(null);
 
   useEffect(() => {
     projectHandler.fetchProjects()
@@ -38,11 +53,6 @@ const ProjectsPage: React.FC = () => {
 
   function handleNewProject() {
     setModalOpen(true);
-  }   
-
-  function handleProjectClick(project: Project) {
-    console.log("Need to navigate to new page")
-    
   }
 
   function handleCloseModal() {
@@ -121,8 +131,59 @@ const ProjectsPage: React.FC = () => {
                     transition: "all 0.2s ease-in-out"
                   }
                 }}
-                onClick={() => handleProjectClick(project)}
+                onClick={() => projectHandler.handleProjectsPage(project.projectID, navigate)}
               >
+            <IconButton
+            sx={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              fontSize: 32,
+              color: (theme) => theme.palette.grey[700],
+              zIndex: 2
+            }}
+            size="large"
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuAnchorEl(e.currentTarget);
+              setMenuProjectId(project.projectID);
+            }}
+            >
+            <MoreVertIcon sx={{ fontSize: 32 }} />
+            </IconButton>
+            <Menu
+            anchorEl={menuAnchorEl}
+            open={menuProjectId === project.projectID}
+            onClose={() => {
+              setMenuAnchorEl(null);
+              setMenuProjectId(null);
+            }}
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'right',
+            }}
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+            onClick={e => e.stopPropagation()}
+            >
+            <MenuItem onClick={(e) => {
+              e.stopPropagation();
+              setRenameProjectId(project.projectID);
+              setRenameValue(project.projectName);
+              setRenameModalOpen(true);
+              setMenuAnchorEl(null);
+              setMenuProjectId(null);
+            }}>Rename</MenuItem>
+            <MenuItem onClick={(e) => {
+              e.stopPropagation();
+              setDeleteProjectId(project.projectID);
+              setDeleteDialogOpen(true);
+              setMenuAnchorEl(null);
+              setMenuProjectId(null);
+            }}>Delete</MenuItem>
+            </Menu>
           <Typography variant="h5" sx={{ fontWeight: "bold", mb: 2 }}>
             {project.projectName}
           </Typography>
@@ -136,6 +197,136 @@ const ProjectsPage: React.FC = () => {
           ))}
         </Grid>
       </Box>
+
+      {/* Rename Project Modal */}
+      <Modal
+        open={renameModalOpen}
+        onClose={() => setRenameModalOpen(false)}
+        aria-labelledby="rename-project-modal-title"
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 350,
+            bgcolor: 'background.paper',
+            border: '2px solid #000',
+            boxShadow: 24,
+            p: 3,
+          }}
+        >
+          <Typography id="rename-project-modal-title" variant="h6" align="center" sx={{ mb: 2 }}>
+            Rename Project
+          </Typography>
+          <TextField
+            label="New Project Name"
+            value={renameValue}
+            onChange={e => setRenameValue(e.target.value)}
+            fullWidth
+            autoFocus
+            sx={{ mb: 2 }}
+          />
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              variant="contained"
+              color="primary"
+              fullWidth
+              disabled={!renameValue.trim()}
+              onClick={async () => {
+                if (!renameProjectId) return;
+                try {
+                  await projectHandler.renameProject(renameProjectId, renameValue.trim());
+                  setRenameModalOpen(false);
+                  setRenameProjectId(null);
+                  setRenameValue("");
+                  // Refresh projects
+                  const updatedProjects = await projectHandler.fetchProjects();
+                  setProjects(updatedProjects);
+                } catch (error) {
+                  alert((error instanceof Error ? error.message : error) || "Failed to rename project");
+                }
+              }}
+            >
+              Rename
+            </Button>
+            <Button
+              variant="outlined"
+              color="secondary"
+              fullWidth
+              onClick={() => {
+                setRenameModalOpen(false);
+                setRenameProjectId(null);
+                setRenameValue("");
+              }}
+            >
+              Cancel
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
+
+      {/* Delete Project Confirmation Dialog */}
+      <Modal
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        aria-labelledby="delete-project-modal-title"
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 350,
+            bgcolor: 'background.paper',
+            border: '2px solid #000',
+            boxShadow: 24,
+            p: 3,
+          }}
+        >
+          <Typography id="delete-project-modal-title" variant="h6" align="center" sx={{ mb: 2 }}>
+            Delete Project?
+          </Typography>
+          <Typography align="center" sx={{ mb: 3, color: 'text.primary' }}>
+            Are you sure you want to delete this project? This action cannot be undone.
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              variant="contained"
+              color="error"
+              fullWidth
+              onClick={async () => {
+                if (!deleteProjectId) return;
+                try {
+                  await projectHandler.deleteProject(deleteProjectId);
+                  setDeleteDialogOpen(false);
+                  setDeleteProjectId(null);
+                  // Refresh projects
+                  const updatedProjects = await projectHandler.fetchProjects();
+                  setProjects(updatedProjects);
+                } catch (error) {
+                  alert((error instanceof Error ? error.message : error) || "Failed to delete project");
+                }
+              }}
+            >
+              Delete
+            </Button>
+            <Button
+              variant="outlined"
+              color="secondary"
+              fullWidth
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setDeleteProjectId(null);
+              }}
+            >
+              Cancel
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
 
       {/* New Project Modal */}
       <Modal

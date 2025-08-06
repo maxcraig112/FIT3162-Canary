@@ -1,3 +1,53 @@
+// Rename a project
+export async function renameProject(projectID: string, newProjectName: string): Promise<string> {
+  const token = getAuthTokenFromCookie();
+  const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
+  const url = `${baseUrl}/projects/${projectID}`;
+  const body = JSON.stringify({ newProjectName });
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body,
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Failed to rename project: ${res.status} ${res.statusText} - ${errorText}`);
+  }
+  const responseText = await res.text();
+  try {
+    const data = JSON.parse(responseText);
+    return data.message || "Project renamed successfully";
+  } catch {
+    return responseText || "Project renamed successfully";
+  }
+}
+
+// Delete a project
+export async function deleteProject(projectID: string): Promise<string> {
+  const token = getAuthTokenFromCookie();
+  const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
+  const url = `${baseUrl}/projects/${projectID}`;
+  const res = await fetch(url, {
+    method: "DELETE",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Failed to delete project: ${res.status} ${res.statusText} - ${errorText}`);
+  }
+  const responseText = await res.text();
+  try {
+    const data = JSON.parse(responseText);
+    return data.message || "Project deleted successfully";
+  } catch {
+    return responseText || "Project deleted successfully";
+  }
+}
 
 import type { Project } from "./ProjectsPage";
 import { getUserIDFromCookie, getAuthTokenFromCookie } from "../utils/cookieUtils";
@@ -106,4 +156,9 @@ export async function handleNewProject(projectName: string): Promise<string> {
     console.log("Response is not JSON, returning as text:", responseText);
     return responseText || "Project created successfully";
   }
+}
+
+export function handleProjectsPage(projectID: string, navigate: (path: string) => void) {
+  // Remove JWT token from cookies if needed
+  navigate(`/projects?projectID=${projectID}`);
 }

@@ -18,12 +18,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [result, setResult] = useState<string | null>(null);
   const navigate = useNavigate();
 
+
   const handleLoginClick = async () => {
     setResult(null);
     try {
-      await handleLogin(email, password, (msg) => {
+      await handleLogin(email, password, (msg: string) => {
         setResult(msg);
-        if (msg && msg.toLowerCase().includes("success")) {
+        if (msg && msg.toLowerCase().includes("login successful")) {
           if (onLoginSuccess) onLoginSuccess();
           navigate("/home");
         }

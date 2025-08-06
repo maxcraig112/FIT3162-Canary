@@ -12,13 +12,15 @@ import {
   handleJoinSession,
   handleSettings,
 } from "./homeHandlers";
+import { clearCookie } from "../utils/cookieUtils";
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
 
   function handleLogoutAndRedirect() {
     // Remove JWT token from cookies
-    document.cookie = "token=; path=/; max-age=0";
+    clearCookie("auth_token");
+    clearCookie("user_id");
     navigate("/login");
   }
 
