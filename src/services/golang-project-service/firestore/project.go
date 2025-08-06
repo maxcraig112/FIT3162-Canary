@@ -54,6 +54,7 @@ func NewProjectStore(client fs.FirestoreClientInterface) *ProjectStore {
 }
 
 func (s *ProjectStore) GetProjectsByUserID(ctx context.Context, userID string) ([]Project, error) {
+
 	queryParams := []fs.QueryParameter{
 		{Path: "userID", Op: "==", Value: userID},
 	}
