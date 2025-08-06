@@ -65,7 +65,7 @@ func (h *UserHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error().Str("email", req.Email).Msg("Password does not meet security requirements for register")
 		return
 	}
-	doc, err := h.UserStore.FindByEmail(r.Context(), req.Email)
+	doc, _, err := h.UserStore.FindByEmail(r.Context(), req.Email)
 	if err != nil && err != fs.ErrNotFound {
 		http.Error(w, "Error processing email", http.StatusBadRequest)
 		log.Error().Err(err).Str("email", req.Email).Msg("Error processing email for register")
@@ -100,7 +100,7 @@ func (h *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error().Err(err).Msg("Invalid login request")
 		return
 	}
-	user, err := h.UserStore.FindByEmail(r.Context(), req.Email)
+	user, userID, err := h.UserStore.FindByEmail(r.Context(), req.Email)
 	if err != nil {
 		http.Error(w, "Invalid email or password", http.StatusNotFound)
 		log.Info().Str("email", req.Email).Msg("User not found")
@@ -120,7 +120,7 @@ func (h *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	log.Info().Str("email", req.Email).Msg("User logged in successfully")
-	json.NewEncoder(w).Encode(map[string]string{"token": token})
+	json.NewEncoder(w).Encode(map[string]string{"token": token, "userID": userID})
 }
 
 func (h *UserHandler) DeleteHandler(w http.ResponseWriter, r *http.Request) {

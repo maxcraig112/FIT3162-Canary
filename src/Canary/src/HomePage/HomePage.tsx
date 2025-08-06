@@ -8,7 +8,7 @@ import {
 import { useNavigate } from "react-router-dom";
 
 import {
-  handleProjects,
+  handleProjectsPage,
   handleJoinSession,
   handleSettings,
 } from "./homeHandlers";
@@ -98,7 +98,7 @@ const HomePage: React.FC = () => {
             {[
               {
                 label: "Projects",
-                onClick: handleProjects,
+                onClick: handleProjectsPage,
               },
               {
                 label: "Join Session",
@@ -125,7 +125,7 @@ const HomePage: React.FC = () => {
                     color: CANARY_BUTTON_TEXT_COLOR,
                   },
                 }}
-                onClick={onClick}
+                onClick={() => onClick(navigate)}
               >
                 {label}
               </Button>

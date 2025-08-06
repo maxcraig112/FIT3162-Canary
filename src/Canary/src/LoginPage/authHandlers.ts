@@ -1,3 +1,4 @@
+import { setCookie } from "../utils/cookieUtils";
 const authServiceURL = import.meta.env.VITE_AUTH_SERVICE_URL;
 
 async function postToAuthService(endpoint: string, payload: object) {
@@ -29,7 +30,9 @@ export async function handleLogin(
   try {
     const data = await postToAuthService("/login", { email, password });
     if (data && data.token) {
-      document.cookie = `token=${data.token}; path=/; max-age=${60 * 60 * 24 * 7}`;
+      console.log(data)
+      setCookie("auth_token", data.token, 7);
+      setCookie("user_id", data.userID, 7); // Assuming user_id is returned
       if (setResult) setResult("Login successful");
       console.log("Login success, token set in cookie");
     } else {
