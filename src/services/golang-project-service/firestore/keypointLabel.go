@@ -32,17 +32,9 @@ type CreateKeypointLabelRequest struct {
 	ProjectID     string `json:"projectID"`
 }
 
-type GetKeypointLabelRequest struct {
-	KeypointLabelID string `json:"keyPointLabelID"`
-}
-
 type UpdateKeypointLabelRequest struct {
 	KeypointLabelID string `json:"keyPointLabelID"`
 	KeypointLabel   string `json:"keypointLabel"`
-}
-
-type DeleteKeypointLabelRequest struct {
-	KeypointLabelID string `json:"keyPointLabelID"`
 }
 
 type KeypointLabelStore struct {
@@ -75,10 +67,6 @@ func (s *KeypointLabelStore) GetKeypointLabelsByProjectID(ctx context.Context, p
 	return keypointLabels, nil
 }
 
-func (s *KeypointLabelStore) GetKeypointLabelByKeypointLabelID(ctx context.Context, keypointLabelID string) (KeypointLabel, error) {
-	return s.GetKeypointLabel(ctx, GetKeypointLabelRequest{KeypointLabelID: keypointLabelID})
-}
-
 func (s *KeypointLabelStore) CreateKeypointLabel(ctx context.Context, createKeypointLabelReq CreateKeypointLabelRequest) (string, error) {
 	keypointLabel := KeypointLabel{
 		KeypointLabel: createKeypointLabelReq.KeypointLabel,
@@ -88,8 +76,8 @@ func (s *KeypointLabelStore) CreateKeypointLabel(ctx context.Context, createKeyp
 	return s.genericStore.CreateDoc(ctx, keypointLabel)
 }
 
-func (s *KeypointLabelStore) DeleteKeypointLabel(ctx context.Context, deleteKeypointLabelReq DeleteKeypointLabelRequest) error {
-	return s.genericStore.DeleteDoc(ctx, deleteKeypointLabelReq.KeypointLabelID)
+func (s *KeypointLabelStore) DeleteKeypointLabel(ctx context.Context, keypointLabelID string) error {
+	return s.genericStore.DeleteDoc(ctx, keypointLabelID)
 }
 
 func (s *KeypointLabelStore) UpdateKeypointLabelName(ctx context.Context, updateKeypointLabelReq UpdateKeypointLabelRequest) error {
@@ -100,8 +88,8 @@ func (s *KeypointLabelStore) UpdateKeypointLabelName(ctx context.Context, update
 	return s.genericStore.UpdateField(ctx, updateKeypointLabelReq.KeypointLabelID, updateParams)
 }
 
-func (s *KeypointLabelStore) GetKeypointLabel(ctx context.Context, getKeypointLabelRequest GetKeypointLabelRequest) (KeypointLabel, error) {
-	docSnap, err := s.genericStore.GetDoc(ctx, getKeypointLabelRequest.KeypointLabelID)
+func (s *KeypointLabelStore) GetKeypointLabel(ctx context.Context, keypointLabelID string) (KeypointLabel, error) {
+	docSnap, err := s.genericStore.GetDoc(ctx, keypointLabelID)
 	if err != nil {
 		return KeypointLabel{}, err
 	}

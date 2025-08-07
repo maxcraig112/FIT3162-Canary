@@ -35,6 +35,7 @@ func setupHandlers(ctx context.Context, r *mux.Router, clients *gcp.Clients) {
 	api.RegisterBatchRoutes(r, h)
 	api.RegisterImageRoutes(r, h)
 	api.RegisterKeypointLabelRoutes(r, h)
+	api.RegisterKeypointRoutes(r, h)
 
 }
 

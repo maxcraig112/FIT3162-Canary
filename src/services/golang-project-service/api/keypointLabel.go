@@ -27,10 +27,10 @@ func RegisterKeypointLabelRoutes(r *mux.Router, h *handler.Handler) {
 	klh := newKeypointLabelHandler(h)
 
 	routes := []Route{
-		{"POST", "/projects/{projectID}/keypointlabel", klh.CreateKeypointLabelHandler},
+		{"POST", "/projects/{projectID}/keypointlabels", klh.CreateKeypointLabelHandler},
 		{"GET", "/projects/{projectID}/keypointlabels", klh.LoadKeypointLabelsHandler},
-		{"DELETE", "/projects/{projectID}/keypointlabel", klh.DeleteKeypointLabelHandler},
-		{"PATCH", "/projects/{projectID}/keypointlabel", klh.UpdateKeypointLabelHandler},
+		{"DELETE", "/projects/{projectID}/keypointlabel/{keypointLabelID}", klh.DeleteKeypointLabelHandler},
+		{"PATCH", "/projects/{projectID}/keypointlabel/{keypointLabelID}", klh.UpdateKeypointLabelHandler},
 	}
 
 	for _, rt := range routes {
@@ -41,6 +41,7 @@ func RegisterKeypointLabelRoutes(r *mux.Router, h *handler.Handler) {
 func (h *KeypointLabelHandler) UpdateKeypointLabelHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	projectID := vars["projectID"]
+	keypointLabelID := vars["keypointLabelID"]
 
 	var req firestore.UpdateKeypointLabelRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -48,8 +49,9 @@ func (h *KeypointLabelHandler) UpdateKeypointLabelHandler(w http.ResponseWriter,
 		log.Error().Err(err).Str("projectID", projectID).Msg("Invalid update keypoint label request")
 		return
 	}
+	req.KeypointLabelID = keypointLabelID
 
-	keypointLabel, err := h.KeypointLabelStore.GetKeypointLabelByKeypointLabelID(h.Ctx, req.KeypointLabelID)
+	keypointLabel, err := h.KeypointLabelStore.GetKeypointLabel(h.Ctx, req.KeypointLabelID)
 	if err != nil {
 		http.Error(w, "Error getting keypoint label", http.StatusInternalServerError)
 		log.Error().Err(err).Str("projectID", projectID).Msg("Error getting keypoint label")
@@ -70,7 +72,7 @@ func (h *KeypointLabelHandler) UpdateKeypointLabelHandler(w http.ResponseWriter,
 	}
 
 	w.WriteHeader(http.StatusOK)
-	log.Info().Str("projectID", projectID).Msg("Keypoint label updated successfully")
+	log.Info().Str("keypointLabelID", keypointLabelID).Msg("Keypoint label updated successfully")
 	w.Write([]byte(fmt.Sprintf("Keypoint label %s updated", req.KeypointLabelID)))
 
 }
@@ -78,15 +80,9 @@ func (h *KeypointLabelHandler) UpdateKeypointLabelHandler(w http.ResponseWriter,
 func (h *KeypointLabelHandler) DeleteKeypointLabelHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	projectID := vars["projectID"]
+	keypointLabelID := vars["keypointLabelID"]
 
-	var req firestore.DeleteKeypointLabelRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
-		log.Error().Err(err).Str("projectID", projectID).Msg("Invalid delete keypoint label request")
-		return
-	}
-
-	keypointLabel, err := h.KeypointLabelStore.GetKeypointLabelByKeypointLabelID(h.Ctx, req.KeypointLabelID)
+	keypointLabel, err := h.KeypointLabelStore.GetKeypointLabel(h.Ctx, keypointLabelID)
 	if err != nil {
 		http.Error(w, "Error getting keypoint label", http.StatusInternalServerError)
 		log.Error().Err(err).Str("projectID", projectID).Msg("Error getting keypoint label")
@@ -99,14 +95,13 @@ func (h *KeypointLabelHandler) DeleteKeypointLabelHandler(w http.ResponseWriter,
 		return
 	}
 
-	err = h.KeypointLabelStore.DeleteKeypointLabel(h.Ctx, req)
+	err = h.KeypointLabelStore.DeleteKeypointLabel(h.Ctx, keypointLabelID)
 	if err != nil {
 		http.Error(w, "Error deleting keypoint label", http.StatusInternalServerError)
 		log.Error().Err(err).Str("projectID", projectID).Msg("Error deleting keypoint label")
 		return
 	}
 
-	keypointLabelID := req.KeypointLabelID
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("keypointLabelID", keypointLabelID).Msg("Keypoint label deleted successfully")
 	w.Write([]byte(fmt.Sprintf("Keypoint label %s deleted", keypointLabelID)))
