@@ -14,7 +14,7 @@ COPY . .
 # Speed up builds with caches
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    cd src/Services/golang-auth-service \
+    cd src/services/golang-auth-service \
     && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /out/auth-service ./
 
 # -------- Runtime stage --------
@@ -27,7 +27,7 @@ COPY --from=builder /out/auth-service /app/auth-service
 
 # Optionally copy Cloud Run env file (not for secrets; keeps defaults/config)
 # You can remove this if you prefer managing env vars strictly in Cloud Run.
-COPY src/Services/golang-auth-service/.env.cloudrun /app/.env
+COPY src/services/golang-auth-service/.env.cloudrun /app/.env
 
 # Cloud Run listens on 8080
 ENV PORT=8080
