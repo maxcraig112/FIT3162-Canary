@@ -5,6 +5,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import * as projectHandler from "./projectHandler";
 import { useNavigate } from "react-router-dom";
+import { useAuthGuard } from "../utils/authUtil";
 
 // Project type based on Go struct
 export interface Project {
@@ -18,6 +19,9 @@ export interface Project {
 
 
 const ProjectsPage: React.FC = () => {
+  // validate the user authentication, otherwise redirect to login
+  useAuthGuard();
+
   const navigate = useNavigate();
 
   const [projects, setProjects] = useState<Project[]>([]);
