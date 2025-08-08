@@ -18,8 +18,11 @@ import {
 } from '@mui/icons-material';
 import { annotateHandler } from './annotateHandler';
 import { useSearchParams } from 'react-router-dom';
+import { useAuthGuard } from '../utils/authUtil';
 
 const AnnotatePage: React.FC = () => {
+  useAuthGuard();
+  
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentImage, setCurrentImage] = useState(0);
   const [totalImages, setTotalImages] = useState(0);
