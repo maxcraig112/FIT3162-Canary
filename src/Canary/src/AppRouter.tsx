@@ -4,7 +4,6 @@ import LoginPage from "./LoginPage/LoginPage";
 import HomePage from "./HomePage/HomePage";
 import ProjectsPage from "./ProjectsPage/ProjectsPage";
 import AnnotatePage from "./AnnotatePage/AnnotatePage";
-// import ProjectsPage from './ProjectsPage/ProjectsPage'; // Placeholder for future
 
 const AppRouter: React.FC = () => (
   <Routes>
