@@ -18,7 +18,9 @@ const AppRouter: React.FC = () => {
       />
       <Route
         path="/projects"
-        element={isLoggedIn ? <ProjectsPage /> : <Navigate to="/login" replace />}
+        element={
+          isLoggedIn ? <ProjectsPage /> : <Navigate to="/login" replace />
+        }
       />
       {/* <Route path="/projects" element={<ProjectsPage />} /> */}
       <Route

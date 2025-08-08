@@ -16,12 +16,11 @@ interface LoginPageProps {
 const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   // This will skip login if the user is already authenticated
   useSkipLogin();
-  
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [result, setResult] = useState<string | null>(null);
   const navigate = useNavigate();
-
 
   const handleLoginClick = async () => {
     setResult(null);

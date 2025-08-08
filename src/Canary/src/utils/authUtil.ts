@@ -27,7 +27,7 @@ async function verifyJWT(token: string, userID: string): Promise<boolean> {
   const res = await fetch(url, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(requestBody),
   });
@@ -39,20 +39,19 @@ async function verifyJWT(token: string, userID: string): Promise<boolean> {
 }
 
 export function useSkipLogin() {
-    const navigate = useNavigate();
-        useEffect(() => {
+  const navigate = useNavigate();
+  useEffect(() => {
     async function skip() {
-        const userID = getUserIDFromCookie();
-        const token = getAuthTokenFromCookie();
-        let result = false;
-        if (userID && token) {
-            result = await verifyJWT(token, userID);
-        }
-        if (result) {
-            navigate("/home", { replace: true });
-        }
+      const userID = getUserIDFromCookie();
+      const token = getAuthTokenFromCookie();
+      let result = false;
+      if (userID && token) {
+        result = await verifyJWT(token, userID);
+      }
+      if (result) {
+        navigate("/home", { replace: true });
+      }
     }
     skip();
   }, [navigate]);
 }
-    
