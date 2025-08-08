@@ -61,8 +61,6 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --port 8080 \
-            --update-env-vars CORS_ALLOW_ORIGINS=*.run.app \
-            --set-env-vars GCP_PROJECT_ID=${PROJECT_ID},JWT_SECRET_NAME=jwt_secret,USE_GSM=true,USE_FIRESTORE=true,FIRESTORE_PROJECTID=${PROJECT_ID},FIRESTORE_DATABASEID=default
 
       - name: Output service URL
         run: |
