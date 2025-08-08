@@ -13,8 +13,12 @@ import {
   handleSettings,
 } from "./homeHandlers";
 import { clearCookie } from "../utils/cookieUtils";
+import { useAuthGuard } from "../utils/authUtil";
 
 const HomePage: React.FC = () => {
+  // validate the user authentication, otherwise redirect to login
+  useAuthGuard();
+
   const navigate = useNavigate();
 
   function handleLogoutAndRedirect() {

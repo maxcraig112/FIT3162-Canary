@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"auth-service/firestore"
@@ -29,7 +30,7 @@ func RegisterUserRoutes(r *mux.Router, h *handler.Handler) {
 	uh := NewUserHandler(h)
 	r.HandleFunc("/register", uh.RegisterHandler).Methods("POST")
 	r.HandleFunc("/login", uh.LoginHandler).Methods("POST")
-	r.HandleFunc("/auth", uh.AuthHandler).Methods("POST")
+	r.HandleFunc("/auth/{userID}", uh.AuthHandler).Methods("POST")
 	r.HandleFunc("/user", uh.DeleteHandler).Methods("DELETE")
 }
 
@@ -112,7 +113,7 @@ func (h *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		log.Info().Str("email", req.Email).Msg("Password mismatch for login")
 		return
 	}
-	token, err := GenerateJWT(r.Context(), h.Clients, user.Email)
+	token, err := GenerateJWT(r.Context(), h.Clients, userID)
 	if err != nil {
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		log.Error().Err(err).Str("email", req.Email).Msg("Failed to generate JWT for login")
@@ -144,6 +145,9 @@ func (h *UserHandler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) AuthHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userID := vars["userID"]
+
 	token := r.Header.Get("Authorization")
 	if token == "" {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -154,10 +158,10 @@ func (h *UserHandler) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	if len(token) > 7 && token[:7] == "Bearer " {
 		token = token[7:]
 	}
-	_, err := ValidateJWT(token)
+	err := ValidateJWT(token, userID)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte("Invalid token"))
+		w.Write([]byte(fmt.Sprintf("Invalid token %s", err.Error())))
 		log.Error().Err(err).Msg("Invalid JWT token")
 		return
 	}
