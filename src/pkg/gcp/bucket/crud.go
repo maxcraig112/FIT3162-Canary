@@ -32,7 +32,9 @@ func (b *GenericBucket) CreateObject(ctx context.Context, objectName string, dat
 	if err := wc.Close(); err != nil {
 		return "", fmt.Errorf("failed to close writer: %w", err)
 	}
-	url := fmt.Sprintf("https://storage.cloud.google.com/%s/%s", b.bucket.BucketName(), objectName)
+	// This is the private URL which we cannot use
+	// url := fmt.Sprintf("https://storage.cloud.google.com/%s/%s", b.bucket.BucketName(), objectName)
+	url := fmt.Sprintf("https://storage.googleapis.com/%s/%s", b.bucket.BucketName(), objectName)
 	return url, nil
 }
 
