@@ -8,7 +8,9 @@ import (
 	"pkg/handler"
 	bk "project-service/bucket"
 	"project-service/firestore"
+	"strings"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
 )
@@ -108,7 +110,8 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 		defer file.Close()
 
 		// Construct object key, e.g. batchID/filename.png
-		objectName := fmt.Sprintf("%s/%s", batchID, fileHeader.Filename)
+		sanitisedFileName := strings.ReplaceAll(fileHeader.Filename, " ", "_")
+		objectName := fmt.Sprintf("%s/%s-%s", batchID, sanitisedFileName, uuid.New().String())
 		// Assign io.Reader to ObjectMap
 		objects[objectName] = file
 	}
