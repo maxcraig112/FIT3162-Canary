@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import * as fabric from 'fabric';
 import {
   Box,
   AppBar,
@@ -8,50 +7,64 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   Paper,
+  IconButton,
 } from '@mui/material';
 import {
   MyLocation,
   SelectAll,
   NotInterested,
+  KeyboardArrowLeft,
+  KeyboardArrowRight,
 } from '@mui/icons-material';
 import { annotateHandler } from './annotateHandler';
-import CanaryImage from '../images/canary.jpg';
+import { useSearchParams } from 'react-router-dom';
 
 const AnnotatePage: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentImage, setCurrentImage] = useState(0);
   const [totalImages, setTotalImages] = useState(0);
   const [selectedTool, setSelectedTool] = useState<string | null>('kp');
+  const [searchParams] = useSearchParams();
 
+  // Initialize canvas via handler
   useEffect(() => {
-    setCurrentImage(annotateHandler.getCurrentImageNumber());
-    setTotalImages(annotateHandler.getTotalImageCount());
-
-    if (!canvasRef.current) return;
-    const canvas = new fabric.Canvas(canvasRef.current);
-
-    fabric.Image.fromURL(CanaryImage, (img: fabric.Image) => {
-      if (!canvas.width || !canvas.height) return;
-      img.scaleToWidth(canvas.width);
-      img.scaleToHeight(canvas.height);
-      canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
-        originX: 'left',
-        originY: 'top',
-      });
-    });
-
-    return () => {
-      canvas.dispose();
-    };
+    const el = canvasRef.current;
+    if (!el) return;
+    annotateHandler.createCanvas(el);
+    return () => annotateHandler.disposeCanvas();
   }, []);
+
+  // Render when batchID or currentImage changes
+  useEffect(() => {
+    async function render() {
+      const batchID = searchParams.get('batchID') || '';
+      if (!batchID) return;
+      try {
+        const { current, total } = await annotateHandler.renderToCanvas(batchID);
+        setCurrentImage(current);
+        setTotalImages(total);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    render();
+  }, [searchParams, currentImage]);
 
   const handleToolChange = (
     _event: React.MouseEvent<HTMLElement>,
     newTool: string | null,
   ) => {
-    if (newTool !== null) {
-      setSelectedTool(newTool);
-    }
+    if (newTool !== null) setSelectedTool(newTool);
+  };
+
+  const handlePrev = () => {
+    annotateHandler.prevImage();
+    setCurrentImage(annotateHandler.getCurrentImageNumber());
+  };
+
+  const handleNext = () => {
+    annotateHandler.nextImage();
+    setCurrentImage(annotateHandler.getCurrentImageNumber());
   };
 
   return (
@@ -67,12 +80,18 @@ const AnnotatePage: React.FC = () => {
         {/* Top Toolbar */}
         <AppBar position="static" color="default" elevation={1}>
           <Toolbar>
-            <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center' }}>
+            <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1 }}>
+              <IconButton aria-label="previous image" onClick={handlePrev}>
+                <KeyboardArrowLeft />
+              </IconButton>
               <Paper elevation={2} sx={{ px: 3, py: 1 }}>
                 <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
                   {currentImage}/{totalImages}
                 </Typography>
               </Paper>
+              <IconButton aria-label="next image" onClick={handleNext}>
+                <KeyboardArrowRight />
+              </IconButton>
             </Box>
           </Toolbar>
         </AppBar>
