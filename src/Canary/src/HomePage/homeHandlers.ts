@@ -1,7 +1,8 @@
+// Use these handlers inside a React component and pass 'navigate' from useNavigate()
 // Handles logic for HomePage buttons
-export function handleProjects() {
-  // TODO: Implement navigation or logic for Projects
-  console.log("Projects button clicked");
+export function handleProjectsPage(navigate: (path: string) => void) {
+  // Remove JWT token from cookies if needed
+  navigate("/projects");
 }
 
 export function handleJoinSession() {
