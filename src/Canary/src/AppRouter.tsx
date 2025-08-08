@@ -3,7 +3,6 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./LoginPage/LoginPage";
 import HomePage from "./HomePage/HomePage";
 import ProjectsPage from "./ProjectsPage/ProjectsPage";
-// import ProjectsPage from './ProjectsPage/ProjectsPage'; // Placeholder for future
 
 const AppRouter: React.FC = () => (
   <Routes>
