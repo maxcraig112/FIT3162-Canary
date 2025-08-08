@@ -8,17 +8,23 @@ import {
 import { useNavigate } from "react-router-dom";
 
 import {
-  handleProjects,
+  handleProjectsPage,
   handleJoinSession,
   handleSettings,
 } from "./homeHandlers";
+import { clearCookie } from "../utils/cookieUtils";
+import { useAuthGuard } from "../utils/authUtil";
 
 const HomePage: React.FC = () => {
+  // validate the user authentication, otherwise redirect to login
+  useAuthGuard();
+
   const navigate = useNavigate();
 
   function handleLogoutAndRedirect() {
     // Remove JWT token from cookies
-    document.cookie = "token=; path=/; max-age=0";
+    clearCookie("auth_token");
+    clearCookie("user_id");
     navigate("/login");
   }
 
@@ -98,7 +104,7 @@ const HomePage: React.FC = () => {
             {[
               {
                 label: "Projects",
-                onClick: handleProjects,
+                onClick: handleProjectsPage,
               },
               {
                 label: "Join Session",
@@ -125,7 +131,7 @@ const HomePage: React.FC = () => {
                     color: CANARY_BUTTON_TEXT_COLOR,
                   },
                 }}
-                onClick={onClick}
+                onClick={() => onClick(navigate)}
               >
                 {label}
               </Button>
