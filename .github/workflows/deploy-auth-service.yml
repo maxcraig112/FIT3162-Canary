@@ -4,7 +4,7 @@ on:
   push:
     branches: [ feat/annotatePage ]
     paths:
-      - 'src/Services/golang-auth-service/**'
+      - 'src/services/golang-auth-service/**'
       - '.github/workflows/deploy-auth-service.yml'
 
 jobs:
@@ -16,7 +16,7 @@ jobs:
 
     env:
       SERVICE_NAME: golang-auth-service
-      SERVICE_DIR: src/Services/golang-auth-service
+      SERVICE_DIR: src/services/golang-auth-service
       REGION: australia-southeast1
       PROJECT_ID: canary-462412
       REPOSITORY: canary-repo
