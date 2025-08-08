@@ -29,10 +29,10 @@ function devRewriteURL(url: string): string {
 
 async function fetchImagesForBatch(batchID: string): Promise<ImageMeta[]> {
   const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
-  if (!baseUrl) throw new Error("VITE_PROJECT_SERVICE_URL is not set");
   const token = getAuthTokenFromCookie();
-  const url = `${baseUrl}/batch/${encodeURIComponent(batchID)}/images`;
+  const url = `${baseUrl}/batch/${batchID}/images`;
 
+  // get all the image metadata from the firestore database
   const res = await fetch(url, {
     method: "GET",
     headers: {
@@ -46,8 +46,9 @@ async function fetchImagesForBatch(batchID: string): Promise<ImageMeta[]> {
       `Failed to fetch images for batch ${batchID}: ${res.status} ${res.statusText} - ${text}`,
     );
   }
+
   const data = (await res.json()) as ImageMeta[];
-  return data || [];
+  return data;
 }
 
 export const annotateHandler = {
@@ -65,31 +66,21 @@ export const annotateHandler = {
     canvasRef = null;
   },
 
-  /** Gets the current image number (1-based). */
-  getCurrentImageNumber(): number {
-    return currentImageNumber;
-  },
-
-  /** Gets the total number of images for the current batch (if loaded). */
-  getTotalImageCount(): number {
-    return totalImageCount;
-  },
-
   /** Optionally allow UI to set the current image number (1-based). */
   setCurrentImageNumber(n: number) {
     currentImageNumber = Math.max(1, Math.floor(n));
   },
 
-  nextImage(): number {
+  nextImage(setCurrentImage: React.Dispatch<React.SetStateAction<number>>) {
     if (totalImageCount <= 0) return currentImageNumber;
     currentImageNumber = currentImageNumber < totalImageCount ? currentImageNumber + 1 : 1;
-    return currentImageNumber;
+    setCurrentImage(currentImageNumber);
   },
 
-  prevImage(): number {
+  prevImage(setCurrentImage: React.Dispatch<React.SetStateAction<number>>) {
     if (totalImageCount <= 0) return currentImageNumber;
     currentImageNumber = currentImageNumber > 1 ? currentImageNumber - 1 : totalImageCount;
-    return currentImageNumber;
+    setCurrentImage(currentImageNumber);
   },
 
   /**
@@ -114,17 +105,11 @@ export const annotateHandler = {
       throw new Error("No images found for this batch");
     }
 
-    currentImageNumber = Math.min(
-      Math.max(1, Math.floor(imageNumber || 1)),
-      totalImageCount,
-    );
-
-    const idx = currentImageNumber - 1; // convert to 0-based
-    const meta = images[idx];
-    if (!meta || !meta.imageURL) {
+    const imageMetadata = images[imageNumber - 1];
+    if (!imageMetadata || !imageMetadata.imageURL) {
       throw new Error("Invalid image metadata or imageURL not found");
     }
-    return { imageURL: meta.imageURL, total: totalImageCount };
+    return { imageURL: imageMetadata.imageURL, total: totalImageCount };
   },
 
   /**
@@ -136,12 +121,13 @@ export const annotateHandler = {
 
     const { imageURL, total } = await this.loadImageURL(
       batchID,
-      this.getCurrentImageNumber(),
+      currentImageNumber,
     );
 
     // Try in-memory cache first
     let img = imageCache.get(imageURL);
     if (!img) {
+      // this is used to get around CORS issues when developing locally
       const url = devRewriteURL(imageURL);
       img = await fabric.FabricImage.fromURL(url, { crossOrigin: "anonymous" });
       imageCache.set(imageURL, img);
@@ -149,7 +135,7 @@ export const annotateHandler = {
 
     const cw = canvasRef.getWidth();
     const ch = canvasRef.getHeight();
-    if (!cw || !ch) return { current: this.getCurrentImageNumber(), total };
+    if (!cw || !ch) return { current: currentImageNumber, total };
 
     const iw = img.width ?? 1;
     const ih = img.height ?? 1;
@@ -160,6 +146,6 @@ export const annotateHandler = {
     canvasRef.backgroundImage = img;
     canvasRef.requestRenderAll();
 
-    return { current: this.getCurrentImageNumber(), total };
+    return { current: currentImageNumber, total };
   },
 };

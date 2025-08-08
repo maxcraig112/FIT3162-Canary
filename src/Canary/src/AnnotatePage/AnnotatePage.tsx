@@ -58,13 +58,11 @@ const AnnotatePage: React.FC = () => {
   };
 
   const handlePrev = () => {
-    annotateHandler.prevImage();
-    setCurrentImage(annotateHandler.getCurrentImageNumber());
+    annotateHandler.prevImage(setCurrentImage);
   };
 
   const handleNext = () => {
-    annotateHandler.nextImage();
-    setCurrentImage(annotateHandler.getCurrentImageNumber());
+    annotateHandler.nextImage(setCurrentImage);
   };
 
   return (
