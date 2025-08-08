@@ -1,0 +1,69 @@
+name: Deploy golang-auth-service to Cloud Run
+
+on:
+  push:
+    branches: [ feat/annotatePage ]
+    paths:
+      - 'src/Services/golang-auth-service/**'
+      - '.github/workflows/deploy-auth-service.yml'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # Needed for Workload Identity Federation
+
+    env:
+      SERVICE_NAME: golang-auth-service
+      SERVICE_DIR: src/Services/golang-auth-service
+      REGION: australia-southeast1
+      PROJECT_ID: canary-462412
+      REPOSITORY: canary-repo
+      IMAGE_NAME: golang-auth-service
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up gcloud auth (Workload Identity Federation)
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }} 
+
+      - name: Configure gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Configure Docker auth for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
+
+      - name: Build image
+        run: |
+          IMAGE_URI=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE_NAME}:$GITHUB_SHA
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+          docker build \
+            -f ${SERVICE_DIR}/Dockerfile \
+            -t $IMAGE_URI \
+            .
+
+      - name: Push image
+        run: |
+          docker push $IMAGE_URI
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${SERVICE_NAME} \
+            --image $IMAGE_URI \
+            --region ${REGION} \
+            --platform managed \
+            --allow-unauthenticated \
+            --port 8080 \
+            --update-env-vars CORS_ALLOW_ORIGINS=*.run.app \
+            --set-env-vars GCP_PROJECT_ID=${PROJECT_ID},JWT_SECRET_NAME=jwt_secret,USE_GSM=true,USE_FIRESTORE=true,FIRESTORE_PROJECTID=${PROJECT_ID},FIRESTORE_DATABASEID=default
+
+      - name: Output service URL
+        run: |
+          gcloud run services describe ${SERVICE_NAME} --region ${REGION} --format='value(status.url)'
