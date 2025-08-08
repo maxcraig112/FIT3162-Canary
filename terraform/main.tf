@@ -18,8 +18,17 @@ resource "google_storage_bucket" "canary_project_images" {
   name     = "canary-project-images"
   location = var.region
   storage_class = "STANDARD"
-  public_access_prevention = "enforced"
   uniform_bucket_level_access = true
+}
+
+resource "google_storage_bucket_iam_binding" "public_rule" {
+  bucket = google_storage_bucket.canary_project_images.name
+
+  role = "roles/storage.objectViewer"
+
+  members = [
+    "allUsers",
+  ]
 }
 
 # Google Firestore database for storing metadata
