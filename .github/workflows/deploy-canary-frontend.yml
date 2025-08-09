@@ -1,11 +1,12 @@
 name: Deploy canary-frontend to Cloud Run
 
 on:
-  push:
-    branches: [ feat/annotatePage ]
-    paths:
-      - 'src/Canary/**'
-      - '.github/workflows/deploy-canary-frontend.yml'
+  workflow_dispatch:
+    inputs:
+      imageTag:
+        description: 'Optional image tag to deploy (defaults to commit SHA)'
+        required: false
+        type: string
 
 jobs:
   build-and-deploy:
@@ -42,7 +43,9 @@ jobs:
 
       - name: Build image
         run: |
-          IMAGE_URI=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE_NAME}:$GITHUB_SHA
+          TAG=${GITHUB_SHA}
+          if [ -n "${{ github.event.inputs.imageTag }}" ]; then TAG='${{ github.event.inputs.imageTag }}'; fi
+          IMAGE_URI=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE_NAME}:$TAG
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
           docker build \
             -f ${SERVICE_DIR}/Dockerfile \
