@@ -4,8 +4,16 @@ resource "google_storage_bucket" "canary_project_images" {
   name     = "canary-project-images"
   location = var.region
   storage_class = "STANDARD"
-  public_access_prevention = "enforced"
+  # Allow public object access via IAM (set to inherited instead of enforced)
+  public_access_prevention = "inherited"
   uniform_bucket_level_access = true
+}
+
+# Grant public read access to objects in the bucket
+resource "google_storage_bucket_iam_member" "canary_project_images_public_read" {
+  bucket = google_storage_bucket.canary_project_images.name
+  role   = "roles/storage.objectViewer"
+  member = "allUsers"
 }
 
 resource "google_firestore_database" "default" {
