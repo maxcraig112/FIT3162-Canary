@@ -3,6 +3,7 @@ package websocket
 import (
 	"net/http"
 	"sync"
+	"websocket-service/firestore"
 
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
@@ -25,6 +26,10 @@ var upgrader = websocket.Upgrader{
 type WebSocketHub struct {
 	mu       sync.RWMutex
 	Sessions map[string]*Session
+	// This is needed in order to handle certain websocket events
+	SessionStore *firestore.SessionStore
+	// TerminatingSessions tracks sessions currently tearing down due to owner leaving
+	TerminatingSessions map[string]struct{}
 }
 
 type Session struct {
@@ -39,8 +44,32 @@ type Client struct {
 	id   string
 }
 
-func NewWebSocketHub() *WebSocketHub {
-	return &WebSocketHub{Sessions: make(map[string]*Session)}
+func (c *Client) Close() {
+	_ = c.conn.Close()
+	close(c.out)
+}
+
+func NewWebSocketHub(sessionStore *firestore.SessionStore) *WebSocketHub {
+	return &WebSocketHub{
+		Sessions:            make(map[string]*Session),
+		SessionStore:        sessionStore,
+		TerminatingSessions: make(map[string]struct{}),
+	}
+}
+
+// markTerminating marks a session as being closed by the owner disconnecting.
+func (h *WebSocketHub) markTerminating(sessionID string) {
+	h.mu.Lock()
+	h.TerminatingSessions[sessionID] = struct{}{}
+	h.mu.Unlock()
+}
+
+// isTerminating checks if a session is currently being closed by the owner.
+func (h *WebSocketHub) isTerminating(sessionID string) bool {
+	h.mu.RLock()
+	_, ok := h.TerminatingSessions[sessionID]
+	h.mu.RUnlock()
+	return ok
 }
 
 // CreateSession upgrades the HTTP connection and registers the owner client for a new session.
@@ -67,7 +96,7 @@ func (h *WebSocketHub) CreateSession(w http.ResponseWriter, r *http.Request, req
 	owner := &Client{conn: conn, out: make(chan any, 16), id: req.OwnerID}
 	s.Owner = owner
 	h.mu.Unlock()
-	startWriter(owner, "owner", req.SessionID)
+	h.startWebhookWriter(r.Context(), owner, "owner", req.SessionID)
 	return nil
 }
 
@@ -88,14 +117,14 @@ func (h *WebSocketHub) JoinSession(w http.ResponseWriter, r *http.Request, req J
 		log.Error().Err(err).Str("sessionID", req.SessionID).Msg("websocket upgrade failed for member")
 		return err
 	}
-	c := &Client{conn: conn, out: make(chan any, 16), id: req.MemberID}
+	member := &Client{conn: conn, out: make(chan any, 16), id: req.MemberID}
 	s.Mu.Lock()
-	s.Members[c] = struct{}{}
+	s.Members[member] = struct{}{}
 	s.Mu.Unlock()
-	startWriter(c, "member", req.SessionID)
 
 	// notify all other session clients that a new member has joined
 	h.notifyMemberJoined(s, req.MemberID, req.SessionID)
 
+	h.startWebhookWriter(r.Context(), member, "member", req.SessionID)
 	return nil
 }

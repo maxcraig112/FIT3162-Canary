@@ -41,7 +41,7 @@ func (s *SessionStore) CreateNewSession(ctx context.Context, req CreateSessionRe
 	session := Session{
 		OwnerID: req.UserID,
 		BatchID: req.BatchID,
-		Members: []string{req.UserID},
+		Members: []string{},
 	}
 	return s.genericStore.CreateDoc(ctx, session)
 }
@@ -58,10 +58,10 @@ func (s *SessionStore) AddMemberToSession(ctx context.Context, req JoinSessionRe
 	return s.genericStore.UpdateDoc(ctx, req.SessionID, updateParams)
 }
 
-func (s *SessionStore) RemoveMemberFromSession(ctx context.Context, req JoinSessionRequest) error {
+func (s *SessionStore) RemoveMemberFromSession(ctx context.Context, sessionID string, memberID string) error {
 	updateParams := []firestore.Update{
-		{Path: "members", Value: firestore.ArrayRemove(req.UserID)},
+		{Path: "members", Value: firestore.ArrayRemove(memberID)},
 		{Path: "lastUpdated", Value: time.Now()},
 	}
-	return s.genericStore.UpdateDoc(ctx, req.SessionID, updateParams)
+	return s.genericStore.UpdateDoc(ctx, sessionID, updateParams)
 }

@@ -20,6 +20,13 @@ tasks:
     cmds:
       - go run main.go
 
+  runWebsocketService:
+    desc: Run the Go websocket service in its own terminal
+    dir: src/services/golang-websocket-service
+    interactive: true
+    cmds:
+      - go run main.go
+
   runWebpage:
     desc: Run the Vite Webpage
     dir: src/Canary

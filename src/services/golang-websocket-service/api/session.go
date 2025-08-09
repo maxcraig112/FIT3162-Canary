@@ -20,19 +20,20 @@ type SessionHandler struct {
 	SessionStore *firestore.SessionStore
 }
 
-func newSessionHandler(h *handler.Handler, hub *websocket.WebSocketHub) *SessionHandler {
+func newSessionHandler(h *handler.Handler, hub *websocket.WebSocketHub, sessionStore *firestore.SessionStore) *SessionHandler {
 	return &SessionHandler{
 		Handler:      h,
 		Hub:          hub,
 		ProjectStore: firestore.NewProjectStore(h.Clients.Firestore),
 		BatchStore:   firestore.NewBatchStore(h.Clients.Firestore),
-		SessionStore: firestore.NewSessionStore(h.Clients.Firestore),
+		SessionStore: sessionStore,
 	}
 }
 
 func RegisterSessionRoutes(r *mux.Router, h *handler.Handler) {
-	hub := websocket.NewWebSocketHub()
-	sh := newSessionHandler(h, hub)
+	sessionStore := firestore.NewSessionStore(h.Clients.Firestore)
+	hub := websocket.NewWebSocketHub(sessionStore)
+	sh := newSessionHandler(h, hub, sessionStore)
 
 	r.HandleFunc("/sessions/{batchID}", sh.CreateSessionHandler)
 	r.HandleFunc("/sessions/{sessionID}/join", sh.JoinSessionHandler)
