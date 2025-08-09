@@ -1,0 +1,69 @@
+name: Deploy golang-project-service to Cloud Run
+
+on:
+  push:
+    branches: [ feat/annotatePage ]
+    paths:
+      - 'src/services/golang-project-service/**'
+      - '.github/workflows/deploy-project-service.yml'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # Needed for Workload Identity Federation
+
+    env:
+      SERVICE_NAME: golang-project-service
+      SERVICE_DIR: src/services/golang-project-service
+      REGION: australia-southeast1
+      PROJECT_ID: canary-462412
+      REPOSITORY: canary-repo
+      IMAGE_NAME: golang-project-service
+      CLIENT_SA_EMAIL: gh-client@canary-462412.iam.gserviceaccount.com
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up gcloud project (Workload Identity Federation)
+        uses: google-github-actions/project@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }} 
+
+      - name: Configure gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Configure Docker project for Artifact Registry
+        run: |
+          gcloud project configure-docker ${REGION}-docker.pkg.dev --quiet
+
+      - name: Build image
+        run: |
+          IMAGE_URI=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE_NAME}:$GITHUB_SHA
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+          docker build \
+            -f ${SERVICE_DIR}/Dockerfile \
+            -t $IMAGE_URI \
+            .
+
+      - name: Push image
+        run: |
+          docker push $IMAGE_URI
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${SERVICE_NAME} \
+            --image $IMAGE_URI \
+            --region ${REGION} \
+            --platform managed \
+            --allow-unauthenticated \
+            --port 8080 \
+            --service-account ${CLIENT_SA_EMAIL}
+
+      - name: Output service URL
+        run: |
+          gcloud run services describe ${SERVICE_NAME} --region ${REGION} --format='value(status.url)'

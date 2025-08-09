@@ -25,6 +25,12 @@ resource "google_project_iam_member" "runtime_client_gsm" {
   member  = "serviceAccount:${google_service_account.runtime_client.email}"
 }
 
+resource "google_service_account_iam_member" "deployer_can_act_as_client" {
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${google_service_account.runtime_client.email}"
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${google_service_account.ci_deployer.email}"
+}
+
 output "runtime_client_service_account_email" {
   value = google_service_account.runtime_client.email
 }
