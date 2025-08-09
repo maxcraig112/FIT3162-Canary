@@ -84,7 +84,7 @@ func (s *BatchStore) RenameBatch(ctx context.Context, batchID string, renameBatc
 		{Path: "lastUpdated", Value: time.Now()},
 	}
 
-	return s.genericStore.UpdateField(ctx, batchID, updateParams)
+	return s.genericStore.UpdateDoc(ctx, batchID, updateParams)
 }
 
 func (s *BatchStore) DeleteBatch(ctx context.Context, batchID string) error {
@@ -109,7 +109,7 @@ func (s *BatchStore) IncrementNumberOfTotalFiles(ctx context.Context, batchID st
 	if newVal < 0 {
 		newVal = 0
 	}
-	err = s.genericStore.UpdateField(ctx, batchID, []firestore.Update{{Path: "numberOfTotalFiles", Value: newVal}})
+	err = s.genericStore.UpdateDoc(ctx, batchID, []firestore.Update{{Path: "numberOfTotalFiles", Value: newVal}})
 	return newVal, err
 }
 
@@ -131,6 +131,6 @@ func (s *BatchStore) IncrementNumberOfAnnotatedFiles(ctx context.Context, batchI
 	if newVal < 0 {
 		newVal = 0
 	}
-	err = s.genericStore.UpdateField(ctx, batchID, []firestore.Update{{Path: "numberOfAnnotatedFiles", Value: newVal}})
+	err = s.genericStore.UpdateDoc(ctx, batchID, []firestore.Update{{Path: "numberOfAnnotatedFiles", Value: newVal}})
 	return newVal, err
 }

@@ -125,7 +125,7 @@ func (s *GenericStore) DeleteDocByQuery(ctx context.Context, query []QueryParame
 	return err
 }
 
-func (s *GenericStore) UpdateField(ctx context.Context, docID string, updateParams []firestore.Update) error {
+func (s *GenericStore) UpdateDoc(ctx context.Context, docID string, updateParams []firestore.Update) error {
 	// Convert updateParameters into firestore.Update
 	// this struct is not even be needed but I like it
 
