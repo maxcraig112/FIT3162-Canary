@@ -14,9 +14,9 @@ RUN apk add --no-cache ca-certificates git
 COPY . .
 
 # Move into the service directory to manage modules and build
-WORKDIR /workspace/src/Services/golang-auth-service
+WORKDIR /workspace/src/services/golang-auth-service
 
-# Cache deps and download modules
+# Cache deps and download modules (must be in service dir with go.mod)
 RUN --mount=type=cache,target=/go/pkg/mod \
 	--mount=type=cache,target=/root/.cache/go-build \
 	go mod download
@@ -36,7 +36,7 @@ COPY --from=builder /out/auth-service /app/auth-service
 # Provide defaults/config via .env for godotenv (non-secret). This allows
 # Cloud Run to pick defaults if env vars are not set.
 # If you prefer managing env strictly in Cloud Run, you can remove this.
-COPY --from=builder /workspace/src/Services/golang-auth-service/.env.cloudrun /app/.env
+COPY --from=builder /workspace/src/services/golang-auth-service/.env.cloudrun /app/.env
 
 # Cloud Run listens on 8080 by convention
 ENV PORT=8080
