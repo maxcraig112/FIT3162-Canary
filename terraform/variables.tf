@@ -24,6 +24,11 @@ variable "deployer_sa_name" {
 }
 
 variable "runtime_sa_email" {
-  description = "Optional runtime Service Account email used by Cloud Run (grant iam.serviceAccountUser). Leave empty to skip."
+  description = "The Service Agent for the Cloud Run, this is needed to grant iam.serviceAccountUser permission."
+  type        = string
+}
+
+variable "client_sa_name" {
+  description = "The Service Account email for the Cloud Run clients."
   type        = string
 }

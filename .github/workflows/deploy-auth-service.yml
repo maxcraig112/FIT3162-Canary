@@ -21,6 +21,7 @@ jobs:
       PROJECT_ID: canary-462412
       REPOSITORY: canary-repo
       IMAGE_NAME: golang-auth-service
+      CLIENT_SA_EMAIL: gh-client@canary-462412.iam.gserviceaccount.com
 
     steps:
       - name: Checkout
@@ -61,6 +62,7 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --port 8080 \
+            --service-account ${CLIENT_SA_EMAIL}
 
       - name: Output service URL
         run: |
