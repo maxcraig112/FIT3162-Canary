@@ -27,7 +27,7 @@ type ChangeImageIDMessage struct {
 }
 
 func (h *WebSocketHub) startWebhookReader(c *Client, sessionID string) {
-	timeoutSec := 60 // default timeout in seconds
+	timeoutSec := 60 // default timeout in seconds (lower for quicker disconnect detection)
 	if envTimeout := os.Getenv("WEBSOCKET_CONNECTION_TIMEOUT_SECONDS"); envTimeout != "" {
 		if t, err := strconv.Atoi(envTimeout); err == nil {
 			timeoutSec = t
@@ -46,11 +46,17 @@ func (h *WebSocketHub) startWebhookReader(c *Client, sessionID string) {
 		for {
 			mt, data, err := c.conn.ReadMessage()
 			if err != nil {
-				log.Debug().Err(err).Str("sessionID", sessionID).Str("userID", c.id).Msg("read error")
+				log.Debug().Err(err).Str("sessionID", sessionID).Str("userID", c.id).Msg("read error; closing client to expedite disconnect handling")
+				c.Close()
+				return
+			}
+			if mt == websocket.CloseMessage {
+				log.Debug().Str("sessionID", sessionID).Str("userID", c.id).Msg("received close frame; closing client")
+				c.Close()
 				return
 			}
 			if mt != websocket.TextMessage {
-				// Ignore non-text (or add a handler if needed)
+				// Ignore other non-text messages (binary, etc.)
 				continue
 			}
 
