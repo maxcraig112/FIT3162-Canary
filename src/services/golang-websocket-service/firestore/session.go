@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/firestore"
+	"github.com/samber/lo"
 )
 
 const (
@@ -53,6 +54,21 @@ func (s *SessionStore) DeleteSession(ctx context.Context, sessionID string) erro
 	return s.genericStore.DeleteDoc(ctx, sessionID)
 }
 
+func (s *SessionStore) DoesSessionWithBatchExist(ctx context.Context, batchID string) bool {
+	queryParams := []fs.QueryParameter{
+		{Path: "batchID", Op: "==", Value: batchID},
+	}
+	doc, err := s.genericStore.GetDocByQuery(ctx, queryParams)
+	if err != nil {
+		return false
+	}
+	var session Session
+	if err := doc.DataTo(&session); err != nil {
+		return false
+	}
+	return doc.Ref.ID != ""
+}
+
 func (s *SessionStore) AddMemberToSession(ctx context.Context, req JoinSessionRequest) error {
 	updateParams := []firestore.Update{
 		{Path: "members", Value: firestore.ArrayUnion(req.UserID)},
@@ -67,4 +83,19 @@ func (s *SessionStore) RemoveMemberFromSession(ctx context.Context, sessionID st
 		{Path: "lastUpdated", Value: time.Now()},
 	}
 	return s.genericStore.UpdateDoc(ctx, sessionID, updateParams)
+}
+
+func (s *SessionStore) IsUserInSession(ctx context.Context, req JoinSessionRequest) (bool, error) {
+	doc, err := s.genericStore.GetDoc(ctx, req.SessionID)
+	if err != nil {
+		return false, nil // If the session doesn't exist, return false
+	}
+
+	// convert into Session
+	var session Session
+	if err := doc.DataTo(&session); err != nil {
+		return false, nil
+	}
+
+	return req.UserID == session.OwnerID || lo.Contains(session.Members, req.UserID), nil
 }

@@ -74,6 +74,14 @@ func (sh *SessionHandler) CreateSessionHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	// Check if there is already a session using this batchID
+	existingSessionID := sh.SessionStore.DoesSessionWithBatchExist(r.Context(), batchID)
+	if existingSessionID {
+		http.Error(w, "Session already exists for this batch", http.StatusConflict)
+		log.Warn().Msgf("Session already exists for batch %s: %s", batchID, existingSessionID)
+		return
+	}
+
 	// Create the new session in firestore
 	sessionID, err := sh.SessionStore.CreateNewSession(r.Context(), req)
 	if err != nil {
@@ -105,6 +113,17 @@ func (sh *SessionHandler) JoinSessionHandler(w http.ResponseWriter, r *http.Requ
 	req := firestore.JoinSessionRequest{
 		UserID:    userIDParam,
 		SessionID: sessionID,
+	}
+
+	// check if the user is already in the session
+	if isInSession, err := sh.SessionStore.IsUserInSession(r.Context(), req); err != nil {
+		http.Error(w, "Failed to check user in session", http.StatusInternalServerError)
+		log.Error().Str("userID", req.UserID).Str("sessionID", sessionID).Err(err).Msg("Failed to check user in session in Firestore")
+		return
+	} else if isInSession {
+		http.Error(w, "User is already in session", http.StatusConflict)
+		log.Warn().Str("userID", req.UserID).Str("sessionID", sessionID).Msg("User is already in session")
+		return
 	}
 
 	err := sh.SessionStore.AddMemberToSession(r.Context(), req)
