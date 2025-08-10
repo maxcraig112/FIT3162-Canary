@@ -95,7 +95,7 @@ func (s *ProjectStore) RenameProject(ctx context.Context, projectID string, rena
 		{Path: "lastUpdated", Value: time.Now()},
 	}
 
-	return s.genericStore.UpdateField(ctx, projectID, updateParams)
+	return s.genericStore.UpdateDoc(ctx, projectID, updateParams)
 }
 
 func (s *ProjectStore) DeleteProject(ctx context.Context, projectID string) error {
@@ -120,7 +120,7 @@ func (s *ProjectStore) IncrementNumberOfFiles(ctx context.Context, projectID str
 	if newVal < 0 {
 		newVal = 0
 	}
-	err = s.genericStore.UpdateField(ctx, projectID, []firestore.Update{{Path: "numberOfFiles", Value: newVal}})
+	err = s.genericStore.UpdateDoc(ctx, projectID, []firestore.Update{{Path: "numberOfFiles", Value: newVal}})
 	return newVal, err
 }
 
@@ -130,7 +130,7 @@ func (s *ProjectStore) UpdateProjectSettings(ctx context.Context, projectID stri
 		{Path: "settings.tagLabels.boundingBoxes", Value: req.TagLabels.BoundingBoxes},
 	}
 
-	err := s.genericStore.UpdateField(ctx, projectID, updateParams)
+	err := s.genericStore.UpdateDoc(ctx, projectID, updateParams)
 	if err != nil {
 		return nil, err
 	}
