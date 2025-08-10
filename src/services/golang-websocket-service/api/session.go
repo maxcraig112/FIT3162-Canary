@@ -82,10 +82,7 @@ func (sh *SessionHandler) CreateSessionHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	websocketReq := websocket.CreateSessionConnectionRequest{
-		OwnerID:   req.UserID,
-		SessionID: sessionID,
-	}
+	websocketReq := websocket.CreateSessionConnectionRequest{OwnerID: req.UserID, SessionID: sessionID, BatchID: batchID}
 
 	// Upgrade to WebSocket and assign this connection as owner
 	if err := sh.Hub.CreateSession(w, r, websocketReq); err != nil {

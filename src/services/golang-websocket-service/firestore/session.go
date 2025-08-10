@@ -37,6 +37,9 @@ func NewSessionStore(client fs.FirestoreClientInterface) *SessionStore {
 	return &SessionStore{genericStore: fs.NewGenericStore(client, sessionCollectionID)}
 }
 
+// GenericClient exposes the underlying Firestore client for constructing other stores.
+func (s *SessionStore) GenericClient() fs.FirestoreClientInterface { return s.genericStore.Client() }
+
 func (s *SessionStore) CreateNewSession(ctx context.Context, req CreateSessionRequest) (string, error) {
 	session := Session{
 		OwnerID: req.UserID,

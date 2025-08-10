@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"cloud.google.com/go/firestore"
+	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -22,6 +23,9 @@ type GenericStore struct {
 func NewGenericStore(client FirestoreClientInterface, collectionID string) *GenericStore {
 	return &GenericStore{client: client, collection: client.GetCollection(collectionID)}
 }
+
+// Client exposes the underlying Firestore client interface for advanced operations.
+func (s *GenericStore) Client() FirestoreClientInterface { return s.client }
 
 var ErrNotFound = status.Error(codes.NotFound, "document not found")
 
@@ -134,4 +138,47 @@ func (s *GenericStore) UpdateDoc(ctx context.Context, docID string, updateParams
 		return ErrNotFound
 	}
 	return err
+}
+
+// WatchCollection listens for realtime updates matching the provided query and invokes onSnapshot
+// with the current set of matching documents each time a snapshot is received. It returns a stop
+// function to end the watch.
+func (s *GenericStore) WatchCollection(ctx context.Context, query []QueryParameter, onSnapshot func([]*firestore.DocumentSnapshot)) (func(), error) {
+	// Create a child context we can cancel independently
+	watchCtx, cancel := context.WithCancel(ctx)
+
+	q := s.collection.Query
+	for _, qp := range query {
+		q = q.Where(qp.Path, qp.Op, qp.Value)
+	}
+	iter := q.Snapshots(watchCtx)
+
+	go func() {
+		defer iter.Stop()
+		for {
+			snap, err := iter.Next()
+			if err == iterator.Done {
+				return
+			}
+			if err != nil {
+				// On error, stop the watch; callers can restart if needed.
+				return
+			}
+			var docs []*firestore.DocumentSnapshot
+			for {
+				doc, err := snap.Documents.Next()
+				if err == iterator.Done {
+					break
+				}
+				if err != nil {
+					return
+				}
+				docs = append(docs, doc)
+			}
+			onSnapshot(docs)
+		}
+	}()
+
+	stop := func() { cancel() }
+	return stop, nil
 }

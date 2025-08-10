@@ -7,68 +7,20 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (h *WebSocketHub) startWebhookWriter(ctx context.Context, c *Client, role, sessionID string) error {
-	go func() {
-		// The purpose of this ticker is to ensure that the websocket isn't closed by being idle.
-		ticker := time.NewTicker(10 * time.Second)
+type MemberStatusNotification struct {
+	Type      string    `json:"type"`
+	SessionID string    `json:"sessionID"`
+	MemberID  string    `json:"memberID"`
+	Time      time.Time `json:"time"`
+}
 
-		// defer occurs when a websocket connection is closed
-		defer func() {
-			ticker.Stop()
-			_ = c.conn.Close()
-			select {
-			case <-c.out:
-				// already closed
-			default:
-				close(c.out)
-			}
-			// Trigger leave hooks based on role
-			switch role {
-			case "owner":
-				// mark session as terminating to avoid per-member removal spam
-				h.markTerminating(sessionID)
-				h.handlerOwnerLeft(sessionID)
-				// after owner cleanup, clear terminating flag
-				h.mu.Lock()
-				delete(h.TerminatingSessions, sessionID)
-				h.mu.Unlock()
-			case "member":
-				// if owner is currently terminating the session, skip member-left logic
-				if h.isTerminating(sessionID) {
-					break
-				}
-				h.handlerMemberLeft(sessionID, c.id)
-			}
-			log.Info().Str("sessionID", sessionID).Str("role", role).Str("userID", c.id).Msg("ws disconnected")
-		}()
-
-		log.Info().Str("sessionID", sessionID).Str("role", role).Str("userID", c.id).Msg("ws connected")
-
-		for {
-			select {
-			case t := <-ticker.C:
-				// periodic keepalive
-				msg := map[string]any{"type": "keepalive", "role": role, "sessionID": sessionID, "time": t.UTC().Format(time.RFC3339)}
-				if err := c.conn.WriteJSON(msg); err != nil {
-					log.Info().Err(err).Str("sessionID", sessionID).Msg("write failed; closing")
-					return
-				}
-			case msg, ok := <-c.out:
-				if !ok {
-					return
-				}
-				if err := c.conn.WriteJSON(msg); err != nil {
-					log.Info().Err(err).Str("sessionID", sessionID).Msg("write failed; closing")
-					return
-				}
-			}
-		}
-	}()
-	return nil
+type StandardNotification struct {
+	Type      string `json:"type"`
+	SessionID string `json:"sessionID"`
+	Time      string `json:"time"`
 }
 
 // OwnerLeft is invoked when the session owner disconnects.
-// TODO: implement owner cleanup, session teardown, and notifications as needed.
 func (h *WebSocketHub) handlerOwnerLeft(sessionID string) {
 	// Use background context to avoid cancellation from original ctx
 	ctx := context.Background()
@@ -90,7 +42,6 @@ func (h *WebSocketHub) handlerOwnerLeft(sessionID string) {
 }
 
 // MemberLeft is invoked when a session member disconnects.
-// TODO: implement member removal, persistence updates, and notifications as needed.
 func (h *WebSocketHub) handlerMemberLeft(sessionID string, memberID string) {
 	// Use background context to avoid cancellation from original ctx
 	ctx := context.Background()
@@ -101,38 +52,75 @@ func (h *WebSocketHub) handlerMemberLeft(sessionID string, memberID string) {
 		return
 	}
 	log.Info().Str("sessionID", sessionID).Str("memberID", memberID).Msg("member removed from session database")
+	h.sendMemberStatusNotification(MemberStatusNotification{
+		Type:      "member_left",
+		SessionID: sessionID,
+		MemberID:  memberID,
+		Time:      time.Now().UTC(),
+	})
 	return
 }
 
-func (h *WebSocketHub) notifyMemberJoined(s *Session, newMemberID, sessionID string) {
+// This is a generic notification format indicating something has happened to a member of the session (joined, left, etc.)
+// The notification is sent to everyone but the member in question
+func (h *WebSocketHub) sendMemberStatusNotification(notif MemberStatusNotification) {
+	s := h.Sessions[notif.SessionID]
+
 	s.Mu.RLock()
 	defer s.Mu.RUnlock()
 
-	notification := map[string]any{
-		"type":      "member_joined",
-		"sessionID": sessionID,
-		"memberID":  newMemberID,
-		"time":      time.Now().UTC().Format(time.RFC3339),
-	}
-
 	// Notify owner
 	if s.Owner != nil {
-		select {
-		case s.Owner.out <- notification:
-		default:
-			log.Warn().Str("sessionID", sessionID).Msg("owner out channel full, dropping member_joined notification")
+		if !h.safeEnqueue(s.Owner, notif) {
+			log.Warn().Str("sessionID", notif.SessionID).Msg("owner out channel unavailable, dropping member_joined notification")
 		}
 	}
 
 	// Notify all members except the new member itself
 	for member := range s.Members {
-		if member.id == newMemberID {
+		if member.id == notif.MemberID {
 			continue
 		}
-		select {
-		case member.out <- notification:
-		default:
-			log.Warn().Str("sessionID", sessionID).Str("memberID", member.id).Msg("member out channel full, dropping member_joined notification")
+		if !h.safeEnqueue(member, notif) {
+			log.Warn().Str("sessionID", notif.SessionID).Str("memberID", member.id).Msg("member out channel unavailable, dropping member_joined notification")
+		}
+	}
+}
+
+// safeEnqueue attempts a non-blocking send to a client's out channel.
+// It recovers from a panic in case the channel has been closed concurrently.
+func (h *WebSocketHub) safeEnqueue(c *Client, msg any) (ok bool) {
+	defer func() {
+		if r := recover(); r != nil {
+			ok = false
+		}
+	}()
+	select {
+	case c.out <- msg:
+		return true
+	default:
+		return false
+	}
+}
+
+// This is a standard notification send to everyone
+func (h *WebSocketHub) sendStandardNotification(notif StandardNotification) {
+	s := h.Sessions[notif.SessionID]
+
+	s.Mu.RLock()
+	defer s.Mu.RUnlock()
+
+	// Notify owner
+	if s.Owner != nil {
+		if !h.safeEnqueue(s.Owner, notif) {
+			log.Warn().Str("sessionID", notif.SessionID).Msg("owner out channel unavailable, dropping standard notification")
+		}
+	}
+
+	// Notify all members
+	for member := range s.Members {
+		if !h.safeEnqueue(member, notif) {
+			log.Warn().Str("sessionID", notif.SessionID).Str("memberID", member.id).Msg("member out channel unavailable, dropping standard notification")
 		}
 	}
 }
