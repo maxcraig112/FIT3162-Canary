@@ -1,0 +1,26 @@
+# Ignore VCS and editor files
+.git
+.gitignore
+.vscode
+.DS_Store
+
+# Node/Yarn
+node_modules
+**/node_modules
+**/dist
+**/.next
+**/build
+
+# Frontend artifacts
+src/Canary/node_modules
+src/Canary/dist
+src/Canary/.vite
+
+# Terraform state and cache
+terraform/.terraform
+terraform/.terraform.*
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+
+# OS junk
+Thumbs.db

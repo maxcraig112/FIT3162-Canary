@@ -22,7 +22,7 @@ func GenerateJWT(ctx context.Context, clients *gcp.Clients, userID string) (stri
 	}
 	claims := jwt.MapClaims{
 		"userID": userID,
-		"exp":    time.Now().Add(2 * time.Hour).Unix(),
+		"exp":    time.Now().Add(720 * time.Hour).Unix(),
 		"iat":    time.Now().Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

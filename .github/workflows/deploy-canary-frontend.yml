@@ -1,0 +1,70 @@
+name: Deploy canary-frontend to Cloud Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      imageTag:
+        description: 'Optional image tag to deploy (defaults to commit SHA)'
+        required: false
+        type: string
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # Needed for gcloud auth when using WIF or SA key
+
+    env:
+      SERVICE_NAME: canary-frontend
+      SERVICE_DIR: src/Canary
+      REGION: australia-southeast1
+      PROJECT_ID: canary-462412
+      REPOSITORY: canary-repo
+      IMAGE_NAME: canary-frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up gcloud auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Configure gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Configure Docker auth for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
+
+      - name: Build image
+        run: |
+          TAG=${GITHUB_SHA}
+          if [ -n "${{ github.event.inputs.imageTag }}" ]; then TAG='${{ github.event.inputs.imageTag }}'; fi
+          IMAGE_URI=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE_NAME}:$TAG
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+          docker build \
+            -f ${SERVICE_DIR}/Dockerfile \
+            -t $IMAGE_URI \
+            ${SERVICE_DIR}
+
+      - name: Push image
+        run: |
+          docker push $IMAGE_URI
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${SERVICE_NAME} \
+            --image $IMAGE_URI \
+            --region ${REGION} \
+            --platform managed \
+            --allow-unauthenticated \
+            --port 8080
+
+      - name: Output service URL
+        run: |
+          gcloud run services describe ${SERVICE_NAME} --region ${REGION} --format='value(status.url)'

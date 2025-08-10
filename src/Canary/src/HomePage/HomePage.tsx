@@ -13,6 +13,7 @@ import {
   handleSettings,
 } from "./homeHandlers";
 import { clearCookie } from "../utils/cookieUtils";
+import canaryImg from "../images/canary.jpg";
 import { useAuthGuard } from "../utils/authUtil";
 
 const HomePage: React.FC = () => {
@@ -40,7 +41,6 @@ const HomePage: React.FC = () => {
           left: 0,
           width: "100vw",
           height: "100vh",
-          m: 0,
           p: 0,
           overflow: "hidden",
         }}
@@ -55,7 +55,7 @@ const HomePage: React.FC = () => {
             height: "100vh",
             zIndex: 0,
             background: "rgba(0,0,0,0.5)",
-            backgroundImage: "url(src/images/canary.jpg)",
+            backgroundImage: `url(${canaryImg})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
             filter: "brightness(0.5) blur(6px)",
