@@ -5,7 +5,6 @@ import HomePage from "./HomePage/HomePage";
 import ProjectsPage from "./ProjectsPage/ProjectsPage";
 import AnnotatePage from "./AnnotatePage/AnnotatePage";
 
-
 const AppRouter: React.FC = () => (
   <Routes>
     <Route path="/login" element={<LoginPage />} />

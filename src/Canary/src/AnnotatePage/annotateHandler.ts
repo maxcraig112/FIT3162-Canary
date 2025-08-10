@@ -73,13 +73,15 @@ export const annotateHandler = {
 
   nextImage(setCurrentImage: React.Dispatch<React.SetStateAction<number>>) {
     if (totalImageCount <= 0) return currentImageNumber;
-    currentImageNumber = currentImageNumber < totalImageCount ? currentImageNumber + 1 : 1;
+    currentImageNumber =
+      currentImageNumber < totalImageCount ? currentImageNumber + 1 : 1;
     setCurrentImage(currentImageNumber);
   },
 
   prevImage(setCurrentImage: React.Dispatch<React.SetStateAction<number>>) {
     if (totalImageCount <= 0) return currentImageNumber;
-    currentImageNumber = currentImageNumber > 1 ? currentImageNumber - 1 : totalImageCount;
+    currentImageNumber =
+      currentImageNumber > 1 ? currentImageNumber - 1 : totalImageCount;
     setCurrentImage(currentImageNumber);
   },
 
@@ -116,7 +118,9 @@ export const annotateHandler = {
    * Render the current image to the Fabric canvas, centered and scaled.
    * Uses an in-memory cache of FabricImage instances to avoid re-downloading.
    */
-  async renderToCanvas(batchID: string): Promise<{ current: number; total: number }> {
+  async renderToCanvas(
+    batchID: string,
+  ): Promise<{ current: number; total: number }> {
     if (!canvasRef) throw new Error("Canvas not initialized");
 
     const { imageURL, total } = await this.loadImageURL(
@@ -141,7 +145,12 @@ export const annotateHandler = {
     const ih = img.height ?? 1;
     const scale = Math.min(cw / iw, ch / ih);
     img.scale(scale);
-    img.set({ originX: "center", originY: "center", left: cw / 2, top: ch / 2 });
+    img.set({
+      originX: "center",
+      originY: "center",
+      left: cw / 2,
+      top: ch / 2,
+    });
 
     canvasRef.backgroundImage = img;
     canvasRef.requestRenderAll();
