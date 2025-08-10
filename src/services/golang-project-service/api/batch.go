@@ -83,7 +83,7 @@ func (h *BatchHandler) CreateBatchHandler(w http.ResponseWriter, r *http.Request
 
 	w.WriteHeader(http.StatusCreated)
 	log.Info().Str("batchID", batchID).Msg("Batch created successfully")
-	w.Write([]byte(fmt.Sprintf("Batch %s created", batchID)))
+	fmt.Fprintf(w, "Batch %s created", batchID)
 }
 
 func (h *BatchHandler) RenameBatchHandler(w http.ResponseWriter, r *http.Request) {
@@ -106,7 +106,7 @@ func (h *BatchHandler) RenameBatchHandler(w http.ResponseWriter, r *http.Request
 
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("batchID", batchID).Str("newName", req.NewBatchName).Msg("Batch renamed successfully")
-	w.Write([]byte(fmt.Sprintf("Batch %s renamed to %s", batchID, req.NewBatchName)))
+	fmt.Fprintf(w, "Batch %s renamed to %s", batchID, req.NewBatchName)
 }
 
 func (h *BatchHandler) DeleteBatchHandler(w http.ResponseWriter, r *http.Request) {
@@ -122,7 +122,7 @@ func (h *BatchHandler) DeleteBatchHandler(w http.ResponseWriter, r *http.Request
 
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("batchID", batchID).Msg("Batch deleted successfully")
-	w.Write([]byte(fmt.Sprintf("Batch %s deleted", batchID)))
+	fmt.Fprintf(w, "Batch %s deleted", batchID)
 }
 
 func (h *BatchHandler) UpdateNumberOfTotalFilesHandler(w http.ResponseWriter, r *http.Request) {

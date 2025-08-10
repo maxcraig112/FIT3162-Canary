@@ -80,7 +80,7 @@ func (h *ProjectHandler) CreateProjectHandler(w http.ResponseWriter, r *http.Req
 
 	w.WriteHeader(http.StatusCreated)
 	log.Info().Str("projectID", projectID).Msg("Project created successfully")
-	w.Write([]byte(fmt.Sprintf("Project %s created", projectID)))
+	fmt.Fprintf(w, "Project %s created", projectID)
 }
 
 func (h *ProjectHandler) RenameProjectHandler(w http.ResponseWriter, r *http.Request) {
@@ -103,7 +103,7 @@ func (h *ProjectHandler) RenameProjectHandler(w http.ResponseWriter, r *http.Req
 
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("projectID", projectID).Str("newName", req.NewProjectName).Msg("Project renamed successfully")
-	w.Write([]byte(fmt.Sprintf("Project %s renamed to %s", projectID, req.NewProjectName)))
+	fmt.Fprintf(w, "Project %s renamed to %s", projectID, req.NewProjectName)
 }
 
 func (h *ProjectHandler) DeleteProjectHandler(w http.ResponseWriter, r *http.Request) {
@@ -119,7 +119,7 @@ func (h *ProjectHandler) DeleteProjectHandler(w http.ResponseWriter, r *http.Req
 
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("projectID", projectID).Msg("Project deleted successfully")
-	w.Write([]byte(fmt.Sprintf("Project %s deleted", projectID)))
+	fmt.Fprintf(w, "Project %s deleted", projectID)
 }
 
 func (h *ProjectHandler) UpdateNumberOfFilesHandler(w http.ResponseWriter, r *http.Request) {

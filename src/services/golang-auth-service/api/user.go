@@ -161,7 +161,7 @@ func (h *UserHandler) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	err := ValidateJWT(token, userID)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(fmt.Sprintf("Invalid token %s", err.Error())))
+		fmt.Fprintf(w, "Invalid token %s", err.Error())
 		log.Error().Err(err).Msg("Invalid JWT token")
 		return
 	}
