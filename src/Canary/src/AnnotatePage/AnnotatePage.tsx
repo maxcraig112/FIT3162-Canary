@@ -8,6 +8,8 @@ import {
   ToggleButton,
   Paper,
   IconButton,
+  TextField,
+  Button,
 } from "@mui/material";
 import {
   MyLocation,
@@ -28,6 +30,15 @@ const AnnotatePage: React.FC = () => {
   const [totalImages, setTotalImages] = useState(0);
   const [selectedTool, setSelectedTool] = useState<string | null>("kp");
   const [searchParams] = useSearchParams();
+  const [labelPrompt, setLabelPrompt] = useState<{
+    open: boolean;
+    kind: "kp" | "bb" | null;
+    x: number;
+    y: number;
+    mode?: "create" | "edit";
+  }>({ open: false, kind: null, x: 0, y: 0, mode: "create" });
+  const [labelValue, setLabelValue] = useState("");
+  const textInputRef = useRef<HTMLInputElement | null>(null);
 
   // Initialize canvas via handler
   useEffect(() => {
@@ -53,6 +64,51 @@ const AnnotatePage: React.FC = () => {
     }
     render();
   }, [searchParams, currentImage]);
+
+  // Keep handler tool selection in sync with UI
+  useEffect(() => {
+    const t = selectedTool;
+    if (t === "kp" || t === "bb") annotateHandler.setTool(t);
+    else annotateHandler.setTool(null);
+  }, [selectedTool]);
+
+  // Subscribe to label requests from handler
+  useEffect(() => {
+    const unsub = annotateHandler.subscribeLabelRequests((req) => {
+      setLabelValue(req.currentLabel ?? "");
+      setLabelPrompt({
+        open: true,
+        kind: req.kind === "kp" ? "kp" : "bb",
+        x: req.x,
+        y: req.y,
+        mode: req.mode ?? "create",
+      });
+    });
+    return () => {
+      unsub();
+    };
+  }, []);
+
+  // Global Backspace/Delete handling when modal is open but input isn't focused
+  useEffect(() => {
+    if (!labelPrompt.open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Backspace" && e.key !== "Delete") return;
+      const active = document.activeElement as Element | null;
+      if (active && textInputRef.current && active === textInputRef.current) {
+        // Let the input handle text deletion
+        return;
+      }
+      // Only delete existing annotation labels during edit mode
+      if (labelPrompt.mode === "edit") {
+        e.preventDefault();
+        annotateHandler.deleteSelected();
+        setLabelPrompt({ open: false, kind: null, x: 0, y: 0, mode: "create" });
+      }
+    };
+  window.addEventListener("keydown", onKey, { capture: true });
+  return () => window.removeEventListener("keydown", onKey, { capture: true });
+  }, [labelPrompt.open, labelPrompt.mode]);
 
   const handleToolChange = (
     _event: React.MouseEvent<HTMLElement>,
@@ -109,6 +165,67 @@ const AnnotatePage: React.FC = () => {
         {/* Canvas */}
         <Box sx={{ flexGrow: 1, position: "relative", p: 2 }}>
           <canvas ref={canvasRef} width={800} height={600} />
+          {labelPrompt.open && (
+            <Paper
+              elevation={3}
+              sx={{
+                position: "absolute",
+                left: labelPrompt.x + 12,
+                top: labelPrompt.y + 12,
+                p: 1,
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+           >
+              <TextField
+                size="small"
+                autoFocus
+                placeholder={labelPrompt.kind === "kp" ? "Keypoint label" : "Box label"}
+                value={labelValue}
+                inputRef={textInputRef}
+                sx={{ width: 220, minWidth: 220, flexShrink: 0 }}
+                onChange={(e) => setLabelValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    if (labelValue.trim()) {
+                      annotateHandler.confirmLabel(labelValue.trim());
+                    } else {
+                      annotateHandler.cancelLabel();
+                    }
+                    setLabelPrompt({ open: false, kind: null, x: 0, y: 0, mode: "create" });
+                  } else if (e.key === "Escape") {
+                    annotateHandler.cancelLabel();
+                    setLabelPrompt({ open: false, kind: null, x: 0, y: 0, mode: "create" });
+                  }
+                }}
+              />
+              <Button
+                variant="contained"
+                size="small"
+                onClick={() => {
+                  if (labelValue.trim()) {
+                    annotateHandler.confirmLabel(labelValue.trim());
+                  } else {
+                    annotateHandler.cancelLabel();
+                  }
+                  setLabelPrompt({ open: false, kind: null, x: 0, y: 0, mode: "create" });
+                }}
+              >
+                OK
+              </Button>
+              <Button
+                variant="text"
+                size="small"
+                onClick={() => {
+                  annotateHandler.cancelLabel();
+                  setLabelPrompt({ open: false, kind: null, x: 0, y: 0, mode: "create" });
+                }}
+              >
+                Cancel
+              </Button>
+            </Paper>
+          )}
         </Box>
       </Box>
 
