@@ -32,6 +32,9 @@ func RegisterUserRoutes(r *mux.Router, h *handler.Handler) {
 	r.HandleFunc("/login", uh.LoginHandler).Methods("POST")
 	r.HandleFunc("/auth/{userID}", uh.AuthHandler).Methods("POST")
 	r.HandleFunc("/user", uh.DeleteHandler).Methods("DELETE")
+	// refresh token - renew token
+	r.HandleFunc("/refresh_token", uh.RefreshHandler).Methods("POST")
+	// logout - make token invalid
 }
 
 type RegisterRequest struct {
@@ -169,4 +172,33 @@ func (h *UserHandler) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	log.Info().Msg("JWT token validated successfully")
 	w.Write([]byte("true"))
 
+}
+
+func (h *UserHandler) RefreshHandler(w http.ResponseWriter, r *http.Request) {
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte("Missing token"))
+		log.Error().Msg("Missing token in Authorization header")
+		return
+	}
+	if len(token) > 7 && token[:7] == "Bearer " {
+		token = token[7:]
+	}
+	_, err := ValidateJWT(token)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte("Invalid token"))
+		log.Error().Err(err).Msg("Invalid JWT token")
+		return
+	}
+	token, err := GenerateJWT(r.Context(), h.Clients, user.Email)
+	if err != nil {
+		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		log.Error().Err(err).Str("email", req.Email).Msg("Failed to generate JWT for login")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	log.Info().Str("email", req.Email).Msg("User logged in successfully")
+	json.NewEncoder(w).Encode(map[string]string{"token": token})
 }
