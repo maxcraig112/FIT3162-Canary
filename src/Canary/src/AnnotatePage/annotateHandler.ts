@@ -129,7 +129,7 @@ export const annotateHandler = {
       const { x, y, marker } = pendingKP;
       if (!marker) return;
       // Create text and group with marker; lock scaling/rotation and disable controls
-      const text = new fabric.Text(label, {
+      const text = new fabric.FabricText(label, {
         left: x + 10,
         top: y - 8,
         fill: "#222",
@@ -163,7 +163,7 @@ export const annotateHandler = {
       if (pendingBB && canvasRef) {
         const { polygon, points } = pendingBB;
         const centroid = polygonCentroid(points);
-        const text = new fabric.Text(label, {
+        const text = new fabric.FabricText(label, {
           left: centroid.x + 8,
           top: centroid.y - 8,
           fill: "#222",
@@ -235,7 +235,7 @@ export const annotateHandler = {
     // install mouse handler
     canvasRef.on("mouse:down", (opt) => {
       const evt = opt.e as MouseEvent;
-      const p = canvasRef!.getPointer(evt);
+      const p = canvasRef!.getScenePoint(evt);
   const target = (opt as unknown as { target?: fabric.Object }).target;
 
       // If clicking on an existing annotation, open rename overlay and do not create a new one
