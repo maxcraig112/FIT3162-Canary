@@ -13,5 +13,5 @@ Canary utilises a microservice architecture, in which core processes are develop
 `README` files can be found under each microservice describing it's purpose and any other important information.
 
 [Link to Kanban Board](https://github.com/users/maxcraig112/projects/1/views/1)
-[Link to Team Google Drive)[https://drive.google.com/drive/u/1/folders/1avlKg3EA2USdDx3O2Tx6xNBBt6gMvtRv]
-(Link to Class Submissions Google Drive)[https://drive.google.com/drive/u/1/folders/100zGEJX65vuoiXu7qcaA7vdrChRHsZ6q]
+[Link to Team Google Drive](https://drive.google.com/drive/u/1/folders/1avlKg3EA2USdDx3O2Tx6xNBBt6gMvtRv)
+[Link to Class Submissions Google Drive](https://drive.google.com/drive/u/1/folders/100zGEJX65vuoiXu7qcaA7vdrChRHsZ6q)
