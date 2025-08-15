@@ -14,6 +14,7 @@ const (
 )
 
 type Image struct {
+	ImageID   string `firestore:"imageID,omitempty" json:"imageID"`
 	ImageURL  string `firestore:"imageURL" json:"imageURL"`
 	ImageName string `firestore:"imageName" json:"imageName"`
 	BatchID   string `firestore:"batchID" json:"batchID"`
@@ -43,6 +44,7 @@ func (s *ImageStore) GetImagesByBatchID(ctx context.Context, batchID string) ([]
 			return nil, err
 		}
 		i.BatchID = batchID
+		i.ImageID = doc.Ref.ID
 		images = append(images, i)
 	}
 	return images, nil

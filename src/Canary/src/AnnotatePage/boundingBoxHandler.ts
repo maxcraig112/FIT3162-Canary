@@ -6,6 +6,7 @@ import {
   fabricBBMarkerProps,
 } from "./constants";
 import type { BoundingBoxAnnotation } from "./constants";
+// import { getAuthTokenFromCookie } from "../utils/cookieUtils";
 
 export function polygonCentroid(pts: Array<{ x: number; y: number }>) {
   let area = 0,
@@ -67,7 +68,9 @@ export const boundingBoxHandler = {
   finalizeCreate(
     polygon: fabric.Polygon,
     points: Array<{ x: number; y: number }>,
-    label: string
+    label: string,
+    projectID?: string,
+    imageID?: string
   ): {
     group: fabric.Group;
     annotation: BoundingBoxAnnotation;
@@ -78,11 +81,14 @@ export const boundingBoxHandler = {
       fabricBBProps({ x: c.x, y: c.y })
     );
     const group = new fabric.Group([polygon, text], fabricGroupProps);
-    const annotation: BoundingBoxAnnotation = {
+  const annotation: BoundingBoxAnnotation = {
       label,
       points,
       async addToDatabase() {
-        // TODO: implement persistence
+    // TODO: implement persistence using projectID
+    // Likely endpoint (tbd): POST /projects/{projectID}/images/{imageID}/boxes
+        void projectID;
+        void imageID;
       },
     };
     void annotation.addToDatabase();
@@ -98,7 +104,7 @@ export function createBoundingBox(
     label,
     points,
     async addToDatabase() {
-      // TODO: implement persistence
+        // TODO: implement when api routes are added
     },
   };
   void ann.addToDatabase();

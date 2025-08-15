@@ -3,6 +3,7 @@ import * as fabric from "fabric";
 import { getAuthTokenFromCookie } from "../utils/cookieUtils";
 
 export type ImageMeta = {
+  imageID: string;
   imageURL: string;
   imageName: string;
   batchID: string;
@@ -54,7 +55,7 @@ async function fetchImagesForBatch(batchID: string): Promise<ImageMeta[]> {
 export async function loadImageURL(
   batchID: string,
   imageNumber: number
-): Promise<{ imageURL: string; total: number }> {
+): Promise<{ imageURL: string; total: number; imageID?: string }> {
   if (!batchID) throw new Error("batchID is required");
 
   let images = cache.get(batchID);
@@ -72,7 +73,7 @@ export async function loadImageURL(
   if (!imageMetadata || !imageMetadata.imageURL) {
     throw new Error("Invalid image metadata or imageURL not found");
   }
-  return { imageURL: imageMetadata.imageURL, total: totalImageCount };
+  return { imageURL: imageMetadata.imageURL, total: totalImageCount, imageID: imageMetadata.imageID };
 }
 
 export function nextImage(

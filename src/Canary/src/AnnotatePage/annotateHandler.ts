@@ -24,6 +24,8 @@ let currentTool: ToolMode = "none";
 let currentImageNumber = 1; // 1-based (mirrors imageStateHandler)
 let canvasRef: fabric.Canvas | null = null;
 
+let currentImageID: string | null = null;
+
 const labelRequestSubs = new Set<(req: LabelRequest) => void>();
 
 // In-memory per-image annotation store
@@ -132,7 +134,7 @@ export const annotateHandler = {
     labelRequestSubs.add(cb);
     return () => labelRequestSubs.delete(cb);
   },
-  confirmLabel(label: string) {
+  confirmLabel(label: string, projectID?: string) {
     if (!canvasRef) return;
     // If renaming an existing annotation
     if (pendingEdit) {
@@ -160,7 +162,7 @@ export const annotateHandler = {
     }
 
     // New keypoint
-    if (currentTool === "kp" && pendingKP) {
+  if (currentTool === "kp" && pendingKP) {
       if (!currentImageKey) return; // no active image
       const { x, y, marker } = pendingKP;
       if (!marker) return;
@@ -169,7 +171,9 @@ export const annotateHandler = {
         marker,
         x,
         y,
-        label
+        label,
+        projectID,
+        currentImageID ?? undefined
       );
       canvasRef.add(group);
       canvasRef.requestRenderAll();
@@ -184,14 +188,16 @@ export const annotateHandler = {
     }
 
     // Label a newly created rectangle
-    if (currentTool === "bb" && pendingBB) {
+  if (currentTool === "bb" && pendingBB) {
       if (!currentImageKey) return;
       const { polygon, points } = pendingBB;
       canvasRef.remove(polygon);
       const { group, annotation } = boundingBoxHandler.finalizeCreate(
         polygon,
         points,
-        label
+        label,
+        projectID,
+        currentImageID ?? undefined
       );
       canvasRef.add(group);
       canvasRef.requestRenderAll();
@@ -336,9 +342,10 @@ export const annotateHandler = {
   ): Promise<{ current: number; total: number }> {
     if (!canvasRef) throw new Error("Canvas not initialized");
 
-    const { imageURL } = await isLoadImageURL(batchID, currentImageNumber);
-    // Update current image key
-    currentImageKey = imageURL;
+  const { imageURL, imageID } = await isLoadImageURL(batchID, currentImageNumber);
+  // Update current image key
+  currentImageKey = imageURL;
+  currentImageID = imageID ?? null;
 
     // Clear existing annotation groups before drawing the new image
     clearAnnotationGroups();

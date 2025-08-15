@@ -51,7 +51,7 @@ const AnnotatePage: React.FC = () => {
   // Render when batchID or currentImage changes
   useEffect(() => {
     async function render() {
-      const batchID = searchParams.get("batchID") || "";
+  const batchID = searchParams.get("batchID") || "";
       if (!batchID) return;
       try {
         const { current, total } = await annotateHandler.renderToCanvas(
@@ -191,9 +191,10 @@ const AnnotatePage: React.FC = () => {
                 sx={{ width: 220, minWidth: 220, flexShrink: 0 }}
                 onChange={(e) => setLabelValue(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") {
+          if (e.key === "Enter") {
                     if (labelValue.trim()) {
-                      annotateHandler.confirmLabel(labelValue.trim());
+            const projectID = searchParams.get("projectID") || undefined;
+            annotateHandler.confirmLabel(labelValue.trim(), projectID);
                     } else {
                       annotateHandler.cancelLabel();
                     }
@@ -219,9 +220,10 @@ const AnnotatePage: React.FC = () => {
               <Button
                 variant="contained"
                 size="small"
-                onClick={() => {
+        onClick={() => {
                   if (labelValue.trim()) {
-                    annotateHandler.confirmLabel(labelValue.trim());
+          const projectID = searchParams.get("projectID") || undefined;
+          annotateHandler.confirmLabel(labelValue.trim(), projectID);
                   } else {
                     annotateHandler.cancelLabel();
                   }

@@ -12,15 +12,6 @@ const (
 	keypointLabelCollectionID = "keypointLabels"
 )
 
-// type Project struct {
-// 	ProjectID     string          `firestore:"projectID,omitempty" json:"projectID"`
-// 	ProjectName   string          `firestore:"projectName,omitempty" json:"projectName"`
-// 	UserID        string          `firestore:"userID,omitempty" json:"userID"`
-// 	NumberOfFiles int             `firestore:"numberOfFiles,omitempty" json:"numberOfFiles"`
-// 	LastUpdated   time.Time       `firestore:"lastUpdated,omitempty" json:"lastUpdated"`
-// 	Settings      ProjectSettings `firestore:"settings,omitempty" json:"settings"`
-// }
-
 type KeypointLabel struct {
 	KeypointLabelID string `firestore:"keyPointLabelID,omitempty" json:"keyPointLabelID"`
 	KeypointLabel   string `firestore:"keypointLabel,omitempty" json:"keypointLabel"`
