@@ -28,7 +28,7 @@ type ProjectSettings struct {
 }
 
 type TagLabels struct {
-	KeyPoints     []string `firestore:"keyPoints,omitempty" json:"keyPoints"`
+	Keypoints     []string `firestore:"keyPoints,omitempty" json:"keyPoints"`
 	BoundingBoxes []string `firestore:"boundingBoxes,omitempty" json:"boundingBoxes"`
 }
 
@@ -54,6 +54,7 @@ func NewProjectStore(client fs.FirestoreClientInterface) *ProjectStore {
 }
 
 func (s *ProjectStore) GetProjectsByUserID(ctx context.Context, userID string) ([]Project, error) {
+
 	queryParams := []fs.QueryParameter{
 		{Path: "userID", Op: "==", Value: userID},
 	}
@@ -126,7 +127,7 @@ func (s *ProjectStore) IncrementNumberOfFiles(ctx context.Context, projectID str
 
 func (s *ProjectStore) UpdateProjectSettings(ctx context.Context, projectID string, req ProjectSettings) (*ProjectSettings, error) {
 	updateParams := []firestore.Update{
-		{Path: "settings.tagLabels.keyPoints", Value: req.TagLabels.KeyPoints},
+		{Path: "settings.tagLabels.keyPoints", Value: req.TagLabels.Keypoints},
 		{Path: "settings.tagLabels.boundingBoxes", Value: req.TagLabels.BoundingBoxes},
 	}
 
