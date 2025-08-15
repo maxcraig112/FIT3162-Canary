@@ -85,7 +85,7 @@ func (s *KeypointLabelStore) UpdateKeypointLabelName(ctx context.Context, update
 		{Path: "keypointLabel", Value: updateKeypointLabelReq.KeypointLabel},
 	}
 
-	return s.genericStore.UpdateField(ctx, updateKeypointLabelReq.KeypointLabelID, updateParams)
+	return s.genericStore.UpdateDoc(ctx, updateKeypointLabelReq.KeypointLabelID, updateParams)
 }
 
 func (s *KeypointLabelStore) GetKeypointLabel(ctx context.Context, keypointLabelID string) (KeypointLabel, error) {
