@@ -54,8 +54,9 @@ const AnnotatePage: React.FC = () => {
       const batchID = searchParams.get("batchID") || "";
       if (!batchID) return;
       try {
-        const { current, total } =
-          await annotateHandler.renderToCanvas(batchID);
+        const { current, total } = await annotateHandler.renderToCanvas(
+          batchID
+        );
         setCurrentImage(current);
         setTotalImages(total);
       } catch (e) {
@@ -106,13 +107,14 @@ const AnnotatePage: React.FC = () => {
         setLabelPrompt({ open: false, kind: null, x: 0, y: 0, mode: "create" });
       }
     };
-  window.addEventListener("keydown", onKey, { capture: true });
-  return () => window.removeEventListener("keydown", onKey, { capture: true });
+    window.addEventListener("keydown", onKey, { capture: true });
+    return () =>
+      window.removeEventListener("keydown", onKey, { capture: true });
   }, [labelPrompt.open, labelPrompt.mode]);
 
   const handleToolChange = (
     _event: React.MouseEvent<HTMLElement>,
-    newTool: string | null,
+    newTool: string | null
   ) => {
     if (newTool !== null) setSelectedTool(newTool);
   };
@@ -177,11 +179,13 @@ const AnnotatePage: React.FC = () => {
                 alignItems: "center",
                 gap: 1,
               }}
-           >
+            >
               <TextField
                 size="small"
                 autoFocus
-                placeholder={labelPrompt.kind === "kp" ? "Keypoint label" : "Box label"}
+                placeholder={
+                  labelPrompt.kind === "kp" ? "Keypoint label" : "Box label"
+                }
                 value={labelValue}
                 inputRef={textInputRef}
                 sx={{ width: 220, minWidth: 220, flexShrink: 0 }}
@@ -193,10 +197,22 @@ const AnnotatePage: React.FC = () => {
                     } else {
                       annotateHandler.cancelLabel();
                     }
-                    setLabelPrompt({ open: false, kind: null, x: 0, y: 0, mode: "create" });
+                    setLabelPrompt({
+                      open: false,
+                      kind: null,
+                      x: 0,
+                      y: 0,
+                      mode: "create",
+                    });
                   } else if (e.key === "Escape") {
                     annotateHandler.cancelLabel();
-                    setLabelPrompt({ open: false, kind: null, x: 0, y: 0, mode: "create" });
+                    setLabelPrompt({
+                      open: false,
+                      kind: null,
+                      x: 0,
+                      y: 0,
+                      mode: "create",
+                    });
                   }
                 }}
               />
@@ -209,7 +225,13 @@ const AnnotatePage: React.FC = () => {
                   } else {
                     annotateHandler.cancelLabel();
                   }
-                  setLabelPrompt({ open: false, kind: null, x: 0, y: 0, mode: "create" });
+                  setLabelPrompt({
+                    open: false,
+                    kind: null,
+                    x: 0,
+                    y: 0,
+                    mode: "create",
+                  });
                 }}
               >
                 OK
@@ -219,7 +241,13 @@ const AnnotatePage: React.FC = () => {
                 size="small"
                 onClick={() => {
                   annotateHandler.cancelLabel();
-                  setLabelPrompt({ open: false, kind: null, x: 0, y: 0, mode: "create" });
+                  setLabelPrompt({
+                    open: false,
+                    kind: null,
+                    x: 0,
+                    y: 0,
+                    mode: "create",
+                  });
                 }}
               >
                 Cancel
