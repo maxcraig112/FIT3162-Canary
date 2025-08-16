@@ -12,7 +12,56 @@ export const keypointHandler = {
         const group = new fabric.Group([marker, text], fabricGroupProps);
         return { group };
     },
-    // Rename an existing keypoint's label in the backend (PATCH)
+
+    createPendingMarker(x: number, y: number): fabric.Circle {
+        return new fabric.Circle(fabricKPMarkerProps({ x, y }));
+    },
+
+    // Adds a KeyPoints to the database
+    async createdKeyPoint(label: string, x: number, y: number, projectID?: string, imageID?: string): Promise<KeypointAnnotation> {
+        const kp: KeypointAnnotation = {label,points: [{ x, y }],};
+        
+        kp.projectID = projectID;
+        kp.imageID = imageID;
+
+        const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
+        const token = getAuthTokenFromCookie();
+        const url = `${baseUrl}/projects/${projectID}/images/${imageID}/keypoints`;
+
+        const requestBody = {
+            position: { x, y },
+            keypointLabelID: label,
+        };
+
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify(requestBody),
+        });
+
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`Failed to create keypoint for image ${imageID}: ${res.status} ${res.statusText} - ${text}`);
+        }
+
+        try {
+            const data = await res.json();
+            const newId = data?.keypointID || data?.id;
+            if (!newId) throw new Error('No keypoint ID returned from server');
+            kp.id = newId;
+        } catch (err) {
+            throw new Error(`Invalid JSON response: ${err}`);
+        }
+
+        console.log('Keypoint stored:', kp);
+        // Fire and forget for now
+        return kp;
+    },
+
+    // Rename an existing keypoint's label in the database
     async renameKeyPoint(ann: KeypointAnnotation, newLabel: string): Promise<void> {
         console.log(ann);
         if (!ann.projectID || !ann.id) return;
@@ -38,7 +87,8 @@ export const keypointHandler = {
             console.error(`Failed to rename keypoint ${ann.id}: ${res.status} ${res.statusText} - ${text}`);
         }
     },
-    // Delete an existing keypoint in the backend (DELETE)
+
+    // Delete an existing keypoint in the database
     async deleteKeyPoint(ann: KeypointAnnotation): Promise<void> {
         if (!ann.projectID || !ann.id) return;
         const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
@@ -56,71 +106,13 @@ export const keypointHandler = {
         }
     },
 
-    // Create a temporary marker used during point placement before labeling
-    createPendingMarker(x: number, y: number): fabric.Circle {
-        return new fabric.Circle(fabricKPMarkerProps({ x, y }));
-    },
     // Finalize a pending keypoint marker into a group and model (and persist via addToDatabase)
-    finalizeCreate(marker: fabric.Circle, x: number, y: number, label: string, projectID?: string, imageID?: string): { group: fabric.Group; annotation: KeypointAnnotation } {
+    async finalizeCreate(marker: fabric.Circle, x: number, y: number, label: string, projectID?: string, imageID?: string): Promise<{ group: fabric.Group; annotation: KeypointAnnotation }> {
         const text = new fabric.FabricText(label, fabricKPProps({ x, y }));
         marker.set({ ...fabricKPMarkerProps({ x, y }) });
         const group = new fabric.Group([marker, text], fabricGroupProps);
-        const annotation = keypointHandler.createdKeyPoint(label, x, y, projectID, imageID);
+        const annotation = await keypointHandler.createdKeyPoint(label, x, y, projectID, imageID);
         return { group, annotation };
-    },
-
-    // Factory to create a KeypointAnnotation instance with methods, and call addToDatabase
-    createdKeyPoint(label: string, x: number, y: number, projectID?: string, imageID?: string): KeypointAnnotation {
-        const kp: KeypointAnnotation = {
-            label,
-            points: [{ x, y }],
-            async addToDatabase() {
-                if (!projectID || !imageID) return;
-
-                kp.projectID = projectID;
-                kp.imageID = imageID;
-
-                const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
-                const token = getAuthTokenFromCookie();
-                const url = `${baseUrl}/projects/${projectID}/images/${imageID}/keypoints`;
-
-                const requestBody = {
-                    position: { x, y },
-                    keypointLabelID: label,
-                };
-
-                const res = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                    },
-                    body: JSON.stringify(requestBody),
-                });
-
-                if (!res.ok) {
-                    const text = await res.text();
-                    throw new Error(`Failed to create keypoint for image ${imageID}: ${res.status} ${res.statusText} - ${text}`);
-                }
-
-                try {
-                    const data = await res.json();
-                    const newId = data?.keypointID || data?.id;
-                    if (!newId) throw new Error('No keypoint ID returned from server');
-                    kp.id = newId;
-                } catch (err) {
-                    throw new Error(`Invalid JSON response: ${err}`);
-                }
-
-                console.log('Keypoint stored:', kp);
-            },
-        };
-        // Fire and forget for now
-        void kp.addToDatabase();
-        return kp;
     },
 };
 
-export function createdKeyPoint(label: string, x: number, y: number, projectID?: string) {
-    return keypointHandler.createdKeyPoint(label, x, y, projectID);
-}

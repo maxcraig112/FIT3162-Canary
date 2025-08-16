@@ -8,8 +8,6 @@ export interface KeypointAnnotation {
     label: string;
     // single point kept as array for shape consistency
     points: Array<{ x: number; y: number }>;
-
-    addToDatabase(): Promise<void> | void;
 }
 
 export interface BoundingBoxAnnotation {
