@@ -28,3 +28,17 @@ tasks:
     interactive: true
     cmds:
      - npm run dev
+
+  dockerBuildWebpage:
+    desc: Build the Vite Webpage Docker image
+    dir: src/Canary
+    cmds:
+      - docker build -t canary .
+
+  dockerRunWebpage:
+    desc: Run the Vite Webpage Docker container
+    dir: src/Canary
+    cmds:
+      - docker run -p 8080:8080 canary
+  
+

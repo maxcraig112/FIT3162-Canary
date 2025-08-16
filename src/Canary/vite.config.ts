@@ -5,6 +5,7 @@ import react from "@vitejs/plugin-react-swc";
 export default defineConfig({
   plugins: [react()],
   server: {
+  cors: true,
     proxy: {
       // Proxy Google Cloud Storage in dev to avoid browser CORS
       "/gcs": {

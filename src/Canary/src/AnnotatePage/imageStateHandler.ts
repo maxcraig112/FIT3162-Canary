@@ -83,12 +83,9 @@ export function prevImage(setCurrentImage: React.Dispatch<React.SetStateAction<n
     setCurrentImage(currentImageNumber);
 }
 
-// Dev helper to avoid CORS when running Vite locally against GCS
+// Route all GCS requests through same-origin /gcs proxy (handled by Vite dev or NGINX) to avoid CORS
 function devRewriteURL(url: string): string {
-    if (typeof window !== 'undefined' && window.location && /localhost:5173$/.test(window.location.origin)) {
-        return url.replace(/^https?:\/\/storage\.googleapis\.com/, '/gcs');
-    }
-    return url;
+    return url.replace(/^https?:\/\/storage\.googleapis\.com/, '/gcs');
 }
 
 // Fabric image cache and loader
