@@ -2,7 +2,6 @@ import * as fabric from 'fabric';
 import { fabricGroupProps, fabricKPMarkerProps, fabricKPProps } from './constants';
 import type { KeypointAnnotation } from './constants';
 import { getAuthTokenFromCookie } from '../utils/cookieUtils';
-import { NoEncryptionGmailerrorredSharp } from '@mui/icons-material';
 
 export const keypointHandler = {
   // Render a persisted keypoint annotation as a Fabric group
