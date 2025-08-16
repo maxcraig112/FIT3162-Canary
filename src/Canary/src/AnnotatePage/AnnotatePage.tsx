@@ -37,7 +37,8 @@ const AnnotatePage: React.FC = () => {
             const batchID = searchParams.get('batchID') || '';
             if (!batchID) return;
             try {
-                const { current, total } = await annotateHandler.renderToCanvas(batchID);
+                const projectID = searchParams.get('projectID') || undefined;
+                const { current, total } = await annotateHandler.renderToCanvas(batchID, projectID);
                 setCurrentImage(current);
                 setTotalImages(total);
             } catch (e) {

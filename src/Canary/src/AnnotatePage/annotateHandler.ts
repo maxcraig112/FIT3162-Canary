@@ -315,7 +315,7 @@ export const annotateHandler = {
    * Render the current image to the Fabric canvas, centered and scaled.
    * Uses an in-memory cache of FabricImage instances to avoid re-downloading.
    */
-  async renderToCanvas(batchID: string): Promise<{ current: number; total: number }> {
+  async renderToCanvas(batchID: string, projectID?: string): Promise<{ current: number; total: number }> {
     if (!canvasRef) throw new Error('Canvas not initialized');
 
     const { imageURL, imageID } = await loadImageURL(batchID, currentImageNumber);
@@ -325,6 +325,23 @@ export const annotateHandler = {
 
     // Clear existing annotation groups before drawing the new image
     clearAnnotationGroups();
+
+    // On first load for this image, fetch existing keypoints from backend
+    if (currentImageKey && (!annotationStore.has(currentImageKey) || (annotationStore.get(currentImageKey)?.kps.length ?? 0) === 0)) {
+      try {
+        const kps = await keypointHandler.getAllKeyPoints(projectID, currentImageID ?? undefined);
+        const s = annotationStore.get(currentImageKey) ?? { kps: [], bbs: [] };
+        for (const kp of kps) {
+          // Ensure IDs are set for downstream rename/delete
+          kp.projectID = kp.projectID ?? projectID;
+          kp.imageID = kp.imageID ?? (currentImageID ?? undefined);
+          s.kps.push(kp);
+        }
+        annotationStore.set(currentImageKey, s);
+      } catch (e) {
+        console.error('[KP] Failed to fetch existing keypoints:', e);
+      }
+    }
 
     // Try in-memory cache first
     const img = await getFabricImage(imageURL);
