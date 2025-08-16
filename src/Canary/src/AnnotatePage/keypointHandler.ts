@@ -119,10 +119,6 @@ export const keypointHandler = {
         void kp.addToDatabase();
         return kp;
     },
-    // Back-compat alias
-    createKeyPoint(label: string, x: number, y: number, projectID?: string): KeypointAnnotation {
-        return this.createdKeyPoint(label, x, y, projectID);
-    },
 };
 
 export function createdKeyPoint(label: string, x: number, y: number, projectID?: string) {
