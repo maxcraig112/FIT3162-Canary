@@ -29,6 +29,7 @@ func RegisterKeypointRoutes(r *mux.Router, h *handler.Handler) {
 	routes := []Route{
 		{"POST", "/projects/{projectID}/images/{imageID}/keypoints", kh.CreateKeypointHandler},
 		{"GET", "/projects/{projectID}/images/{imageID}/keypoints", kh.GetKeypointsByImageHandler},
+		{"GET", "/projects/{projectID}/boundingboxes/{boundingBoxID}/keypoints", kh.GetKeypointsByBoundingBoxHandler},
 		{"GET", "/projects/{projectID}/keypoints/{keypointID}", kh.GetKeypointHandler},
 		{"PATCH", "/projects/{projectID}/keypoints/{keypointID}", kh.UpdateKeypointPositionHandler},
 		{"DELETE", "/projects/{projectID}/keypoints/{keypointID}", kh.DeleteKeypointHandler},
@@ -37,6 +38,21 @@ func RegisterKeypointRoutes(r *mux.Router, h *handler.Handler) {
 	for _, rt := range routes {
 		r.Handle(rt.pattern, h.AuthMw(http.HandlerFunc(rt.handlerFunc))).Methods(rt.method)
 	}
+}
+
+func (h *KeypointHandler) GetKeypointsByBoundingBoxHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	boundingBoxID := vars["boundingBoxID"]
+	keypoints, err := h.KeypointStore.GetKeypointsByBoundingBoxID(h.Ctx, boundingBoxID)
+	if err != nil {
+		http.Error(w, "Error loading keypoints", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to load keypoints for image")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	log.Info().Str("boundingBoxID", boundingBoxID).Msg("Loaded keypoints successfully")
+	json.NewEncoder(w).Encode(keypoints)
 }
 
 func (h *KeypointHandler) CreateKeypointHandler(w http.ResponseWriter, r *http.Request) {
