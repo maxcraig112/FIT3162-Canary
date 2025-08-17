@@ -69,6 +69,7 @@ func (h *BoundingBoxHandler) GetBoundingBoxesByImageHandler(w http.ResponseWrite
 	imageID := vars["imageID"]
 
 	boundingBoxes, err := h.BoundingBoxStore.GetBoundingBoxesByImageID(h.Ctx, imageID)
+	log.Info().Interface("boundingBoxes", boundingBoxes).Msg("Loaded bounding boxes")
 	if err != nil {
 		http.Error(w, "Error loading bounding boxes", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to load bounding boxes for image")

@@ -64,6 +64,11 @@ func (s *KeypointStore) CreateKeypoint(ctx context.Context, req CreateKeypointRe
 func (s *KeypointStore) GetKeypointsByImageID(ctx context.Context, imageID string) ([]Keypoint, error) {
 	qp := []fs.QueryParameter{{Path: "imageID", Op: "==", Value: imageID}}
 	docs, err := s.genericStore.ReadCollection(ctx, qp)
+
+	if err == fs.ErrNotFound {
+		return []Keypoint{}, nil
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -83,6 +88,11 @@ func (s *KeypointStore) GetKeypointsByImageID(ctx context.Context, imageID strin
 func (s *KeypointStore) GetKeypointsByBoundingBoxID(ctx context.Context, boundingBoxID string) ([]Keypoint, error) {
 	qp := []fs.QueryParameter{{Path: "boundingBoxID", Op: "==", Value: boundingBoxID}}
 	docs, err := s.genericStore.ReadCollection(ctx, qp)
+
+	if err == fs.ErrNotFound {
+		return []Keypoint{}, nil
+	}
+
 	if err != nil {
 		return nil, err
 	}

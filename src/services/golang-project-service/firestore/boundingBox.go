@@ -62,6 +62,11 @@ func (s *BoundingBoxStore) CreateBoundingBox(ctx context.Context, req CreateBoun
 func (s *BoundingBoxStore) GetBoundingBoxesByImageID(ctx context.Context, imageID string) ([]BoundingBox, error) {
 	qp := []fs.QueryParameter{{Path: "imageID", Op: "==", Value: imageID}}
 	docs, err := s.genericStore.ReadCollection(ctx, qp)
+
+	if err == fs.ErrNotFound {
+		return []BoundingBox{}, nil
+	}
+
 	if err != nil {
 		return nil, err
 	}
