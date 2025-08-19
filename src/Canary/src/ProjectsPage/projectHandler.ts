@@ -174,10 +174,10 @@ export async function handleNewProject(projectName: string): Promise<string> {
   }
 }
 
-export function handleProjectsPage(
+export function handleProjectPage(
   projectID: string,
   navigate: (path: string) => void,
 ) {
   // Remove JWT token from cookies if needed
-  navigate(`/projects?projectID=${projectID}`);
+  navigate(`/projects/${projectID}`); // changed from query param to path param
 }

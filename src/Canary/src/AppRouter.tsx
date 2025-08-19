@@ -11,8 +11,8 @@ const AppRouter: React.FC = () => (
     <Route path="/login" element={<LoginPage />} />
     <Route path="/home" element={<HomePage />} />
     <Route path="/projects" element={<ProjectsPage />} />
+    <Route path="/projects/:projectID" element={<ProjectPage />} />
     <Route path="/annotate" element={<AnnotatePage />} />
-    <Route path="/project" element={<ProjectPage />} /> // placeholder
     <Route path="*" element={<Navigate to="/home" replace />} />
   </Routes>
 );

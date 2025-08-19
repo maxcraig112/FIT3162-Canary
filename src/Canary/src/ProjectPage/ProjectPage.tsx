@@ -1,30 +1,71 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Box, Button, Typography, Paper, Tabs, Tab, Divider } from "@mui/material";
 import AppThemeProvider from "../assets/AppThemeProvider";
-import {
-  CANARY_BUTTON_COLOR,
-  CANARY_BUTTON_TEXT_COLOR,
-} from "../assets/constants";
-import { useNavigate } from "react-router-dom";
+import { CANARY_BUTTON_COLOR, CANARY_BUTTON_TEXT_COLOR } from "../assets/constants";
+import { useLocation, useSearchParams, useNavigate, useParams } from "react-router-dom";
+import { fetchProjectByID } from "./projectHandlers"; // switched to direct fetch only
 
 const ProjectPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { projectID: paramProjectID } = useParams<{ projectID: string }>();
+  const [searchParams] = useSearchParams(); // keep temporarily for backward compatibility
+  const projectID = paramProjectID || searchParams.get("projectID") || null;
+
+  // project object passed from list (optional)
+  const passedProject = (location.state as any)?.project as any | undefined;
+
+  const [projectData, setProjectData] = useState<any>(passedProject || null);
+  const [loading, setLoading] = useState<boolean>(!passedProject);
   const [selectedTab, setSelectedTab] = useState(0);
-  const [settingsTab, setSettingsTab] = useState(false); // Separate state for the Settings tab
+  const [settingsTab, setSettingsTab] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch specific project from backend (single endpoint)
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (!projectID) {
+        setError("No project selected.");
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchProjectByID(projectID);
+        if (!cancelled) setProjectData(data);
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : "Failed to load project data.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    // always refresh so name stays current
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [projectID]);
 
   function handleBackToAllProjects() {
     navigate("/projects");
   }
 
-  function handleTabChange(event: React.SyntheticEvent, newValue: number) {
+  function handleTabChange(_: React.SyntheticEvent, newValue: number) {
     setSelectedTab(newValue);
-    setSettingsTab(false); // Ensure Settings tab is deselected when switching main tabs
+    setSettingsTab(false);
   }
 
   function handleSettingsClick() {
-    setSelectedTab(-1); // Deselect main tabs
-    setSettingsTab(true); // Activate the Settings tab
+    setSelectedTab(-1);
+    setSettingsTab(true);
   }
+
+  const title =
+    projectData?.projectName ||
+    (error ? "Error" : loading ? "Loading project..." : "Project");
 
   return (
     <AppThemeProvider>
@@ -32,13 +73,12 @@ const ProjectPage: React.FC = () => {
         sx={{
           display: "flex",
           flexDirection: "column",
-          minHeight: "100vh", // Ensure the parent container fills the full height
+          minHeight: "100vh",
           width: "100%",
-          backgroundColor: "#ffffff",
-          overflowX: "hidden", // Hide any accidental horizontal overflow
+          overflowX: "hidden",
+          backgroundColor: "#ffffff", // force white background
         }}
       >
-        {/* Top bar with title and back button */}
         <Box
           sx={{
             display: "flex",
@@ -59,33 +99,24 @@ const ProjectPage: React.FC = () => {
           >
             Back to Projects
           </Button>
-          <Typography variant="h4" sx={{ flexGrow: 1, textAlign: "center" }}>
-            Project Title
+          <Typography variant="h4" sx={{ flexGrow: 1, textAlign: "center", color: "#000000" }}>
+            {title}
           </Typography>
         </Box>
 
-        {/* Main content area with sidebar and main content */}
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "row",
-            flexGrow: 1,
-            width: "100%",
-          }}
-        >
-          {/* Sidebar */}
+        <Box sx={{ display: "flex", flexDirection: "row", flexGrow: 1, width: "100%" }}>
           <Box
             sx={{
-              width: "200px",
-              backgroundColor: "#f0f0f0",
+              width: 260,
+              flexShrink: 0,
+              backgroundColor: "#ffffff", // sidebar white
               padding: "20px",
               boxShadow: "2px 0 5px rgba(0, 0, 0, 0.1)",
               display: "flex",
               flexDirection: "column",
-              flexGrow: 1, // Ensure the sidebar stretches to fill the height
+              borderRight: (t) => `1px solid ${t.palette.divider}`,
             }}
           >
-            {/* Main Tabs */}
             <Tabs
               orientation="vertical"
               value={selectedTab}
@@ -93,6 +124,9 @@ const ProjectPage: React.FC = () => {
               sx={{
                 borderRight: 1,
                 borderColor: "divider",
+                color: "#000000",
+                "& .MuiTab-root": { color: "#000000" },
+                "& .Mui-selected": { fontWeight: 600 },
               }}
             >
               <Tab label="Upload" />
@@ -100,56 +134,72 @@ const ProjectPage: React.FC = () => {
               <Tab label="Dataset" />
               <Tab label="Export" />
             </Tabs>
-
-            {/* Divider */}
-            <Divider sx={{ margin: "20px 0" }} />
-
-            {/* Settings Tab */}
-            <Box
+            <Divider sx={{ my: 2 }} />
+            <Tab
+              label="Settings"
+              onClick={handleSettingsClick}
               sx={{
-                marginTop: "auto", // Push the Settings tab to the bottom
+                textAlign: "left",
+                padding: "10px 16px",
+                borderTop: 1,
+                borderColor: "divider",
+                mt: "auto",
+                color: "#000000",
               }}
-            >
-              <Tab
-                label="Settings"
-                onClick={handleSettingsClick}
-                sx={{
-                  textAlign: "left",
-                  padding: "10px 16px",
-                  borderTop: 1,
-                  borderColor: "divider",
-                }}
-              />
-            </Box>
+            />
           </Box>
 
-          {/* Main Content Area */}
           <Box
             sx={{
               display: "flex",
               flexDirection: "column",
-              flexGrow: 1, // Ensure the main content takes up the remaining space
-              padding: "20px",
-              overflowX: "hidden", // Prevent horizontal overflow
+              flexGrow: 1,
+              p: 4,
+              overflow: "hidden",
+              alignItems: "stretch", // stretch so child fills width
             }}
           >
+            {error && (
+              <Paper sx={{ p: 3, mb: 2, width: "100%" }} elevation={2}>
+                <Typography color="error">{error}</Typography>
+              </Paper>
+            )}
             <Paper
               elevation={3}
               sx={{
+                flex: "1 1 auto",
                 width: "100%",
-                maxWidth: "800px", // Limit the width for better readability
-                padding: 3,
-                textAlign: "center",
-                margin: "0 auto", // Center the content horizontally
+                minWidth: 1000,         // keep a stable wide layout
+                minHeight: 500,
+                px: 5,
+                py: 4,
+                display: "flex",
+                flexDirection: "column",
+                boxSizing: "border-box",
+                backgroundColor: "#ffffff", // ensure paper stays white
               }}
             >
-              <Typography variant="body1">
-                {selectedTab === 0 && "Upload content goes here."}
-                {selectedTab === 1 && "Annotate content goes here."}
-                {selectedTab === 2 && "Dataset content goes here."}
-                {selectedTab === 3 && "Export content goes here."}
-                {settingsTab && "Settings content goes here."}
-              </Typography>
+              <Box
+                sx={{
+                  flexGrow: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  width: "100%",
+                }}
+              >
+                {loading && !projectData && (
+                  <Typography variant="body1">Loading content...</Typography>
+                )}
+                {!loading && !error && (
+                  <>
+                    {selectedTab === 0 && <UploadTab project={projectData} />}
+                    {selectedTab === 1 && <AnnotateTab project={projectData} />}
+                    {selectedTab === 2 && <DatasetTab project={projectData} />}
+                    {selectedTab === 3 && <ExportTab project={projectData} />}
+                    {settingsTab && <SettingsTab project={projectData} />}
+                  </>
+                )}
+              </Box>
             </Paper>
           </Box>
         </Box>
@@ -157,5 +207,32 @@ const ProjectPage: React.FC = () => {
     </AppThemeProvider>
   );
 };
+
+// Tab content (untyped now, since ProjectDetails removed)
+const UploadTab: React.FC<{ project: any }> = ({ project }) => (
+  <Typography sx={{ color: "#000" }}>
+    {project ? `Upload files to ${project.projectName}` : "Loading..."}
+  </Typography>
+);
+const AnnotateTab: React.FC<{ project: any }> = ({ project }) => (
+  <Typography sx={{ color: "#000" }}>
+    Annotate assets for {project?.projectName}
+  </Typography>
+);
+const DatasetTab: React.FC<{ project: any }> = ({ project }) => (
+  <Typography sx={{ color: "#000" }}>
+    Dataset overview for {project?.projectName}
+  </Typography>
+);
+const ExportTab: React.FC<{ project: any }> = ({ project }) => (
+  <Typography sx={{ color: "#000" }}>
+    Export options for {project?.projectName}
+  </Typography>
+);
+const SettingsTab: React.FC<{ project: any }> = ({ project }) => (
+  <Typography sx={{ color: "#000" }}>
+    Settings for {project?.projectName}
+  </Typography>
+);
 
 export default ProjectPage;
