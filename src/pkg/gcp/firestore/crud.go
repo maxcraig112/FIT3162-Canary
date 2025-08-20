@@ -27,8 +27,6 @@ func NewGenericStore(client FirestoreClientInterface, collectionID string) *Gene
 // Client exposes the underlying Firestore client interface for advanced operations.
 func (s *GenericStore) Client() FirestoreClientInterface { return s.client }
 
-var ErrNotFound = status.Error(codes.NotFound, "document not found")
-
 func (s *GenericStore) CreateDoc(ctx context.Context, data interface{}) (string, error) {
 	docRef, _, err := s.collection.Add(ctx, data)
 	if err != nil {
