@@ -8,13 +8,14 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"os"
+	"path/filepath"
 	"pkg/gcp/bucket"
 	"pkg/handler"
 	bk "project-service/bucket"
 	"project-service/firestore"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
 	ffmpeg "github.com/u2takey/ffmpeg-go"
@@ -114,7 +115,11 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 	}
 	// Upload the images to google bucket
 
-	videoFrameObjects, err := generateVideoData(batchID, r.MultipartForm)
+	videoFrameObjects, cleanupVideo, err := generateVideoData(batchID, r.MultipartForm)
+	// Ensure any temp files/dirs from video processing are cleaned up at the very end of this handler
+	if cleanupVideo != nil {
+		defer cleanupVideo()
+	}
 	if err == ErrNoMediaFound && noImagesUploaded {
 		http.Error(w, "No images or videos found in the request", http.StatusBadRequest)
 		log.Error().Msg("No images or videos found in the request for UploadImagesHandler")
@@ -182,72 +187,108 @@ func generateImageData(batchID string, form *multipart.Form) (bucket.ObjectMap, 
 
 }
 
-func generateVideoData(batchID string, form *multipart.Form) (bucket.ObjectMap, error) {
+func generateVideoData(batchID string, form *multipart.Form) (bucket.ObjectMap, func(), error) {
 	files := form.File["videos"]
 	if len(files) == 0 {
-		return nil, ErrNoMediaFound
+		return nil, nil, ErrNoMediaFound
 	}
 
 	objects := make(bucket.ObjectMap)
+	// Track resources for cleanup outside this function
+	var closers []io.Closer
+	var tempDirs []string
+	var tempVideoPaths []string
+	cleanup := func() {
+		for _, c := range closers {
+			_ = c.Close()
+		}
+		for _, p := range tempVideoPaths {
+			_ = os.Remove(p)
+		}
+		for _, d := range tempDirs {
+			_ = os.RemoveAll(d)
+		}
+	}
 
 	for _, fileHeader := range files {
 		// Validate .mp4 extension
 		if !strings.HasSuffix(strings.ToLower(fileHeader.Filename), ".mp4") {
-			return nil, fmt.Errorf("file %s is not an .mp4", fileHeader.Filename)
+			return nil, cleanup, fmt.Errorf("file %s is not an .mp4", fileHeader.Filename)
 		}
 
 		file, err := fileHeader.Open()
 		if err != nil {
-			return nil, ErrOpeningFile(fileHeader.Filename)
+			return nil, cleanup, ErrOpeningFile(fileHeader.Filename)
 		}
-		defer file.Close()
+		// Defer file close via cleanup to ensure readers remain valid until upload finishes
+		closers = append(closers, file)
 
 		// Read the entire video into memory
 		var videoBuf bytes.Buffer
 		if _, err := io.Copy(&videoBuf, file); err != nil {
-			return nil, fmt.Errorf("failed to read video into memory: %w", err)
+			return nil, cleanup, fmt.Errorf("failed to read video into memory: %w", err)
 		}
 
-		// PNG signature
-		pngSig := []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}
+		// make a temporary directory where ffmpeg will save the frames
+		dname, err := os.MkdirTemp("", fmt.Sprintf("frames_%s_*", batchID))
+		if err != nil {
+			return nil, cleanup, fmt.Errorf("failed to create temporary directory for frames: %w", err)
+		}
 
-		// Run ffmpeg to output all frames as PNG to stdout
-		outBuf := &bytes.Buffer{}
-		err = ffmpeg.Input("pipe:0").
-			Output("pipe:1", ffmpeg.KwArgs{
-				"f":      "image2pipe",
-				"vcodec": "png",
+		log.Info().Str("tempDir", dname).Msg("Temporary directory created for video frames")
+		tempDirs = append(tempDirs, dname)
+
+		// Write the uploaded video to a temporary file to avoid stdin/pipe issues on Windows
+		tmpVid, err := os.CreateTemp(dname, "video_*.mp4")
+		if err != nil {
+			return nil, cleanup, fmt.Errorf("failed to create temp video file: %w", err)
+		}
+		if _, err := io.Copy(tmpVid, bytes.NewReader(videoBuf.Bytes())); err != nil {
+			_ = tmpVid.Close()
+			return nil, cleanup, fmt.Errorf("failed to write temp video file: %w", err)
+		}
+		if err := tmpVid.Close(); err != nil {
+			return nil, cleanup, fmt.Errorf("failed to close temp video file: %w", err)
+		}
+		videoPath := tmpVid.Name()
+		tempVideoPaths = append(tempVideoPaths, videoPath)
+
+		// Save frames as PNG files in the temporary directory using ffmpeg
+		outPattern := filepath.Join(dname, "frame_%04d.png")
+		err = ffmpeg.Input(videoPath).
+			Output(outPattern, ffmpeg.KwArgs{
+				"vsync": "0",
+				"f":     "image2",
 			}).
-			WithInput(bytes.NewReader(videoBuf.Bytes())).
-			WithOutput(outBuf).
 			OverWriteOutput().
 			Run()
 		if err != nil {
-			return nil, fmt.Errorf("failed to extract frames using ffmpeg-go: %w", err)
+			return nil, cleanup, fmt.Errorf("failed to extract frames using ffmpeg-go: %w", err)
 		}
 
-		// Split outBuf into individual PNG images by searching for PNG signatures
-		data := outBuf.Bytes()
-		var indices []int
-		for i := 0; i+8 <= len(data); i++ {
-			if bytes.Equal(data[i:i+8], pngSig) {
-				indices = append(indices, i)
-			}
+		// Read all PNG files from the temp directory and add to objects
+		files, err := os.ReadDir(dname)
+		if err != nil {
+			return nil, cleanup, fmt.Errorf("failed to read frames directory: %w", err)
 		}
-		// Each PNG starts at indices[i], ends at indices[i+1] (or EOF)
-		for i := 0; i < len(indices); i++ {
-			start := indices[i]
-			var end int
-			if i+1 < len(indices) {
-				end = indices[i+1]
-			} else {
-				end = len(data)
+		for i, f := range files {
+			if !strings.HasSuffix(f.Name(), ".png") {
+				continue
 			}
-			frameData := data[start:end]
+			framePath := filepath.Join(dname, f.Name())
+			frameFile, err := os.Open(framePath)
+			if err != nil {
+				return nil, cleanup, fmt.Errorf("failed to open frame file: %w", err)
+			}
+			// Keep these open for upload; close in cleanup
+			closers = append(closers, frameFile)
 			frameName := fmt.Sprintf("%s/%s_frame_%04d.png", batchID, fileHeader.Filename, i+1)
-			objects[frameName] = bytes.NewReader(frameData)
+			objects[frameName] = frameFile
+		}
+		if err != nil {
+			return nil, cleanup, fmt.Errorf("failed to extract frames using ffmpeg-go: %w", err)
 		}
 	}
 
-	return objects, nil
+	return objects, cleanup, nil
 }
