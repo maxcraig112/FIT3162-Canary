@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	bk "project-service/bucket"
 	"project-service/firestore"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
@@ -131,32 +133,56 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	var imageData map[string]string
+	imgUpStart := time.Now()
 	if imageData, err = h.ImageBucket.CreateImages(ctx, batchID, imageObjects); err != nil {
 		http.Error(w, "Failed to upload images", http.StatusInternalServerError)
 		log.Error().Err(err).Str("batchID", batchID).Msg("Failed to upload images to bucket")
 		return
 	}
+	log.Info().
+		Str("batchID", batchID).
+		Int("count", len(imageData)).
+		Dur("took", time.Since(imgUpStart)).
+		Msg("Uploaded images to bucket")
 
 	// Once the images have been uploaded, we now want to create the image metadata in firestore
+	imgMetaStart := time.Now()
 	if err := h.ImageStore.CreateImageMetadata(ctx, batchID, imageData); err != nil {
 		http.Error(w, "Failed to create image metadata", http.StatusInternalServerError)
 		log.Error().Err(err).Str("batchID", batchID).Msg("Failed to create image metadata in Firestore")
 		return
 	}
+	log.Info().
+		Str("batchID", batchID).
+		Int("count", len(imageData)).
+		Dur("took", time.Since(imgMetaStart)).
+		Msg("Created image metadata in Firestore")
 
 	var videoData map[string]string
+	vidUpStart := time.Now()
 	if videoData, err = h.ImageBucket.CreateImages(ctx, batchID, videoFrameObjects); err != nil {
 		http.Error(w, "Failed to upload videos", http.StatusInternalServerError)
 		log.Error().Err(err).Str("batchID", batchID).Msg("Failed to upload videos to bucket")
 		return
 	}
+	log.Info().
+		Str("batchID", batchID).
+		Int("count", len(videoData)).
+		Dur("took", time.Since(vidUpStart)).
+		Msg("Uploaded video frames to bucket")
 
 	// Once the videos have been uploaded, we now want to create the video metadata in firestore
+	vidMetaStart := time.Now()
 	if err := h.ImageStore.CreateImageMetadata(ctx, batchID, videoData); err != nil {
 		http.Error(w, "Failed to create video metadata", http.StatusInternalServerError)
 		log.Error().Err(err).Str("batchID", batchID).Msg("Failed to create video metadata in Firestore")
 		return
 	}
+	log.Info().
+		Str("batchID", batchID).
+		Int("count", len(videoData)).
+		Dur("took", time.Since(vidMetaStart)).
+		Msg("Created video metadata in Firestore")
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("batchID", batchID).Int("numImages", len(imageData)+len(videoData)).Msg("Images and videos uploaded and metadata created successfully")
 	w.Write([]byte("Images and videos uploaded successfully"))
@@ -177,8 +203,9 @@ func generateImageData(batchID string, form *multipart.Form) (bucket.ObjectMap, 
 		}
 		defer file.Close()
 
+		uuid := GenerateUUID()
 		// Construct object key, e.g. batchID/filename.png
-		objectName := fmt.Sprintf("%s/%s", batchID, fileHeader.Filename)
+		objectName := fmt.Sprintf("%s/%s_%s", batchID, fileHeader.Filename, uuid)
 		// Assign io.Reader to ObjectMap
 		objects[objectName] = file
 	}
@@ -271,6 +298,8 @@ func generateVideoData(batchID string, form *multipart.Form) (bucket.ObjectMap, 
 		if err != nil {
 			return nil, cleanup, fmt.Errorf("failed to read frames directory: %w", err)
 		}
+
+		uuid := GenerateUUID()
 		for i, f := range files {
 			if !strings.HasSuffix(f.Name(), ".png") {
 				continue
@@ -282,7 +311,7 @@ func generateVideoData(batchID string, form *multipart.Form) (bucket.ObjectMap, 
 			}
 			// Keep these open for upload; close in cleanup
 			closers = append(closers, frameFile)
-			frameName := fmt.Sprintf("%s/%s_frame_%04d.png", batchID, fileHeader.Filename, i+1)
+			frameName := fmt.Sprintf("%s/%s_%s_frame_%04d.png", batchID, uuid, fileHeader.Filename, i+1)
 			objects[frameName] = frameFile
 		}
 		if err != nil {
@@ -291,4 +320,10 @@ func generateVideoData(batchID string, form *multipart.Form) (bucket.ObjectMap, 
 	}
 
 	return objects, cleanup, nil
+}
+
+func GenerateUUID() string {
+	b := make([]byte, 1)
+	rand.Read(b)
+	return fmt.Sprintf("%02x", b[0])
 }
