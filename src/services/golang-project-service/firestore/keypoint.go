@@ -94,7 +94,7 @@ func (s *KeypointStore) UpdateKeypointPosition(ctx context.Context, req UpdateKe
 		{Path: "position", Value: req.Position},
 		{Path: "keypointLabelID", Value: req.KeypointLabelID},
 	}
-	return s.genericStore.UpdateField(ctx, req.KeypointID, updates)
+	return s.genericStore.UpdateDoc(ctx, req.KeypointID, updates)
 }
 
 func (s *KeypointStore) DeleteKeypoint(ctx context.Context, keypointID string) error {
