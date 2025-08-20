@@ -14,6 +14,7 @@ import (
 	"project-service/firestore"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
 	ffmpeg "github.com/u2takey/ffmpeg-go"

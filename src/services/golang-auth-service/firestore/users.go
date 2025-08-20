@@ -22,21 +22,21 @@ func NewUserStore(client fs.FirestoreClientInterface) *UserStore {
 	return &UserStore{genericStore: fs.NewGenericStore(client, userCollectionID)}
 }
 
-func (s *UserStore) FindByEmail(ctx context.Context, email string) (*User, error) {
+func (s *UserStore) FindByEmail(ctx context.Context, email string) (*User, string, error) {
 	queryParams := []fs.QueryParameter{
 		{Path: "email", Op: "==", Value: email},
 	}
 
 	doc, err := s.genericStore.GetDocByQuery(ctx, queryParams)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	// Convert to User
 	var user User
 	if err := doc.DataTo(&user); err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return &user, nil
+	return &user, doc.Ref.ID, nil
 }
 
 func (s *UserStore) CreateUser(ctx context.Context, email, hashedPassword string) (string, error) {

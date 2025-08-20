@@ -1,0 +1,12 @@
+# Exclude things not needed in the Docker build context
+node_modules
+.vscode
+.git
+.DS_Store
+
+# Build outputs
+/dist
+
+# Local env (we keep .env.cloudrun so Vite can read it for the build)
+.env
+!.env.cloudrun

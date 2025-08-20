@@ -28,7 +28,7 @@ type ProjectSettings struct {
 }
 
 type TagLabels struct {
-	KeyPoints     []string `firestore:"keyPoints,omitempty" json:"keyPoints"`
+	Keypoints     []string `firestore:"keyPoints,omitempty" json:"keyPoints"`
 	BoundingBoxes []string `firestore:"boundingBoxes,omitempty" json:"boundingBoxes"`
 }
 
@@ -54,11 +54,15 @@ func NewProjectStore(client fs.FirestoreClientInterface) *ProjectStore {
 }
 
 func (s *ProjectStore) GetProjectsByUserID(ctx context.Context, userID string) ([]Project, error) {
+
 	queryParams := []fs.QueryParameter{
 		{Path: "userID", Op: "==", Value: userID},
 	}
 	docs, err := s.genericStore.ReadCollection(ctx, queryParams)
 	if err != nil {
+		if fs.ErrNotFound == err {
+			return []Project{}, nil
+		}
 		return nil, err
 	}
 
@@ -72,6 +76,25 @@ func (s *ProjectStore) GetProjectsByUserID(ctx context.Context, userID string) (
 		projects = append(projects, p)
 	}
 	return projects, nil
+}
+
+func (s *ProjectStore) GetProject(ctx context.Context, projectID string, userID string) (*Project, error) {
+	docSnap, err := s.genericStore.GetDoc(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var p Project
+	if err := docSnap.DataTo(&p); err != nil {
+		return nil, err
+	}
+
+	if p.UserID != userID {
+		return nil, fmt.Errorf("project %s does not belong to user %s", projectID, userID)
+	}
+
+	p.ProjectID = docSnap.Ref.ID
+	return &p, nil
 }
 
 func (s *ProjectStore) CreateProject(ctx context.Context, createProjectReq CreateProjectRequest) (string, error) {
@@ -92,7 +115,7 @@ func (s *ProjectStore) RenameProject(ctx context.Context, projectID string, rena
 		{Path: "lastUpdated", Value: time.Now()},
 	}
 
-	return s.genericStore.UpdateField(ctx, projectID, updateParams)
+	return s.genericStore.UpdateDoc(ctx, projectID, updateParams)
 }
 
 func (s *ProjectStore) DeleteProject(ctx context.Context, projectID string) error {
@@ -117,17 +140,17 @@ func (s *ProjectStore) IncrementNumberOfFiles(ctx context.Context, projectID str
 	if newVal < 0 {
 		newVal = 0
 	}
-	err = s.genericStore.UpdateField(ctx, projectID, []firestore.Update{{Path: "numberOfFiles", Value: newVal}})
+	err = s.genericStore.UpdateDoc(ctx, projectID, []firestore.Update{{Path: "numberOfFiles", Value: newVal}})
 	return newVal, err
 }
 
 func (s *ProjectStore) UpdateProjectSettings(ctx context.Context, projectID string, req ProjectSettings) (*ProjectSettings, error) {
 	updateParams := []firestore.Update{
-		{Path: "settings.tagLabels.keyPoints", Value: req.TagLabels.KeyPoints},
+		{Path: "settings.tagLabels.keyPoints", Value: req.TagLabels.Keypoints},
 		{Path: "settings.tagLabels.boundingBoxes", Value: req.TagLabels.BoundingBoxes},
 	}
 
-	err := s.genericStore.UpdateField(ctx, projectID, updateParams)
+	err := s.genericStore.UpdateDoc(ctx, projectID, updateParams)
 	if err != nil {
 		return nil, err
 	}

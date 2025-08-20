@@ -1,10 +1,12 @@
 version: '3'
 
 tasks:
-  runServices:
-    desc: Run all backend services
+  runAllServices:
+    desc: Run all Go services
+    dir: src/services/service-runner
+    interactive: true
     cmds:
-      - task: runAuthService
+      - go run main.go
 
   runAuthService:
     desc: Run the Go authentication service in its own terminal
@@ -16,6 +18,13 @@ tasks:
   runProjectService:
     desc: Run the Go project service in its own terminal
     dir: src/services/golang-project-service
+    interactive: true
+    cmds:
+      - go run main.go
+
+  runWebsocketService:
+    desc: Run the Go websocket service in its own terminal
+    dir: src/services/golang-websocket-service
     interactive: true
     cmds:
       - go run main.go

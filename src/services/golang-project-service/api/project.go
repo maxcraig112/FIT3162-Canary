@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"pkg/handler"
+	"pkg/jwt"
 	"project-service/firestore"
 
 	"github.com/gorilla/mux"
@@ -28,7 +29,7 @@ func RegisterProjectRoutes(r *mux.Router, h *handler.Handler) {
 
 	routes := []Route{
 		// Get all projects owned by a user
-		{"GET", "/projects/{userID}", ph.LoadProjectsHandler},
+		{"GET", "/projects/{projectID}", ph.LoadProjectsHandler},
 		// Create a project
 		{"POST", "/projects", ph.CreateProjectHandler},
 		// Update the name of the project
@@ -48,19 +49,40 @@ func RegisterProjectRoutes(r *mux.Router, h *handler.Handler) {
 
 func (h *ProjectHandler) LoadProjectsHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	userID := vars["userID"]
-
-	projects, err := h.ProjectStore.GetProjectsByUserID(h.Ctx, userID)
+	projectID := vars["projectID"]
+	userID, err := jwt.GetUserIDFromJWT(r)
 	if err != nil {
-		http.Error(w, "Error getting projects", http.StatusInternalServerError)
-		log.Error().Str("userID", userID).Err(err).Msg("Failed to get projects by User ID")
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		log.Error().Err(err).Msg("Failed to get userID from JWT")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	log.Info().Str("userID", userID).Msg("Successfully returned projects by User ID")
-	json.NewEncoder(w).Encode(projects)
+	// if wildcard, return all projectID
+	if projectID == "*" {
+		projects, err := h.ProjectStore.GetProjectsByUserID(h.Ctx, userID)
+		if err != nil {
+			http.Error(w, "Error getting projects", http.StatusInternalServerError)
+			log.Error().Str("projectID", projectID).Err(err).Msg("Failed to get projects by Project ID")
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		log.Info().Str("userID", userID).Msg("Successfully returned projects by User ID")
+		json.NewEncoder(w).Encode(projects)
+		return
+	} else {
+		project, err := h.ProjectStore.GetProject(h.Ctx, projectID, userID)
+		if err != nil {
+			http.Error(w, "Error getting project", http.StatusInternalServerError)
+			log.Error().Str("projectID", projectID).Err(err).Msg("Failed to get project by Project ID")
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		log.Info().Str("projectID", projectID).Msg("Successfully returned project with Project ID")
+		json.NewEncoder(w).Encode(project)
+	}
+
 }
 
 func (h *ProjectHandler) CreateProjectHandler(w http.ResponseWriter, r *http.Request) {
@@ -80,7 +102,7 @@ func (h *ProjectHandler) CreateProjectHandler(w http.ResponseWriter, r *http.Req
 
 	w.WriteHeader(http.StatusCreated)
 	log.Info().Str("projectID", projectID).Msg("Project created successfully")
-	w.Write([]byte(fmt.Sprintf("Project %s created", projectID)))
+	fmt.Fprintf(w, "Project %s created", projectID)
 }
 
 func (h *ProjectHandler) RenameProjectHandler(w http.ResponseWriter, r *http.Request) {
@@ -103,7 +125,7 @@ func (h *ProjectHandler) RenameProjectHandler(w http.ResponseWriter, r *http.Req
 
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("projectID", projectID).Str("newName", req.NewProjectName).Msg("Project renamed successfully")
-	w.Write([]byte(fmt.Sprintf("Project %s renamed to %s", projectID, req.NewProjectName)))
+	fmt.Fprintf(w, "Project %s renamed to %s", projectID, req.NewProjectName)
 }
 
 func (h *ProjectHandler) DeleteProjectHandler(w http.ResponseWriter, r *http.Request) {
@@ -119,7 +141,7 @@ func (h *ProjectHandler) DeleteProjectHandler(w http.ResponseWriter, r *http.Req
 
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("projectID", projectID).Msg("Project deleted successfully")
-	w.Write([]byte(fmt.Sprintf("Project %s deleted", projectID)))
+	fmt.Fprintf(w, "Project %s deleted", projectID)
 }
 
 func (h *ProjectHandler) UpdateNumberOfFilesHandler(w http.ResponseWriter, r *http.Request) {

@@ -2,11 +2,13 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"auth-service/firestore"
 	fs "pkg/gcp/firestore"
 	"pkg/handler"
+	"pkg/jwt"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
@@ -29,8 +31,11 @@ func RegisterUserRoutes(r *mux.Router, h *handler.Handler) {
 	uh := NewUserHandler(h)
 	r.HandleFunc("/register", uh.RegisterHandler).Methods("POST")
 	r.HandleFunc("/login", uh.LoginHandler).Methods("POST")
-	r.HandleFunc("/auth", uh.AuthHandler).Methods("POST")
+	r.HandleFunc("/auth/{userID}", uh.AuthHandler).Methods("POST")
 	r.HandleFunc("/user", uh.DeleteHandler).Methods("DELETE")
+	// refresh token - renew token
+	r.HandleFunc("/refresh_token/{userID}", uh.RefreshHandler).Methods("POST")
+	// logout - make token invalid
 }
 
 type RegisterRequest struct {
@@ -65,7 +70,7 @@ func (h *UserHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error().Str("email", req.Email).Msg("Password does not meet security requirements for register")
 		return
 	}
-	doc, err := h.UserStore.FindByEmail(r.Context(), req.Email)
+	doc, _, err := h.UserStore.FindByEmail(r.Context(), req.Email)
 	if err != nil && err != fs.ErrNotFound {
 		http.Error(w, "Error processing email", http.StatusBadRequest)
 		log.Error().Err(err).Str("email", req.Email).Msg("Error processing email for register")
@@ -100,7 +105,7 @@ func (h *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error().Err(err).Msg("Invalid login request")
 		return
 	}
-	user, err := h.UserStore.FindByEmail(r.Context(), req.Email)
+	user, userID, err := h.UserStore.FindByEmail(r.Context(), req.Email)
 	if err != nil {
 		http.Error(w, "Invalid email or password", http.StatusNotFound)
 		log.Info().Str("email", req.Email).Msg("User not found")
@@ -112,7 +117,7 @@ func (h *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		log.Info().Str("email", req.Email).Msg("Password mismatch for login")
 		return
 	}
-	token, err := GenerateJWT(r.Context(), h.Clients, user.Email)
+	token, err := jwt.GenerateJWT(r.Context(), h.Clients, userID)
 	if err != nil {
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		log.Error().Err(err).Str("email", req.Email).Msg("Failed to generate JWT for login")
@@ -120,7 +125,7 @@ func (h *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	log.Info().Str("email", req.Email).Msg("User logged in successfully")
-	json.NewEncoder(w).Encode(map[string]string{"token": token})
+	json.NewEncoder(w).Encode(map[string]string{"token": token, "userID": userID})
 }
 
 func (h *UserHandler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
@@ -144,24 +149,40 @@ func (h *UserHandler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) AuthHandler(w http.ResponseWriter, r *http.Request) {
-	token := r.Header.Get("Authorization")
-	if token == "" {
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte("Missing token"))
-		log.Error().Msg("Missing token in Authorization header")
-		return
-	}
-	if len(token) > 7 && token[:7] == "Bearer " {
-		token = token[7:]
-	}
-	_, err := ValidateJWT(token)
+	vars := mux.Vars(r)
+	userID := vars["userID"]
+
+	err := jwt.ValidateJWT(r, userID)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte("Invalid token"))
+		fmt.Fprintf(w, "Invalid token %s", err.Error())
 		log.Error().Err(err).Msg("Invalid JWT token")
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 	log.Info().Msg("JWT token validated successfully")
 	w.Write([]byte("true"))
+
+}
+
+func (h *UserHandler) RefreshHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userID := vars["userID"]
+
+	err := jwt.ValidateJWT(r, userID)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte("Invalid token"))
+		log.Error().Err(err).Msg("Invalid JWT token")
+		return
+	}
+	token, err := jwt.GenerateJWT(r.Context(), h.Clients, userID)
+	if err != nil {
+		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		log.Error().Err(err).Str("userID", userID).Msg("Failed to generate JWT for login")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	log.Info().Str("userID", userID).Msg("User logged in successfully")
+	json.NewEncoder(w).Encode(map[string]string{"token": token})
 }
