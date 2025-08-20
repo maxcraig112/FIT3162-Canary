@@ -19,7 +19,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func corsMiddleware(next http.Handler) http.Handler {
+func CorsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		allowedOrigin := os.Getenv("CORS_ALLOW_ORIGIN")
 		if allowedOrigin == "" {
@@ -73,7 +73,7 @@ func Run() {
 
 	h := handler.NewHandler(ctx, clients, authMw)
 	api.RegisterUserRoutes(r, h)
-	corsWrapped := corsMiddleware(r)
+	corsWrapped := CorsMiddleware(r)
 
 	server := &http.Server{
 		Addr:    ":" + port,

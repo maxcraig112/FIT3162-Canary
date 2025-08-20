@@ -8,6 +8,7 @@ import (
 	"auth-service/firestore"
 	fs "pkg/gcp/firestore"
 	"pkg/handler"
+	"pkg/jwt"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
@@ -116,7 +117,7 @@ func (h *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		log.Info().Str("email", req.Email).Msg("Password mismatch for login")
 		return
 	}
-	token, err := GenerateJWT(r.Context(), h.Clients, userID)
+	token, err := jwt.GenerateJWT(r.Context(), h.Clients, userID)
 	if err != nil {
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		log.Error().Err(err).Str("email", req.Email).Msg("Failed to generate JWT for login")
@@ -151,17 +152,7 @@ func (h *UserHandler) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID := vars["userID"]
 
-	token := r.Header.Get("Authorization")
-	if token == "" {
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte("Missing token"))
-		log.Error().Msg("Missing token in Authorization header")
-		return
-	}
-	if len(token) > 7 && token[:7] == "Bearer " {
-		token = token[7:]
-	}
-	err := ValidateJWT(token, userID)
+	err := jwt.ValidateJWT(r, userID)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		fmt.Fprintf(w, "Invalid token %s", err.Error())
@@ -178,24 +169,14 @@ func (h *UserHandler) RefreshHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID := vars["userID"]
 
-	token := r.Header.Get("Authorization")
-	if token == "" {
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte("Missing token"))
-		log.Error().Msg("Missing token in Authorization header")
-		return
-	}
-	if len(token) > 7 && token[:7] == "Bearer " {
-		token = token[7:]
-	}
-	err := ValidateJWT(token, userID)
+	err := jwt.ValidateJWT(r, userID)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		w.Write([]byte("Invalid token"))
 		log.Error().Err(err).Msg("Invalid JWT token")
 		return
 	}
-	token, err = GenerateJWT(r.Context(), h.Clients, userID)
+	token, err := jwt.GenerateJWT(r.Context(), h.Clients, userID)
 	if err != nil {
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		log.Error().Err(err).Str("userID", userID).Msg("Failed to generate JWT for login")
