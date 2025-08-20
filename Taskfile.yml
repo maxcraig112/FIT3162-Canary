@@ -1,7 +1,30 @@
 version: '3'
 
-includes:
-  run:
-    taskfile: .taskfiles/run.yaml
-  build:
-    taskfile: .taskfiles/build.yaml
+tasks:
+  runAuthService:
+    desc: Run the Go authentication service in its own terminal
+    dir: src/services/golang-auth-service
+    interactive: true
+    cmds:
+      - go run main.go
+
+  runProjectService:
+    desc: Run the Go project service in its own terminal
+    dir: src/services/golang-project-service
+    interactive: true
+    cmds:
+      - go run main.go
+
+  runWebsocketService:
+    desc: Run the Go websocket service in its own terminal
+    dir: src/services/golang-websocket-service
+    interactive: true
+    cmds:
+      - go run main.go
+
+  runWebpage:
+    desc: Run the Vite Webpage
+    dir: src/Canary
+    interactive: true
+    cmds:
+     - npm run dev
