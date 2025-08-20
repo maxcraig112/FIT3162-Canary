@@ -1,6 +1,13 @@
 version: '3'
 
 tasks:
+  runAllServices:
+    desc: Run all Go services
+    dir: src/services/service-runner
+    interactive: true
+    cmds:
+      - go run main.go
+
   runAuthService:
     desc: Run the Go authentication service in its own terminal
     dir: src/services/golang-auth-service

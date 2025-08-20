@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"testing"
 
+	"auth-service/run"
 	"auth-service/api"
 	authFirestore "auth-service/firestore"
 	"pkg/gcp"
@@ -50,7 +51,7 @@ func setupTestServer(ctx context.Context) (*gcp.Clients, *httptest.Server) {
 	api.RegisterUserRoutes(r, h)
 
 	// Wrap router with CORS middleware
-	corsWrapped := corsMiddleware(r)
+	corsWrapped := run.CorsMiddleware(r)
 	return clients, httptest.NewServer(corsWrapped)
 }
 
