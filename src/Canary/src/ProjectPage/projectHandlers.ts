@@ -1,6 +1,7 @@
 import { getAuthTokenFromCookie } from "../utils/cookieUtils";
+import { type Project } from "./ProjectPage"; // gross
 
-export async function fetchProjectByID(projectID: string): Promise<any> {
+export async function fetchProjectByID(projectID: string): Promise<Project> {
   const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
   const url = `${baseUrl}/projects/${projectID}`;
   const token = getAuthTokenFromCookie();
@@ -17,7 +18,7 @@ export async function fetchProjectByID(projectID: string): Promise<any> {
     throw new Error(text || `Failed to fetch project ${projectID}`);
   }
 
-  let data: any;
+  let data: Project;
   try {
     data = JSON.parse(text);
   } catch {

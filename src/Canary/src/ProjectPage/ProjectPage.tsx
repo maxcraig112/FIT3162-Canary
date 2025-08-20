@@ -2,26 +2,25 @@ import React, { useState, useEffect } from "react";
 import { Box, Button, Typography, Paper, Tabs, Tab, Divider } from "@mui/material";
 import AppThemeProvider from "../assets/AppThemeProvider";
 import { CANARY_BUTTON_COLOR, CANARY_BUTTON_TEXT_COLOR } from "../assets/constants";
-import { useLocation, useSearchParams, useNavigate, useParams } from "react-router-dom";
-import { fetchProjectByID } from "./projectHandlers"; // switched to direct fetch only
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { fetchProjectByID } from "./projectHandlers";
+
+export interface Project { projectName: string; /* other fields here */ }
 
 const ProjectPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { projectID: paramProjectID } = useParams<{ projectID: string }>();
-  const [searchParams] = useSearchParams(); // keep temporarily for backward compatibility
-  const projectID = paramProjectID || searchParams.get("projectID") || null;
+  const projectID = paramProjectID
 
-  // project object passed from list (optional)
-  const passedProject = (location.state as any)?.project as any | undefined;
+  const passedProject = (location.state as { project?: Project })?.project;
+  const [projectData, setProjectData] = useState<Project | null>(passedProject || null);
 
-  const [projectData, setProjectData] = useState<any>(passedProject || null);
   const [loading, setLoading] = useState<boolean>(!passedProject);
   const [selectedTab, setSelectedTab] = useState(0);
   const [settingsTab, setSettingsTab] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch specific project from backend (single endpoint)
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -42,7 +41,6 @@ const ProjectPage: React.FC = () => {
         if (!cancelled) setLoading(false);
       }
     }
-    // always refresh so name stays current
     load();
     return () => {
       cancelled = true;
@@ -209,27 +207,27 @@ const ProjectPage: React.FC = () => {
 };
 
 // Tab content (untyped now, since ProjectDetails removed)
-const UploadTab: React.FC<{ project: any }> = ({ project }) => (
+const UploadTab: React.FC<{ project: Project | null }> = ({ project }) => (
   <Typography sx={{ color: "#000" }}>
     {project ? `Upload files to ${project.projectName}` : "Loading..."}
   </Typography>
 );
-const AnnotateTab: React.FC<{ project: any }> = ({ project }) => (
+const AnnotateTab: React.FC<{ project: Project | null }> = ({ project }) => (
   <Typography sx={{ color: "#000" }}>
     Annotate assets for {project?.projectName}
   </Typography>
 );
-const DatasetTab: React.FC<{ project: any }> = ({ project }) => (
+const DatasetTab: React.FC<{ project: Project | null }> = ({ project }) => (
   <Typography sx={{ color: "#000" }}>
     Dataset overview for {project?.projectName}
   </Typography>
 );
-const ExportTab: React.FC<{ project: any }> = ({ project }) => (
+const ExportTab: React.FC<{ project: Project | null }> = ({ project }) => (
   <Typography sx={{ color: "#000" }}>
     Export options for {project?.projectName}
   </Typography>
 );
-const SettingsTab: React.FC<{ project: any }> = ({ project }) => (
+const SettingsTab: React.FC<{ project: Project | null }> = ({ project }) => (
   <Typography sx={{ color: "#000" }}>
     Settings for {project?.projectName}
   </Typography>
