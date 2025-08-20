@@ -63,10 +63,9 @@ import {
 } from "../utils/cookieUtils";
 
 export async function fetchProjects(): Promise<Project[]> {
-  const userID = getUserIDFromCookie();
   const token = getAuthTokenFromCookie();
   const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
-  const url = `${baseUrl}/projects/${userID}`;
+  const url = `${baseUrl}/projects/*`;
   const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
