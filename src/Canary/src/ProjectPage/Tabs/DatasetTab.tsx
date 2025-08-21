@@ -17,10 +17,11 @@ import Grid from "@mui/material/Grid";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import type { Project } from "../ProjectPage";
 import { useDatasetTab } from "./datasetTabHandler";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 
 export const DatasetTab: React.FC<{ project: Project | null }> = () => {
   const { projectID } = useParams<{ projectID: string }>();
+  const navigate = useNavigate();
   const {
     batches,
     loading,
@@ -76,13 +77,18 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
                 textAlign: "center",
                 position: "relative",
                 minHeight: 180,
-                cursor: "default",
+                cursor: "pointer",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 1,
               }}
+              onClick={() =>
+                navigate(
+                  `/annotate?batchID=${encodeURIComponent(b.batchID)}&projectID=${encodeURIComponent(projectID ?? b.projectID)}`,
+                )
+              }
             >
               {/* top-right menu trigger */}
               <IconButton
