@@ -16,7 +16,7 @@ import {
 import Grid from "@mui/material/Grid";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import type { Project } from "../ProjectPage";
-import { useDatasetTab, formatDateOnly } from "./datasetTabHandler";
+import { useDatasetTab } from "./datasetTabHandler";
 import { useParams } from "react-router-dom";
 
 export const DatasetTab: React.FC<{ project: Project | null }> = () => {
@@ -46,6 +46,13 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
     closeRename,
     closeDelete,
   } = useDatasetTab(projectID);
+
+  // Log batches whenever they change so you can inspect the data
+  React.useEffect(() => {
+    if (batches) {
+      console.log("[DatasetTab] Batches state:", batches);
+    }
+  }, [batches]);
 
   return (
     <Box sx={{ width: "100%" }}>
@@ -99,12 +106,7 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
                 {b.batchName}
               </Typography>
 
-              {/* bottom date */}
-              <Box sx={{ position: "absolute", bottom: 12, left: 0, right: 0 }}>
-                <Typography variant="caption">
-                  {formatDateOnly(b.lastUpdated) || "—"}
-                </Typography>
-              </Box>
+              {/* bottom date removed */}
             </Paper>
           </Grid>
         ))}

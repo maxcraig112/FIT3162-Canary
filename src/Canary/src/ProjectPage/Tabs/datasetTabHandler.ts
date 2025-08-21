@@ -7,7 +7,6 @@ export interface Batch {
 	projectID: string;
 	numberOfTotalFiles: number;
 	numberOfAnnotatedFiles: number;
-	lastUpdated?: string | { seconds: number; nanos?: number } | number | Date;
 }
 
 function projectServiceUrl() {
@@ -16,7 +15,9 @@ function projectServiceUrl() {
 
 export async function fetchBatches(projectID: string): Promise<Batch[]> {
 	const url = `${projectServiceUrl()}/projects/${projectID}/batches`;
-	return CallAPI<Batch[]>(url);
+	const data = await CallAPI<unknown>(url);
+	const arr = Array.isArray(data) ? data : [];
+	return arr.map(normalizeBatch);
 }
 
 export async function renameBatch(batchID: string, newBatchName: string): Promise<void> {
@@ -29,18 +30,76 @@ export async function deleteBatch(batchID: string): Promise<void> {
 	await CallAPI<void>(url, { method: "DELETE" });
 }
 
-export function formatDateOnly(value?: Batch["lastUpdated"]): string {
-	if (!value) return "";
-	let date: Date;
-	if (value instanceof Date) date = value;
-	else if (typeof value === "number") date = new Date(value);
-	else if (typeof value === "string") date = new Date(value);
-	else if (typeof value === "object" && "seconds" in value) {
-		date = new Date((value.seconds as number) * 1000);
-	} else {
-		return "";
+// --- Helpers ---
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+	return typeof v === "object" && v !== null;
+}
+
+function firstDefined<T = unknown>(obj: unknown, keys: string[], fallback?: T): T | undefined {
+	if (!isRecord(obj)) return fallback;
+	for (const k of keys) {
+		if (Object.prototype.hasOwnProperty.call(obj, k)) {
+			const val = obj[k];
+			if (val !== undefined && val !== null) return val as T;
+		}
 	}
-	return date.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+	return fallback;
+}
+
+function toNumber(v: unknown, def = 0): number {
+	if (typeof v === "number") return v;
+	if (typeof v === "string") {
+		const n = Number(v);
+		return isNaN(n) ? def : n;
+	}
+	return def;
+}
+
+function toStringMaybe(v: unknown, def = ""): string {
+	return v === undefined || v === null ? def : String(v);
+}
+
+function normalizeBatch(raw: unknown): Batch {
+	const batchID = toStringMaybe(
+		firstDefined(raw, ["batchID", "batchId", "id", "batch_id"]) ?? ""
+	);
+	const batchName = toStringMaybe(
+		firstDefined(raw, ["batchName", "name", "batch_name"]) ?? ""
+	);
+	const projectID = toStringMaybe(
+		firstDefined(raw, ["projectID", "projectId", "project_id"]) ?? ""
+	);
+
+	const numberOfTotalFiles = toNumber(
+		firstDefined(raw, [
+			"numberOfTotalFiles",
+			"number_of_total_files",
+			"totalFiles",
+			"total_files",
+			"numberOfFiles",
+		]),
+		0,
+	);
+
+	const numberOfAnnotatedFiles = toNumber(
+		firstDefined(raw, [
+			"numberOfAnnotatedFiles",
+			"number_of_annotated_files",
+			"annotatedFiles",
+			"annotated_files",
+			"numberOfAnnotated",
+		]),
+		0,
+	);
+
+	return {
+		batchID,
+		batchName,
+		projectID,
+		numberOfTotalFiles,
+		numberOfAnnotatedFiles,
+	};
 }
 
 export function useDatasetTab(projectID?: string) {
@@ -179,7 +238,6 @@ export function useDatasetTab(projectID?: string) {
 		confirmDelete,
 		deleting,
 		// utils
-		formatDateOnly,
 		reload: load,
 	};
 }
