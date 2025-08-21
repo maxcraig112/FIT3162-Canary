@@ -6,7 +6,8 @@ import Checkbox from "@mui/material/Checkbox";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import { createTheme, Paper, ThemeProvider, styled } from "@mui/material";
-export const SettingsTab: React.FC = () => (
+import type { Project } from "../../ProjectsPage/ProjectsPage";
+export const SettingsTab: React.FC<{project: Project | null}> = () => (
   <Box
     sx={{
       width: "100%",
