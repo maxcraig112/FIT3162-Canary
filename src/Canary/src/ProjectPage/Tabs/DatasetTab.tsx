@@ -13,7 +13,7 @@ import {
   Button,
   TextField,
 } from "@mui/material";
-import Grid from "@mui/material/Grid";
+// Using Box + CSS grid for precise gaps and alignment
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import type { Project } from "../ProjectPage";
 import { useDatasetTab } from "./datasetTabHandler";
@@ -62,27 +62,42 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
           {error}
         </Typography>
       )}
-      <Grid container spacing={3} justifyContent="flex-start">
-        {loading && batches.length === 0 && (
-          <Grid>
+  <Box sx={{ px: "5%" }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+            columnGap: "5%",
+            rowGap: "35%",
+          }}
+        >
+          {loading && batches.length === 0 && (
             <Typography>Loading batches...</Typography>
-          </Grid>
-        )}
-        {batches.map((b) => (
-          <Grid key={b.batchID} sx={{ minHeight: "10vh", minWidth: "15vw" }}>
-            <Paper
-              elevation={3}
+          )}
+          {batches.map((b) => (
+            <Box key={b.batchID} sx={{ minHeight: "10vh" }}>
+        <Paper
               sx={{
-                p: 3,
+          p: 4,
                 textAlign: "center",
                 position: "relative",
-                minHeight: 180,
+          minHeight: 220,
                 cursor: "pointer",
+                height: "100%",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 1,
+                bgcolor: "#fff",
+                color: "black",
+                boxShadow: 8,
+                transition:
+                  "box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out",
+                "&:hover": {
+                  boxShadow: 16,
+                  transform: "translateY(-2px)",
+                },
               }}
               onClick={() =>
                 navigate(
@@ -92,11 +107,17 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
             >
               {/* top-right menu trigger */}
               <IconButton
-                sx={{ position: "absolute", top: 8, right: 8, zIndex: 2 }}
-                size="small"
+                sx={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  zIndex: 2,
+                  color: (theme) => theme.palette.grey[700],
+                }}
+                size="large"
                 onClick={(e) => openMenu(e, b.batchID)}
               >
-                <MoreVertIcon />
+                <MoreVertIcon sx={{ fontSize: 32 }} />
               </IconButton>
 
               {/* header counts */}
@@ -114,9 +135,10 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
 
               {/* bottom date removed */}
             </Paper>
-          </Grid>
-        ))}
-      </Grid>
+            </Box>
+          ))}
+        </Box>
+      </Box>
 
       {/* Menu */}
       <Menu
