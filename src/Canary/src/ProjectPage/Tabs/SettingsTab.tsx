@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -11,6 +11,7 @@ import ListItem from "@mui/material/ListItem";
 import ListItemText from "@mui/material/ListItemText";
 import IconButton from "@mui/material/IconButton";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import { useSettingsTab } from "./settingsTabHandler";
 
 type ListPanelProps = {
   title: string;
@@ -93,28 +94,18 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(
 );
 
 export const SettingsTab: React.FC = () => {
-  const [keypointLabels, setKeypointLabels] = useState<string[]>([]);
-  const [bboxLabels, setBboxLabels] = useState<string[]>([]);
-  const [keypointInput, setKeypointInput] = useState("");
-  const [bboxInput, setBboxInput] = useState("");
-
-  const addKeypoint = () => {
-    const v = keypointInput.trim();
-    if (!v) return;
-    if (!keypointLabels.includes(v)) setKeypointLabels((arr) => [...arr, v]);
-    setKeypointInput("");
-  };
-  const addBbox = () => {
-    const v = bboxInput.trim();
-    if (!v) return;
-    if (!bboxLabels.includes(v)) setBboxLabels((arr) => [...arr, v]);
-    setBboxInput("");
-  };
-
-  const deleteKeypoint = (val: string) =>
-    setKeypointLabels((arr) => arr.filter((x) => x !== val));
-  const deleteBbox = (val: string) =>
-    setBboxLabels((arr) => arr.filter((x) => x !== val));
+  const {
+    keypointLabels,
+    bboxLabels,
+    keypointInput,
+    bboxInput,
+    setKeypointInput,
+    setBboxInput,
+    addKeypoint,
+    addBbox,
+    deleteKeypoint,
+    deleteBbox,
+  } = useSettingsTab();
 
   return (
     <Box
@@ -234,10 +225,7 @@ export const SettingsTab: React.FC = () => {
           </Typography>
           <br />
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <Typography
-              variant="body3"
-              sx={{ color: "#000", textAlign: "center" }}
-            >
+            <Typography variant="body3" sx={{ color: "#000", textAlign: "center" }}>
               KeyPoints are used to identify specific points of interest within
               an image. Labels configured below are shared across all images
               within this project.
@@ -277,10 +265,7 @@ export const SettingsTab: React.FC = () => {
           </Typography>
           <br />
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <Typography
-              variant="body3"
-              sx={{ color: "#000", textAlign: "center" }}
-            >
+            <Typography variant="body3" sx={{ color: "#000", textAlign: "center" }}>
               BoundingBoxes are used to identify specific areas of interest
               within an image, defined by a rectangle area. In the annotate
               page, they are defined as two points (the top right and bottom

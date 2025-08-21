@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef } from "react";
 import {
   Box,
   Button,
@@ -9,8 +9,8 @@ import {
   Stack,
   TextField,
 } from "@mui/material";
-import { CallAPI } from "../../utils/apis";
 import type { Project } from "../ProjectPage";
+import { useUploadTab } from "./uploadTabHandler";
 
 interface UploadTabProps {
   project: Project | null;
@@ -18,130 +18,21 @@ interface UploadTabProps {
 
 export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [dragActive, setDragActive] = useState(false);
-  const [batchName, setBatchName] = useState<string>("");
-
-  function openPicker() {
-    if (!project) {
-      setError("Project not loaded yet.");
-      return;
-    }
-    setError(null);
-    setMessage(null);
-    inputRef.current?.click();
-  }
-
-  async function createBatch(
-    projectID: string,
-    nameHint?: string,
-  ): Promise<{ batchID: string; batchName: string }> {
-    const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
-    const url = `${baseUrl}/batch`;
-    const batchName =
-      (nameHint && nameHint.trim()) || `Upload ${new Date().toLocaleString()}`;
-
-    // Endpoint returns plain text "Batch <id> created"
-    const text = await CallAPI<string>(url, {
-      method: "POST",
-      json: { projectID, batchName },
-      parseJson: false,
-    });
-
-    // Try to extract the ID robustly
-    const m = text?.match(/Batch\s+([A-Za-z0-9\-_]+)\s+created/i);
-    const batchID = m?.[1] || text?.trim();
-    if (!batchID) throw new Error("Failed to parse created batch ID.");
-    return { batchID, batchName };
-  }
-
-  const beginUpload = async (files: FileList | File[]) => {
-    const list = Array.from(files).filter((f) => /^image\//i.test(f.type || ""));
-    if (!list.length) {
-      setError("No image files selected.");
-      return;
-    }
-    if (!project?.projectID) {
-      setError("Project not loaded yet.");
-      return;
-    }
-
-    setUploading(true);
-    setError(null);
-    setMessage(null);
-
-    try {
-      // 1) Create a new batch automatically (use optional user-provided name)
-      const { batchID, batchName: finalBatchName } = await createBatch(
-        project.projectID,
-        batchName,
-      );
-
-      // 2) Upload images to that batch
-      const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
-      const url = `${baseUrl}/batch/${encodeURIComponent(batchID)}/images`;
-
-      const formData = new FormData();
-      list.forEach((f) => formData.append("images", f, f.name));
-
-      await CallAPI<string>(url, {
-        method: "POST",
-        body: formData,
-        parseJson: false,
-      });
-
-      setMessage(
-        `Uploaded ${list.length} image${list.length === 1 ? "" : "s"} to batch "${finalBatchName}" (${batchID}).`,
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to upload images.");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  async function handleFilesSelected(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      await beginUpload(files);
-    }
-    e.target.value = "";
-  }
-
-  // Drag & drop handlers
-  const handleDragOver = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (!dragActive) setDragActive(true);
-    },
-    [dragActive],
-  );
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.currentTarget === e.target) setDragActive(false);
-  }, []);
-
-  const handleDrop = useCallback(
-    async (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setDragActive(false);
-      if (!project) {
-        setError("Project not loaded yet.");
-        return;
-      }
-      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        await beginUpload(e.dataTransfer.files);
-        e.dataTransfer.clearData();
-      }
-    },
-    [project],
-  );
+  const {
+    uploading,
+    message,
+    error,
+    dragActive,
+    batchName,
+    setBatchName,
+    openPicker,
+    handleFilesSelected,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+  clearMessage,
+  clearError,
+  } = useUploadTab(project);
 
   return (
     <Box
@@ -192,13 +83,13 @@ export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
             onDragEnter={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            onClick={openPicker}
+            onClick={() => openPicker(() => inputRef.current?.click?.())}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
-                openPicker();
+                openPicker(() => inputRef.current?.click?.());
               }
             }}
             sx={{
@@ -240,7 +131,7 @@ export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
               disabled={!project || uploading}
               onClick={(e) => {
                 e.stopPropagation();
-                openPicker();
+                openPicker(() => inputRef.current?.click?.());
               }}
               sx={{
                 fontWeight: 600,
@@ -282,12 +173,12 @@ export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
         </Fade>
 
         {message && (
-          <Alert severity="success" onClose={() => setMessage(null)} sx={{ borderRadius: 2 }}>
+          <Alert severity="success" onClose={clearMessage} sx={{ borderRadius: 2 }}>
             {message}
           </Alert>
         )}
         {error && (
-          <Alert severity="error" onClose={() => setError(null)} sx={{ borderRadius: 2 }}>
+          <Alert severity="error" onClose={clearError} sx={{ borderRadius: 2 }}>
             {error}
           </Alert>
         )}
