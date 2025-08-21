@@ -1,20 +1,35 @@
 import React, { useState, useEffect } from "react";
-import { Box, Button, Typography, Paper, Tabs, Tab, Divider } from "@mui/material";
+import {
+  Box,
+  Button,
+  Typography,
+  Paper,
+  Tabs,
+  Tab,
+  Divider,
+} from "@mui/material";
 import AppThemeProvider from "../assets/AppThemeProvider";
-import { CANARY_BUTTON_COLOR, CANARY_BUTTON_TEXT_COLOR } from "../assets/constants";
+import {
+  CANARY_BUTTON_COLOR,
+  CANARY_BUTTON_TEXT_COLOR,
+} from "../assets/constants";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { fetchProjectByID } from "./projectHandlers";
 
-export interface Project { projectName: string; /* other fields here */ }
+export interface Project {
+  projectName: string /* other fields here */;
+}
 
 const ProjectPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { projectID: paramProjectID } = useParams<{ projectID: string }>();
-  const projectID = paramProjectID
+  const projectID = paramProjectID;
 
   const passedProject = (location.state as { project?: Project })?.project;
-  const [projectData, setProjectData] = useState<Project | null>(passedProject || null);
+  const [projectData, setProjectData] = useState<Project | null>(
+    passedProject || null,
+  );
 
   const [loading, setLoading] = useState<boolean>(!passedProject);
   const [selectedTab, setSelectedTab] = useState(0);
@@ -35,7 +50,9 @@ const ProjectPage: React.FC = () => {
         if (!cancelled) setProjectData(data);
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Failed to load project data.");
+          setError(
+            e instanceof Error ? e.message : "Failed to load project data.",
+          );
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -97,12 +114,22 @@ const ProjectPage: React.FC = () => {
           >
             Back to Projects
           </Button>
-          <Typography variant="h4" sx={{ flexGrow: 1, textAlign: "center", color: "#000000" }}>
+          <Typography
+            variant="h4"
+            sx={{ flexGrow: 1, textAlign: "center", color: "#000000" }}
+          >
             {title}
           </Typography>
         </Box>
 
-        <Box sx={{ display: "flex", flexDirection: "row", flexGrow: 1, width: "100%" }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            flexGrow: 1,
+            width: "100%",
+          }}
+        >
           <Box
             sx={{
               width: 260,
@@ -167,7 +194,7 @@ const ProjectPage: React.FC = () => {
               sx={{
                 flex: "1 1 auto",
                 width: "100%",
-                minWidth: 1000,         // keep a stable wide layout
+                minWidth: 1000, // keep a stable wide layout
                 minHeight: 500,
                 px: 5,
                 py: 4,
