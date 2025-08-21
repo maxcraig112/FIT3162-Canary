@@ -15,6 +15,7 @@ import {
 } from "../assets/constants";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { fetchProjectByID } from "./projectHandlers";
+import { DatasetTab } from "./Tabs/DatasetTab";
 
 export interface Project {
   projectName: string /* other fields here */;
@@ -242,11 +243,6 @@ const UploadTab: React.FC<{ project: Project | null }> = ({ project }) => (
 const AnnotateTab: React.FC<{ project: Project | null }> = ({ project }) => (
   <Typography sx={{ color: "#000" }}>
     Annotate assets for {project?.projectName}
-  </Typography>
-);
-const DatasetTab: React.FC<{ project: Project | null }> = ({ project }) => (
-  <Typography sx={{ color: "#000" }}>
-    Dataset overview for {project?.projectName}
   </Typography>
 );
 const ExportTab: React.FC<{ project: Project | null }> = ({ project }) => (
