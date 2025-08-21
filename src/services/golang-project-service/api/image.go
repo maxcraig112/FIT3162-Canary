@@ -311,7 +311,7 @@ func generateVideoData(batchID string, form *multipart.Form) (bucket.ObjectMap, 
 			}
 			// Keep these open for upload; close in cleanup
 			closers = append(closers, frameFile)
-			frameName := fmt.Sprintf("%s/%s_%s_frame_%04d.png", batchID, uuid, fileHeader.Filename, i+1)
+			frameName := fmt.Sprintf("%s/%s_/%s_frame_%04d.png", batchID, uuid, fileHeader.Filename, i+1)
 			objects[frameName] = frameFile
 		}
 		if err != nil {
@@ -323,7 +323,11 @@ func generateVideoData(batchID string, form *multipart.Form) (bucket.ObjectMap, 
 }
 
 func GenerateUUID() string {
-	b := make([]byte, 1)
+	const chars = "0123456789abcdef"
+	b := make([]byte, 8)
 	rand.Read(b)
-	return fmt.Sprintf("%02x", b[0])
+	for i := range b {
+		b[i] = chars[b[i]%16]
+	}
+	return string(b)
 }
