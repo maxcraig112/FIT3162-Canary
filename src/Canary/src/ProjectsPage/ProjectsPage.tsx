@@ -84,11 +84,9 @@ const ProjectsPage: React.FC = () => {
   return (
     <Box
       sx={{
-        mx: "auto",
-        maxWidth: "80vw",
-        bgcolor: "#f5f5f5",
+        width: "100%",
         minHeight: "100vh",
-        minWidth: "fit-content",
+        bgcolor: "#f5f5f5",
       }}
     >
       <AppBar position="static" color="default" elevation={1}>
@@ -156,7 +154,7 @@ const ProjectsPage: React.FC = () => {
             <option value="lastUpdated-asc">Last Updated (Oldest)</option>
           </TextField>
         </Box>
-        <Grid container spacing={3} justifyContent="center">
+  <Grid container spacing={3} justifyContent="flex-start">
           {filteredProjects.map((project) => (
             <Grid
               key={project.projectID}
