@@ -1,25 +1,11 @@
 import { setCookie } from "../utils/cookieUtils";
+import { CallAPI } from "../utils/apis";
+
+type AuthResponse = { token?: string; userID?: string; message?: string };
 const authServiceURL = import.meta.env.VITE_AUTH_SERVICE_URL;
 
 async function postToAuthService(endpoint: string, payload: object) {
-  const response = await fetch(`${authServiceURL}${endpoint}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || "Request failed");
-  }
-  // Try to parse JSON, but fallback to text if not JSON
-  const text = await response.text();
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { message: text };
-  }
+  return CallAPI<AuthResponse>(`${authServiceURL}${endpoint}`, { method: "POST", json: payload });
 }
 
 export async function handleLogin(
@@ -32,7 +18,7 @@ export async function handleLogin(
     if (data && data.token) {
       console.log(data);
       setCookie("auth_token", data.token);
-      setCookie("user_id", data.userID); // Assuming user_id is returned
+  if (data.userID) setCookie("user_id", data.userID);
       if (setResult) setResult("Login successful");
       console.log("Login success, token set in cookie");
     } else {

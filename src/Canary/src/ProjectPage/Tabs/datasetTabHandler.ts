@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getAuthTokenFromCookie } from "../../utils/cookieUtils";
+import { CallAPI } from "../../utils/apis";
 
 export interface Batch {
 	batchID: string;
@@ -14,43 +14,19 @@ function projectServiceUrl() {
 	return import.meta.env.VITE_PROJECT_SERVICE_URL as string;
 }
 
-async function apiFetch<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
-	const token = getAuthTokenFromCookie();
-	const headers: HeadersInit = {
-		Accept: "application/json",
-		...(token ? { Authorization: `Bearer ${token}` } : {}),
-		...(init?.headers || {}),
-	};
-	const resp = await fetch(input, { ...init, headers });
-	const text = await resp.text();
-	if (!resp.ok) {
-		throw new Error(text || `${resp.status} ${resp.statusText}`);
-	}
-	try {
-		return text ? (JSON.parse(text) as T) : (undefined as unknown as T);
-	} catch {
-		// for DELETE/empty bodies
-		return undefined as unknown as T;
-	}
-}
-
 export async function fetchBatches(projectID: string): Promise<Batch[]> {
 	const url = `${projectServiceUrl()}/projects/${projectID}/batches`;
-	return apiFetch<Batch[]>(url);
+	return CallAPI<Batch[]>(url);
 }
 
 export async function renameBatch(batchID: string, newBatchName: string): Promise<void> {
 	const url = `${projectServiceUrl()}/batch/${batchID}`;
-	await apiFetch<void>(url, {
-		method: "PUT",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ newBatchName }),
-	});
+	await CallAPI<void>(url, { method: "PUT", json: { newBatchName } });
 }
 
 export async function deleteBatch(batchID: string): Promise<void> {
 	const url = `${projectServiceUrl()}/batch/${batchID}`;
-	await apiFetch<void>(url, { method: "DELETE" });
+	await CallAPI<void>(url, { method: "DELETE" });
 }
 
 export function formatDateOnly(value?: Batch["lastUpdated"]): string {
