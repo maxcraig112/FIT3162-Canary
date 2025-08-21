@@ -5,10 +5,18 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Checkbox from "@mui/material/Checkbox";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
-
+import { createTheme, Paper, ThemeProvider, styled } from "@mui/material";
 export const SettingsTab: React.FC = () => (
-  <Box sx={{ width: "100%" }}>
-    <Box sx={{ float: "left", width: "47%" }}>
+  <Box
+    sx={{
+      width: "100%",
+      display: "flex",
+      justifyContent: "space-between",
+      gap: 4,
+    }}
+  >
+    {/* Column 1 */}
+    <Box sx={{ flex: 1 }}>
       <Typography variant="h4" sx={{ color: "#000", textAlign: "center" }}>
         Sessions
       </Typography>
@@ -24,13 +32,12 @@ export const SettingsTab: React.FC = () => (
       <Box sx={{ display: "flex", justifyContent: "center" }}>
         <Typography variant="body3" sx={{ color: "#000", textAlign: "center" }}>
           To enable sessions, tick the checkbox below, and enter a unique
-          session code. This will be used by users to join your join your
-          project.
+          session code. This will be used by users to join your project.
         </Typography>
       </Box>
       <br />
       <Typography variant="body1" sx={{ color: "#000", textAlign: "center" }}>
-        DO NOT SHARED THIS CODE WITH ANYONE YOU DO NOT TRUST.
+        DO NOT SHARE THIS CODE WITH ANYONE YOU DO NOT TRUST.
       </Typography>
       <br />
       <Box sx={{ display: "flex", justifyContent: "center", color: "#000" }}>
@@ -58,15 +65,29 @@ export const SettingsTab: React.FC = () => (
         <Button variant="contained">Save</Button>
       </Box>
     </Box>
-
-    <Box sx={{ float: "right", width: "47%" }}>
+    {/* Column 2 */}
+    <Box sx={{ flex: 1 }}>
       <Typography variant="h4" sx={{ color: "#000", textAlign: "center" }}>
-        Configure Tags
+        Configure KeyPoints
       </Typography>
       <br />
       <Box sx={{ display: "flex", justifyContent: "center" }}>
         <Typography variant="body3" sx={{ color: "#000", textAlign: "center" }}>
-          All tags used for the annotation of KeyPoints and BoundingBoxes can be
+          All tags used for the annotation of KeyPoints can be
+          configured here. Warning, deleting a tag that is currently in use will
+          remove it from all annotations.
+        </Typography>
+      </Box>
+    </Box>
+    {/* Column 3 */}
+    <Box sx={{ flex: 1 }}>
+      <Typography variant="h4" sx={{ color: "#000", textAlign: "center" }}>
+        Configure BoundingBox
+      </Typography>
+      <br />
+      <Box sx={{ display: "flex", justifyContent: "center" }}>
+        <Typography variant="body3" sx={{ color: "#000", textAlign: "center" }}>
+          All tags used for the annotation of BoundingBoxes can be
           configured here. Warning, deleting a tag that is currently in use will
           remove it from all annotations.
         </Typography>
