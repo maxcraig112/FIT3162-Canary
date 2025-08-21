@@ -1,15 +1,25 @@
 import React, { useState, useEffect } from "react";
-import { Box, Button, Typography, Paper, Tabs, Tab, Divider } from "@mui/material";
+import {
+  Box,
+  Button,
+  Typography,
+  Paper,
+  Tabs,
+  Tab,
+  Divider,
+} from "@mui/material";
 import AppThemeProvider from "../assets/AppThemeProvider";
-import { CANARY_BUTTON_COLOR, CANARY_BUTTON_TEXT_COLOR } from "../assets/constants";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { fetchProjectByID } from "./projectHandlers";
 import { DatasetTab } from "./Tabs/DatasetTab";
+import { ExportTab } from "./Tabs/ExportTab";
+import { SettingsTab } from "./Tabs/SettingsTab";
 import CloudUploadOutlined from "@mui/icons-material/CloudUploadOutlined";
 import GpsFixedOutlined from "@mui/icons-material/GpsFixedOutlined";
 import BarChartOutlined from "@mui/icons-material/BarChartOutlined";
 import IosShareOutlined from "@mui/icons-material/IosShareOutlined";
 import SettingsOutlined from "@mui/icons-material/SettingsOutlined";
+import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 
 export interface Project {
   projectName: string /* other fields here */;
@@ -23,7 +33,7 @@ const ProjectPage: React.FC = () => {
 
   const passedProject = (location.state as { project?: Project })?.project;
   const [projectData, setProjectData] = useState<Project | null>(
-    passedProject || null,
+    passedProject || null
   );
 
   const [loading, setLoading] = useState<boolean>(!passedProject);
@@ -46,7 +56,7 @@ const ProjectPage: React.FC = () => {
       } catch (e) {
         if (!cancelled) {
           setError(
-            e instanceof Error ? e.message : "Failed to load project data.",
+            e instanceof Error ? e.message : "Failed to load project data."
           );
         }
       } finally {
@@ -101,20 +111,31 @@ const ProjectPage: React.FC = () => {
           }}
         >
           <Button
+            startIcon={<ExitToAppIcon />}
             onClick={handleBackToAllProjects}
-            style={{
-              backgroundColor: CANARY_BUTTON_COLOR,
-              color: CANARY_BUTTON_TEXT_COLOR,
+            sx={{
+              color: "#000000",
+              display: "flex",
+              alignItems: "center",
             }}
           >
-            Back to Projects
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              Back to Projects
+            </Box>
           </Button>
-          <Typography
-            variant="h4"
-            sx={{ flexGrow: 1, textAlign: "center", color: "#000000" }}
-          >
-            {title}
-          </Typography>
+          <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center" }}>
+            <Typography
+              variant="h4"
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                color: "#000000",
+                textAlign: "center",
+              }}
+            >
+              {title}
+            </Typography>
+          </Box>
         </Box>
 
         <Box
@@ -162,10 +183,26 @@ const ProjectPage: React.FC = () => {
                   "& .Mui-selected": { fontWeight: 700 },
                 }}
               >
-                <Tab icon={<CloudUploadOutlined />} iconPosition="start" label="Upload" />
-                <Tab icon={<GpsFixedOutlined />} iconPosition="start" label="Annotate" />
-                <Tab icon={<BarChartOutlined />} iconPosition="start" label="Dataset" />
-                <Tab icon={<IosShareOutlined />} iconPosition="start" label="Export" />
+                <Tab
+                  icon={<CloudUploadOutlined />}
+                  iconPosition="start"
+                  label="Upload"
+                />
+                <Tab
+                  icon={<GpsFixedOutlined />}
+                  iconPosition="start"
+                  label="Annotate"
+                />
+                <Tab
+                  icon={<BarChartOutlined />}
+                  iconPosition="start"
+                  label="Dataset"
+                />
+                <Tab
+                  icon={<IosShareOutlined />}
+                  iconPosition="start"
+                  label="Export"
+                />
               </Tabs>
             </Box>
             <Divider sx={{ my: 2 }} />
@@ -256,16 +293,6 @@ const UploadTab: React.FC<{ project: Project | null }> = ({ project }) => (
 const AnnotateTab: React.FC<{ project: Project | null }> = ({ project }) => (
   <Typography sx={{ color: "#000" }}>
     Annotate assets for {project?.projectName}
-  </Typography>
-);
-const ExportTab: React.FC<{ project: Project | null }> = ({ project }) => (
-  <Typography sx={{ color: "#000" }}>
-    Export options for {project?.projectName}
-  </Typography>
-);
-const SettingsTab: React.FC<{ project: Project | null }> = ({ project }) => (
-  <Typography sx={{ color: "#000" }}>
-    Settings for {project?.projectName}
   </Typography>
 );
 
