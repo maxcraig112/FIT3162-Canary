@@ -24,9 +24,14 @@ export const SettingsTab: React.FC = () => (
       <Box sx={{ display: "flex", justifyContent: "center" }}>
         <Typography variant="body3" sx={{ color: "#000", textAlign: "center" }}>
           To enable sessions, tick the checkbox below, and enter a unique
-          session code. This will be used by users to join your join your project.
+          session code. This will be used by users to join your join your
+          project.
         </Typography>
       </Box>
+      <br />
+      <Typography variant="body1" sx={{ color: "#000", textAlign: "center" }}>
+        DO NOT SHARED THIS CODE WITH ANYONE YOU DO NOT TRUST.
+      </Typography>
       <br />
       <Box sx={{ display: "flex", justifyContent: "center", color: "#000" }}>
         <FormControlLabel
@@ -35,8 +40,21 @@ export const SettingsTab: React.FC = () => (
         />
       </Box>
       <br />
-      <Box sx={{ display: "flex", justifyContent: "center", paddingInline: 2, gap: 2 }}>
-        <TextField label="Session Code" variant="outlined" color="primary" focused />
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          paddingInline: 2,
+          gap: 2,
+        }}
+      >
+        <TextField
+          label="Session Code"
+          variant="outlined"
+          color="primary"
+          focused
+          InputProps={{ style: { color: "#000" } }}
+        />
         <Button variant="contained">Save</Button>
       </Box>
     </Box>
@@ -48,9 +66,9 @@ export const SettingsTab: React.FC = () => (
       <br />
       <Box sx={{ display: "flex", justifyContent: "center" }}>
         <Typography variant="body3" sx={{ color: "#000", textAlign: "center" }}>
-          All tags used for the annotation of KeyPoints and BoundingBoxes can be configured here.
-
-          Warning, deleting a tag that is currently in use will remove it from all annotations.
+          All tags used for the annotation of KeyPoints and BoundingBoxes can be
+          configured here. Warning, deleting a tag that is currently in use will
+          remove it from all annotations.
         </Typography>
       </Box>
     </Box>
