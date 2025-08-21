@@ -1,21 +1,15 @@
 import React, { useState, useEffect } from "react";
-import {
-  Box,
-  Button,
-  Typography,
-  Paper,
-  Tabs,
-  Tab,
-  Divider,
-} from "@mui/material";
+import { Box, Button, Typography, Paper, Tabs, Tab, Divider } from "@mui/material";
 import AppThemeProvider from "../assets/AppThemeProvider";
-import {
-  CANARY_BUTTON_COLOR,
-  CANARY_BUTTON_TEXT_COLOR,
-} from "../assets/constants";
+import { CANARY_BUTTON_COLOR, CANARY_BUTTON_TEXT_COLOR } from "../assets/constants";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { fetchProjectByID } from "./projectHandlers";
 import { DatasetTab } from "./Tabs/DatasetTab";
+import CloudUploadOutlined from "@mui/icons-material/CloudUploadOutlined";
+import GpsFixedOutlined from "@mui/icons-material/GpsFixedOutlined";
+import BarChartOutlined from "@mui/icons-material/BarChartOutlined";
+import IosShareOutlined from "@mui/icons-material/IosShareOutlined";
+import SettingsOutlined from "@mui/icons-material/SettingsOutlined";
 
 export interface Project {
   projectName: string /* other fields here */;
@@ -143,25 +137,41 @@ const ProjectPage: React.FC = () => {
               borderRight: (t) => `1px solid ${t.palette.divider}`,
             }}
           >
-            <Tabs
-              orientation="vertical"
-              value={selectedTab}
-              onChange={handleTabChange}
-              sx={{
-                borderRight: 1,
-                borderColor: "divider",
-                color: "#000000",
-                "& .MuiTab-root": { color: "#000000" },
-                "& .Mui-selected": { fontWeight: 600 },
-              }}
-            >
-              <Tab label="Upload" />
-              <Tab label="Annotate" />
-              <Tab label="Dataset" />
-              <Tab label="Export" />
-            </Tabs>
+            <Box sx={{ height: "50vh" }}>
+              <Tabs
+                orientation="vertical"
+                value={selectedTab}
+                onChange={handleTabChange}
+                sx={{
+                  height: "100%",
+                  borderRight: 1,
+                  borderColor: "divider",
+                  color: "#000000",
+                  "& .MuiTabs-flexContainer": {
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                  },
+                  "& .MuiTab-root": {
+                    color: "#000000",
+                    fontSize: "1.3rem",
+                    textTransform: "none",
+                    alignItems: "center",
+                    justifyContent: "flex-start",
+                    minHeight: 56,
+                  },
+                  "& .Mui-selected": { fontWeight: 700 },
+                }}
+              >
+                <Tab icon={<CloudUploadOutlined />} iconPosition="start" label="Upload" />
+                <Tab icon={<GpsFixedOutlined />} iconPosition="start" label="Annotate" />
+                <Tab icon={<BarChartOutlined />} iconPosition="start" label="Dataset" />
+                <Tab icon={<IosShareOutlined />} iconPosition="start" label="Export" />
+              </Tabs>
+            </Box>
             <Divider sx={{ my: 2 }} />
             <Tab
+              icon={<SettingsOutlined />}
+              iconPosition="start"
               label="Settings"
               onClick={handleSettingsClick}
               sx={{
@@ -171,6 +181,9 @@ const ProjectPage: React.FC = () => {
                 borderColor: "divider",
                 mt: "auto",
                 color: "#000000",
+                fontSize: "1.3rem",
+                textTransform: "none",
+                justifyContent: "flex-start",
               }}
             />
           </Box>
