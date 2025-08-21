@@ -77,6 +77,10 @@ const ProjectsPage: React.FC = () => {
     setNewProjectName("");
   }
 
+  const handleProjectClick = (projectID: string) => {
+    projectHandler.handleProjectPage(projectID, navigate);
+  };
+
   return (
     <Box
       sx={{
@@ -172,9 +176,7 @@ const ProjectsPage: React.FC = () => {
                     transition: "all 0.2s ease-in-out",
                   },
                 }}
-                onClick={() =>
-                  projectHandler.handleProjectsPage(project.projectID, navigate)
-                }
+                onClick={() => handleProjectClick(project.projectID)}
               >
                 <IconButton
                   sx={{
