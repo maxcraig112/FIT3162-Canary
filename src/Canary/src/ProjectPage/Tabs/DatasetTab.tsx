@@ -147,6 +147,16 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
         onClose={closeMenu}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
+        slotProps={{
+          paper: {
+            sx: {
+              bgcolor: "#fff",
+              color: "#000",
+              border: "1px solid #e0e0e0",
+              boxShadow: 8,
+            },
+          },
+        }}
       >
         <MenuItem onClick={handleFinish}>Finish</MenuItem>
         <MenuItem onClick={openRename}>Rename</MenuItem>
