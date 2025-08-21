@@ -154,7 +154,7 @@ const ProjectsPage: React.FC = () => {
             <option value="lastUpdated-asc">Last Updated (Oldest)</option>
           </TextField>
         </Box>
-  <Grid container spacing={3} justifyContent="flex-start">
+        <Grid container spacing={3} justifyContent="flex-start">
           {filteredProjects.map((project) => (
             <Grid
               key={project.projectID}
