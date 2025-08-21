@@ -14,6 +14,7 @@ import { fetchProjectByID } from "./projectHandlers";
 import { DatasetTab } from "./Tabs/DatasetTab";
 import { ExportTab } from "./Tabs/ExportTab";
 import { SettingsTab } from "./Tabs/SettingsTab";
+import { UploadTab } from "./Tabs/UploadTab";
 import CloudUploadOutlined from "@mui/icons-material/CloudUploadOutlined";
 import GpsFixedOutlined from "@mui/icons-material/GpsFixedOutlined";
 import BarChartOutlined from "@mui/icons-material/BarChartOutlined";
@@ -22,7 +23,12 @@ import SettingsOutlined from "@mui/icons-material/SettingsOutlined";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 
 export interface Project {
-  projectName: string /* other fields here */;
+  projectID: string;
+  projectName: string;
+  userID: string;
+  numberOfFiles: number;
+  lastUpdated: string;
+  settings?: unknown;
 }
 
 const ProjectPage: React.FC = () => {
@@ -285,11 +291,6 @@ const ProjectPage: React.FC = () => {
 };
 
 // Tab content (untyped now, since ProjectDetails removed)
-const UploadTab: React.FC<{ project: Project | null }> = ({ project }) => (
-  <Typography sx={{ color: "#000" }}>
-    {project ? `Upload files to ${project.projectName}` : "Loading..."}
-  </Typography>
-);
 const AnnotateTab: React.FC<{ project: Project | null }> = ({ project }) => (
   <Typography sx={{ color: "#000" }}>
     Annotate assets for {project?.projectName}
