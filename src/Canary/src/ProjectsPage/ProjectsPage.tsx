@@ -88,7 +88,7 @@ const ProjectsPage: React.FC = () => {
         bgcolor: "#f5f5f5",
       }}
     >
-  <AppBar position="static" color="default" elevation={3}>
+      <AppBar position="static" color="default" elevation={3}>
         <Toolbar
           sx={{
             display: "flex",
@@ -133,7 +133,7 @@ const ProjectsPage: React.FC = () => {
           </Button>
         </Toolbar>
       </AppBar>
-  <Box sx={{ px: "10%", py: 2 }}>
+      <Box sx={{ px: "10%", py: 2 }}>
         <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
           <TextField
             select
@@ -180,7 +180,8 @@ const ProjectsPage: React.FC = () => {
                   cursor: "pointer",
                   height: "100%",
                   boxShadow: 8,
-                  transition: "box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out",
+                  transition:
+                    "box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out",
                   "&:hover": {
                     boxShadow: 16,
                     transform: "translateY(-2px)",
@@ -247,20 +248,26 @@ const ProjectsPage: React.FC = () => {
                     Delete
                   </MenuItem>
                 </Menu>
-                <Typography variant="h5" sx={{ fontWeight: "bold", mb: 2, fontSize: "1.6rem" }}>
+                <Typography
+                  variant="h5"
+                  sx={{ fontWeight: "bold", mb: 2, fontSize: "1.6rem" }}
+                >
                   {project.projectName}
                 </Typography>
                 <Box
                   sx={{ position: "absolute", bottom: 16, left: 0, right: 0 }}
                 >
-                  <Typography variant="subtitle1" sx={{ fontWeight: "medium", fontSize: "1.2rem" }}>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ fontWeight: "medium", fontSize: "1.2rem" }}
+                  >
                     {project.numberOfFiles} files
                   </Typography>
                 </Box>
               </Paper>
-      </Box>
+            </Box>
           ))}
-    </Box>
+        </Box>
       </Box>
 
       {/* Rename Project Modal */}
