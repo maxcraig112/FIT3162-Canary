@@ -12,6 +12,7 @@ import ListItemText from "@mui/material/ListItemText";
 import IconButton from "@mui/material/IconButton";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { useSettingsTab } from "./settingsTabHandler";
+import type { Project } from "../ProjectPage";
 
 type ListPanelProps = {
   title: string;
@@ -93,7 +94,7 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(
   ),
 );
 
-export const SettingsTab: React.FC = () => {
+export function SettingsTab({ project }: { project: Project | null }) {
   const {
     keypointLabels,
     bboxLabels,
