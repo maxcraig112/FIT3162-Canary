@@ -58,18 +58,25 @@ export async function deleteProject(projectID: string): Promise<string> {
 
 import type { Project } from "./ProjectsPage";
 import { CallAPI } from "../utils/apis";
-import { getUserIDFromCookie, getAuthTokenFromCookie } from "../utils/cookieUtils";
+import {
+  getUserIDFromCookie,
+  getAuthTokenFromCookie,
+} from "../utils/cookieUtils";
 
 // Fetch all projects
 export async function fetchProjects(): Promise<Project[]> {
   const token = getAuthTokenFromCookie();
   const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
   const url = `${baseUrl}/projects/*`;
-  return CallAPI<Project[]>(url, { headers: { Authorization: `Bearer ${token}` } });
+  return CallAPI<Project[]>(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 }
 
 export function filterProjects(projects: Project[], search: string): Project[] {
-  return projects.filter((p) => p.projectName.toLowerCase().includes(search.toLowerCase()));
+  return projects.filter((p) =>
+    p.projectName.toLowerCase().includes(search.toLowerCase()),
+  );
 }
 
 export function handleSearch(projects: Project[], search: string): Project[] {
@@ -117,18 +124,32 @@ export async function handleNewProject(projectName: string): Promise<string> {
   const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
   const url = `${baseUrl}/projects`;
   const requestBody = { userID: getUserIDFromCookie(), projectName };
-  const respText = await CallAPI<string>(url, { method: "POST", json: requestBody, parseJson: false });
+  const respText = await CallAPI<string>(url, {
+    method: "POST",
+    json: requestBody,
+    parseJson: false,
+  });
   return respText || "Project created successfully";
 }
 
 // Update project number of files (quantity)
-export async function updateProjectQuantity(projectID: string, quantity: number): Promise<string> {
+export async function updateProjectQuantity(
+  projectID: string,
+  quantity: number,
+): Promise<string> {
   const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
   const url = `${baseUrl}/projects/${projectID}`;
-  const respText = await CallAPI<string>(url, { method: "PATCH", json: { quantity }, parseJson: false });
+  const respText = await CallAPI<string>(url, {
+    method: "PATCH",
+    json: { quantity },
+    parseJson: false,
+  });
   return respText || "Project updated";
 }
 
-export function handleProjectPage(projectID: string, navigate: (path: string) => void) {
+export function handleProjectPage(
+  projectID: string,
+  navigate: (path: string) => void,
+) {
   navigate(`/projects/${projectID}`);
 }

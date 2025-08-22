@@ -62,7 +62,7 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
           {error}
         </Typography>
       )}
-  <Box sx={{ px: "5%" }}>
+      <Box sx={{ px: "5%" }}>
         <Box
           sx={{
             display: "grid",
@@ -76,65 +76,65 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
           )}
           {batches.map((b) => (
             <Box key={b.batchID} sx={{ minHeight: "10vh" }}>
-        <Paper
-              sx={{
-          p: 4,
-                textAlign: "center",
-                position: "relative",
-          minHeight: 220,
-                cursor: "pointer",
-                height: "100%",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 1,
-                bgcolor: "#fff",
-                color: "black",
-                boxShadow: 8,
-                transition:
-                  "box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out",
-                "&:hover": {
-                  boxShadow: 16,
-                  transform: "translateY(-2px)",
-                },
-              }}
-              onClick={() =>
-                navigate(
-                  `/annotate?batchID=${encodeURIComponent(b.batchID)}&projectID=${encodeURIComponent(projectID ?? b.projectID)}`,
-                )
-              }
-            >
-              {/* top-right menu trigger */}
-              <IconButton
+              <Paper
                 sx={{
-                  position: "absolute",
-                  top: 8,
-                  right: 8,
-                  zIndex: 2,
-                  color: (theme) => theme.palette.grey[700],
+                  p: 4,
+                  textAlign: "center",
+                  position: "relative",
+                  minHeight: 220,
+                  cursor: "pointer",
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 1,
+                  bgcolor: "#fff",
+                  color: "black",
+                  boxShadow: 8,
+                  transition:
+                    "box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out",
+                  "&:hover": {
+                    boxShadow: 16,
+                    transform: "translateY(-2px)",
+                  },
                 }}
-                size="large"
-                onClick={(e) => openMenu(e, b.batchID)}
+                onClick={() =>
+                  navigate(
+                    `/annotate?batchID=${encodeURIComponent(b.batchID)}&projectID=${encodeURIComponent(projectID ?? b.projectID)}`,
+                  )
+                }
               >
-                <MoreVertIcon sx={{ fontSize: 32 }} />
-              </IconButton>
+                {/* top-right menu trigger */}
+                <IconButton
+                  sx={{
+                    position: "absolute",
+                    top: 8,
+                    right: 8,
+                    zIndex: 2,
+                    color: (theme) => theme.palette.grey[700],
+                  }}
+                  size="large"
+                  onClick={(e) => openMenu(e, b.batchID)}
+                >
+                  <MoreVertIcon sx={{ fontSize: 32 }} />
+                </IconButton>
 
-              {/* header counts */}
-              <Typography
-                variant="subtitle2"
-                sx={{ position: "absolute", top: 12, left: 16 }}
-              >
-                {b.numberOfAnnotatedFiles}/{b.numberOfTotalFiles}
-              </Typography>
+                {/* header counts */}
+                <Typography
+                  variant="subtitle2"
+                  sx={{ position: "absolute", top: 12, left: 16 }}
+                >
+                  {b.numberOfAnnotatedFiles}/{b.numberOfTotalFiles}
+                </Typography>
 
-              {/* centered bold name */}
-              <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-                {b.batchName}
-              </Typography>
+                {/* centered bold name */}
+                <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+                  {b.batchName}
+                </Typography>
 
-              {/* bottom date removed */}
-            </Paper>
+                {/* bottom date removed */}
+              </Paper>
             </Box>
           ))}
         </Box>

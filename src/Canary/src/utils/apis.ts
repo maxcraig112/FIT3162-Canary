@@ -9,7 +9,10 @@ export interface CallAPIOptions extends RequestInit {
   auth?: boolean; // default true; include Bearer token if available
 }
 
-export async function CallAPI<T = unknown>(url: string, options: CallAPIOptions = {}): Promise<T> {
+export async function CallAPI<T = unknown>(
+  url: string,
+  options: CallAPIOptions = {},
+): Promise<T> {
   const {
     method = "GET",
     json,

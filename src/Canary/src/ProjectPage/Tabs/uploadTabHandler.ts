@@ -16,7 +16,9 @@ export function useUploadTab(project: Project | null) {
     ): Promise<{ batchID: string; batchName: string }> => {
       const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
       const url = `${baseUrl}/batch`;
-      const finalName = (nameHint && nameHint.trim()) || `Upload ${new Date().toLocaleString()}`;
+      const finalName =
+        (nameHint && nameHint.trim()) ||
+        `Upload ${new Date().toLocaleString()}`;
 
       const text = await CallAPI<string>(url, {
         method: "POST",
@@ -34,7 +36,9 @@ export function useUploadTab(project: Project | null) {
 
   const beginUpload = useCallback(
     async (files: FileList | File[]) => {
-      const list = Array.from(files).filter((f) => /^image\//i.test(f.type || ""));
+      const list = Array.from(files).filter((f) =>
+        /^image\//i.test(f.type || ""),
+      );
       if (!list.length) {
         setError("No image files selected.");
         return;
@@ -49,7 +53,10 @@ export function useUploadTab(project: Project | null) {
       setMessage(null);
 
       try {
-        const { batchID, batchName: finalBatchName } = await createBatch(project.projectID, batchName);
+        const { batchID, batchName: finalBatchName } = await createBatch(
+          project.projectID,
+          batchName,
+        );
 
         const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
         const url = `${baseUrl}/batch/${encodeURIComponent(batchID)}/images`;
@@ -57,13 +64,19 @@ export function useUploadTab(project: Project | null) {
         const formData = new FormData();
         list.forEach((f) => formData.append("images", f, f.name));
 
-        await CallAPI<string>(url, { method: "POST", body: formData, parseJson: false });
+        await CallAPI<string>(url, {
+          method: "POST",
+          body: formData,
+          parseJson: false,
+        });
 
         setMessage(
           `Uploaded ${list.length} image${list.length === 1 ? "" : "s"} to batch "${finalBatchName}" (${batchID}).`,
         );
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to upload images.");
+        setError(
+          err instanceof Error ? err.message : "Failed to upload images.",
+        );
       } finally {
         setUploading(false);
       }
@@ -141,7 +154,7 @@ export function useUploadTab(project: Project | null) {
     handleDragOver,
     handleDragLeave,
     handleDrop,
-  clearMessage: () => setMessage(null),
-  clearError: () => setError(null),
+    clearMessage: () => setMessage(null),
+    clearError: () => setError(null),
   } as const;
 }

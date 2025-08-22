@@ -39,7 +39,7 @@ const ProjectPage: React.FC = () => {
 
   const passedProject = (location.state as { project?: Project })?.project;
   const [projectData, setProjectData] = useState<Project | null>(
-    passedProject || null
+    passedProject || null,
   );
 
   const [loading, setLoading] = useState<boolean>(!passedProject);
@@ -62,7 +62,7 @@ const ProjectPage: React.FC = () => {
       } catch (e) {
         if (!cancelled) {
           setError(
-            e instanceof Error ? e.message : "Failed to load project data."
+            e instanceof Error ? e.message : "Failed to load project data.",
           );
         }
       } finally {

@@ -90,7 +90,7 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(
         )}
       </List>
     </Paper>
-  )
+  ),
 );
 
 export const SettingsTab: React.FC = () => {
@@ -167,7 +167,14 @@ export const SettingsTab: React.FC = () => {
           }}
         >
           {/* Enable Sessions button on its own row, centered */}
-          <Box sx={{ width: "100%", display: "flex", justifyContent: "center", mb: 2 }}>
+          <Box
+            sx={{
+              width: "100%",
+              display: "flex",
+              justifyContent: "center",
+              mb: 2,
+            }}
+          >
             <FormControlLabel
               control={<Checkbox defaultChecked />}
               label="Enable Sessions"
@@ -206,10 +213,10 @@ export const SettingsTab: React.FC = () => {
             Save
           </Button>
         </Box>
-          </Box>
+      </Box>
 
-          {/* Column 2 */}
-          <Box
+      {/* Column 2 */}
+      <Box
         sx={{
           flex: 1,
           display: "grid",
@@ -217,7 +224,7 @@ export const SettingsTab: React.FC = () => {
           gap: 2,
           minHeight: "70vh",
         }}
-          >
+      >
         {/* Top half: description */}
         <Box>
           <Typography variant="h4" sx={{ color: "#000", textAlign: "center" }}>
@@ -225,7 +232,10 @@ export const SettingsTab: React.FC = () => {
           </Typography>
           <br />
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <Typography variant="body3" sx={{ color: "#000", textAlign: "center" }}>
+            <Typography
+              variant="body3"
+              sx={{ color: "#000", textAlign: "center" }}
+            >
               KeyPoints are used to identify specific points of interest within
               an image. Labels configured below are shared across all images
               within this project.
@@ -265,7 +275,10 @@ export const SettingsTab: React.FC = () => {
           </Typography>
           <br />
           <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <Typography variant="body3" sx={{ color: "#000", textAlign: "center" }}>
+            <Typography
+              variant="body3"
+              sx={{ color: "#000", textAlign: "center" }}
+            >
               BoundingBoxes are used to identify specific areas of interest
               within an image, defined by a rectangle area. In the annotate
               page, they are defined as two points (the top right and bottom

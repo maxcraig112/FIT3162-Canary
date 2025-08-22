@@ -30,8 +30,8 @@ export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
     handleDragOver,
     handleDragLeave,
     handleDrop,
-  clearMessage,
-  clearError,
+    clearMessage,
+    clearError,
   } = useUploadTab(project);
 
   return (
@@ -73,7 +73,9 @@ export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
             maxWidth: 480,
             "& .MuiOutlinedInput-notchedOutline": { borderColor: "#999" },
             "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#666" },
-            "& .Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "#666" },
+            "& .Mui-focused .MuiOutlinedInput-notchedOutline": {
+              borderColor: "#666",
+            },
           }}
           placeholder={`Upload ${new Date().toLocaleDateString()}`}
         />
@@ -118,10 +120,18 @@ export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
               }),
             }}
           >
-            <Typography variant="h5" sx={{ mb: 2, fontWeight: 600, color: "#111" }}>
-              {project ? `Upload images to "${project.projectName}"` : "Loading project..."}
+            <Typography
+              variant="h5"
+              sx={{ mb: 2, fontWeight: 600, color: "#111" }}
+            >
+              {project
+                ? `Upload images to "${project.projectName}"`
+                : "Loading project..."}
             </Typography>
-            <Typography variant="body1" sx={{ maxWidth: 480, color: "#444", mb: 2 }}>
+            <Typography
+              variant="body1"
+              sx={{ maxWidth: 480, color: "#444", mb: 2 }}
+            >
               Drag & drop images here or click to select from your computer.
             </Typography>
 
@@ -155,7 +165,10 @@ export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
             {uploading && (
               <Box sx={{ mt: 4, width: "60%" }}>
                 <LinearProgress />
-                <Typography variant="caption" sx={{ display: "block", mt: 1, color: "#555" }}>
+                <Typography
+                  variant="caption"
+                  sx={{ display: "block", mt: 1, color: "#555" }}
+                >
                   Uploading...
                 </Typography>
               </Box>
@@ -173,7 +186,11 @@ export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
         </Fade>
 
         {message && (
-          <Alert severity="success" onClose={clearMessage} sx={{ borderRadius: 2 }}>
+          <Alert
+            severity="success"
+            onClose={clearMessage}
+            sx={{ borderRadius: 2 }}
+          >
             {message}
           </Alert>
         )}

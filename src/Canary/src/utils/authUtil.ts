@@ -29,7 +29,9 @@ async function verifyJWT(_token: string, userID: string): Promise<boolean> {
     await CallAPI(url, { method: "POST", json: requestBody });
     return true;
   } catch (e) {
-    console.error(`Failed to verify JWT: ${e instanceof Error ? e.message : String(e)}`);
+    console.error(
+      `Failed to verify JWT: ${e instanceof Error ? e.message : String(e)}`,
+    );
     return false;
   }
 }
