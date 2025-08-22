@@ -15,23 +15,23 @@ import (
 
 type ProjectHandler struct {
 	*handler.Handler
-	ProjectStore *firestore.ProjectStore
-	BatchStore   *firestore.BatchStore
-	ImageStore   *firestore.ImageStore
-	ImageBucket  *bk.ImageBucket
+	ProjectStore     *firestore.ProjectStore
+	BatchStore       *firestore.BatchStore
+	ImageStore       *firestore.ImageStore
+	ImageBucket      *bk.ImageBucket
 	KeypointStore    *firestore.KeypointStore
 	BoundingBoxStore *firestore.BoundingBoxStore
 }
 
 func newProjectHandler(h *handler.Handler) *ProjectHandler {
 	return &ProjectHandler{
-		Handler:      h,
-		ProjectStore: firestore.NewProjectStore(h.Clients.Firestore),
-		BatchStore:   firestore.NewBatchStore(h.Clients.Firestore),
-		ImageStore:   firestore.NewImageStore(h.Clients.Firestore),
-	ImageBucket:  bk.NewImageBucket(h.Clients.Bucket),
-	KeypointStore:    firestore.NewKeypointStore(h.Clients.Firestore),
-	BoundingBoxStore: firestore.NewBoundingBoxStore(h.Clients.Firestore),
+		Handler:          h,
+		ProjectStore:     firestore.NewProjectStore(h.Clients.Firestore),
+		BatchStore:       firestore.NewBatchStore(h.Clients.Firestore),
+		ImageStore:       firestore.NewImageStore(h.Clients.Firestore),
+		ImageBucket:      bk.NewImageBucket(h.Clients.Bucket),
+		KeypointStore:    firestore.NewKeypointStore(h.Clients.Firestore),
+		BoundingBoxStore: firestore.NewBoundingBoxStore(h.Clients.Firestore),
 	}
 }
 
@@ -248,9 +248,9 @@ func (h *ProjectHandler) UpdateNumberOfFilesHandler(w http.ResponseWriter, r *ht
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("projectID", projectID).Int64("newNumberOfFiles", newVal).Msg("Updated number of files successfully")
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"projectID":        projectID,
-		"numberOfFiles":    newVal,
-		"message":          "Updated numberOfFiles",
+		"projectID":     projectID,
+		"numberOfFiles": newVal,
+		"message":       "Updated numberOfFiles",
 	})
 }
 

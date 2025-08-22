@@ -141,9 +141,9 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("batchID", batchID).Int("numImages", len(files)).Msg("Images uploaded and metadata created successfully")
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"batchID":   batchID,
-		"uploaded":  len(files),
-		"message":   "Images uploaded successfully",
+		"batchID":  batchID,
+		"uploaded": len(files),
+		"message":  "Images uploaded successfully",
 	})
 }
 

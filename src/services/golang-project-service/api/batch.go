@@ -95,9 +95,9 @@ func (h *BatchHandler) CreateBatchHandler(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusCreated)
 	log.Info().Str("batchID", batchID).Msg("Batch created successfully")
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"batchID":  batchID,
-		"message":  "Batch created",
-		"created":  true,
+		"batchID": batchID,
+		"message": "Batch created",
+		"created": true,
 	})
 }
 
@@ -231,9 +231,9 @@ func (h *BatchHandler) UpdateNumberOfTotalFilesHandler(w http.ResponseWriter, r 
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("batchID", batchID).Int64("newNumberOfTotalFiles", newVal).Msg("Updated number of total files successfully")
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"batchID":               batchID,
-		"numberOfTotalFiles":    newVal,
-		"message":               "Updated numberOfTotalFiles",
+		"batchID":            batchID,
+		"numberOfTotalFiles": newVal,
+		"message":            "Updated numberOfTotalFiles",
 	})
 }
 
@@ -259,8 +259,8 @@ func (h *BatchHandler) UpdateNumberOfAnnotatedFilesHandler(w http.ResponseWriter
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("batchID", batchID).Int64("newNumberOfAnnotatedFiles", newVal).Msg("Updated number of annotated files successfully")
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"batchID":                   batchID,
-		"numberOfAnnotatedFiles":    newVal,
-		"message":                   "Updated numberOfAnnotatedFiles",
+		"batchID":                batchID,
+		"numberOfAnnotatedFiles": newVal,
+		"message":                "Updated numberOfAnnotatedFiles",
 	})
 }
