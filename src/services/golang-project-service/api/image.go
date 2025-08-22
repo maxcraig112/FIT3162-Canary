@@ -17,15 +17,19 @@ import (
 
 type ImageHandler struct {
 	*handler.Handler
-	ImageStore  *firestore.ImageStore
-	ImageBucket *bk.ImageBucket
+	ImageStore       *firestore.ImageStore
+	ImageBucket      *bk.ImageBucket
+	KeypointStore    *firestore.KeypointStore
+	BoundingBoxStore *firestore.BoundingBoxStore
 }
 
 func newImageHandler(h *handler.Handler) *ImageHandler {
 	return &ImageHandler{
-		Handler:     h,
-		ImageStore:  firestore.NewImageStore(h.Clients.Firestore),
-		ImageBucket: bk.NewImageBucket(h.Clients.Bucket),
+		Handler:          h,
+		ImageStore:       firestore.NewImageStore(h.Clients.Firestore),
+		ImageBucket:      bk.NewImageBucket(h.Clients.Bucket),
+		KeypointStore:    firestore.NewKeypointStore(h.Clients.Firestore),
+		BoundingBoxStore: firestore.NewBoundingBoxStore(h.Clients.Firestore),
 	}
 }
 
@@ -37,6 +41,8 @@ func RegisterImageRoutes(r *mux.Router, h *handler.Handler) {
 		{"GET", "/batch/{batchID}/images", ih.LoadImagesHandler},
 		// Upload images
 		{"POST", "/batch/{batchID}/images", ih.UploadImagesHandler},
+		// Delete all images from a batch
+		{"DELETE", "/batch/{batchID}/images", ih.DeleteImagesHandler},
 	}
 
 	for _, rt := range routes {
@@ -134,4 +140,57 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("batchID", batchID).Int("numImages", len(files)).Msg("Images uploaded and metadata created successfully")
 	w.Write([]byte("Images uploaded successfully"))
+}
+
+func (h *ImageHandler) DeleteImagesHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	vars := mux.Vars(r)
+	batchID := vars["batchID"]
+	if batchID == "" {
+		http.Error(w, "Missing batchID in URL", http.StatusBadRequest)
+		log.Error().Msg("Missing batchID in URL for DeleteImagesHandler")
+		return
+	}
+
+	// List images first to know their IDs for annotation deletes
+	images, err := h.ImageStore.GetImagesByBatchID(ctx, batchID)
+	if err != nil {
+		http.Error(w, "Failed to list images for deletion", http.StatusInternalServerError)
+		log.Error().Err(err).Str("batchID", batchID).Msg("Failed to list images before delete")
+		return
+	}
+
+	// Delete images from the bucket
+	if err := h.ImageBucket.DeleteImagesByBatchID(ctx, batchID); err != nil {
+		http.Error(w, "Failed to delete images from bucket", http.StatusInternalServerError)
+		log.Error().Err(err).Str("batchID", batchID).Msg("Failed to delete images from bucket")
+		return
+	}
+
+	// Delete image metadata from Firestore
+	if err := h.ImageStore.DeleteImagesByBatchID(ctx, batchID); err != nil {
+		http.Error(w, "Failed to delete image metadata", http.StatusInternalServerError)
+		log.Error().Err(err).Str("batchID", batchID).Msg("Failed to delete image metadata from Firestore")
+		return
+	}
+
+	// Cascade delete annotations for these images
+	imageIDs := make([]string, 0, len(images))
+	for _, img := range images {
+		imageIDs = append(imageIDs, img.ImageID)
+	}
+	if err := h.KeypointStore.DeleteKeypointsByImageIDs(ctx, imageIDs); err != nil {
+		http.Error(w, "Failed to delete keypoints for images", http.StatusInternalServerError)
+		log.Error().Err(err).Str("batchID", batchID).Msg("Failed to delete keypoints for images")
+		return
+	}
+	if err := h.BoundingBoxStore.DeleteBoundingBoxesByImageIDs(ctx, imageIDs); err != nil {
+		http.Error(w, "Failed to delete bounding boxes for images", http.StatusInternalServerError)
+		log.Error().Err(err).Str("batchID", batchID).Msg("Failed to delete bounding boxes for images")
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	log.Info().Str("batchID", batchID).Msg("All images and annotations deleted successfully")
+	w.Write([]byte("All images and annotations deleted successfully for batch ID " + batchID))
 }

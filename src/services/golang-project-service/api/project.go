@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"pkg/handler"
 	"pkg/jwt"
+	bk "project-service/bucket"
 	"project-service/firestore"
 
 	"github.com/gorilla/mux"
@@ -15,12 +16,18 @@ import (
 type ProjectHandler struct {
 	*handler.Handler
 	ProjectStore *firestore.ProjectStore
+	BatchStore   *firestore.BatchStore
+	ImageStore   *firestore.ImageStore
+	ImageBucket  *bk.ImageBucket
 }
 
 func newProjectHandler(h *handler.Handler) *ProjectHandler {
 	return &ProjectHandler{
 		Handler:      h,
 		ProjectStore: firestore.NewProjectStore(h.Clients.Firestore),
+		BatchStore:   firestore.NewBatchStore(h.Clients.Firestore),
+		ImageStore:   firestore.NewImageStore(h.Clients.Firestore),
+		ImageBucket:  bk.NewImageBucket(h.Clients.Bucket),
 	}
 }
 
@@ -131,8 +138,39 @@ func (h *ProjectHandler) RenameProjectHandler(w http.ResponseWriter, r *http.Req
 func (h *ProjectHandler) DeleteProjectHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	projectID := vars["projectID"]
+	// 1) Get batches under this project
+	batches, err := h.BatchStore.GetBatchesByProjectID(h.Ctx, projectID)
+	if err != nil {
+		http.Error(w, "Error deleting project", http.StatusInternalServerError)
+		log.Error().Err(err).Str("projectID", projectID).Msg("Error listing batches during project delete")
+		return
+	}
 
-	err := h.ProjectStore.DeleteProject(h.Ctx, projectID)
+	// 2) For each batch, delete images (bucket + firestore), and any annotations
+	for _, b := range batches {
+		// delete images in bucket
+		if err := h.ImageBucket.DeleteImagesByBatchID(h.Ctx, b.BatchID); err != nil {
+			http.Error(w, "Error deleting project images", http.StatusInternalServerError)
+			log.Error().Err(err).Str("projectID", projectID).Str("batchID", b.BatchID).Msg("Error deleting images in bucket for batch")
+			return
+		}
+		// delete image metadata in firestore
+		if err := h.ImageStore.DeleteImagesByBatchID(h.Ctx, b.BatchID); err != nil {
+			http.Error(w, "Error deleting project images metadata", http.StatusInternalServerError)
+			log.Error().Err(err).Str("projectID", projectID).Str("batchID", b.BatchID).Msg("Error deleting images metadata for batch")
+			return
+		}
+	}
+
+	// 3) Delete all batches for this project
+	if err := h.BatchStore.DeleteAllBatches(h.Ctx, projectID); err != nil {
+		http.Error(w, "Error deleting project batches", http.StatusInternalServerError)
+		log.Error().Err(err).Str("projectID", projectID).Msg("Error deleting batches for project")
+		return
+	}
+
+	// 4) Delete the project itself
+	err = h.ProjectStore.DeleteProject(h.Ctx, projectID)
 	if err != nil {
 		http.Error(w, "Error deleting project", http.StatusInternalServerError)
 		log.Error().Err(err).Str("projectID", projectID).Msg("Error deleting project")

@@ -135,3 +135,23 @@ func (s *KeypointStore) UpdateKeypointPosition(ctx context.Context, req UpdateKe
 func (s *KeypointStore) DeleteKeypoint(ctx context.Context, keypointID string) error {
 	return s.genericStore.DeleteDoc(ctx, keypointID)
 }
+
+// Delete all keypoints associated with a given imageID
+func (s *KeypointStore) DeleteKeypointsByImageID(ctx context.Context, imageID string) error {
+	qp := []fs.QueryParameter{{Path: "imageID", Op: "==", Value: imageID}}
+	err := s.genericStore.DeleteDocsByQuery(ctx, qp)
+	if err != fs.ErrNotFound {
+		return err
+	}
+	return nil
+}
+
+// Delete all keypoints associated with any of the provided imageIDs
+func (s *KeypointStore) DeleteKeypointsByImageIDs(ctx context.Context, imageIDs []string) error {
+	for _, id := range imageIDs {
+		if err := s.DeleteKeypointsByImageID(ctx, id); err != nil {
+			return err
+		}
+	}
+	return nil
+}

@@ -14,6 +14,7 @@ const (
 )
 
 type Image struct {
+	ImageID   string `firestore:"imageID,omitempty" json:"imageID"`
 	ImageURL  string `firestore:"imageURL" json:"imageURL"`
 	ImageName string `firestore:"imageName" json:"imageName"`
 	BatchID   string `firestore:"batchID" json:"batchID"`
@@ -43,6 +44,7 @@ func (s *ImageStore) GetImagesByBatchID(ctx context.Context, batchID string) ([]
 			return nil, err
 		}
 		i.BatchID = batchID
+		i.ImageID = doc.Ref.ID
 		images = append(images, i)
 	}
 	return images, nil
@@ -61,4 +63,11 @@ func (s *ImageStore) CreateImageMetadata(ctx context.Context, batchID string, im
 
 	_, err := s.genericStore.CreateDocsBatch(ctx, batch)
 	return err
+}
+
+func (s *ImageStore) DeleteImagesByBatchID(ctx context.Context, batchID string) error {
+	queryParams := []fs.QueryParameter{
+		{Path: "batchID", Op: "==", Value: batchID},
+	}
+	return s.genericStore.DeleteDocsByQuery(ctx, queryParams)
 }

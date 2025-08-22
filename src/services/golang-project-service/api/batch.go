@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"pkg/handler"
+	bk "project-service/bucket"
 	"project-service/firestore"
 
 	"github.com/gorilla/mux"
@@ -13,13 +14,21 @@ import (
 
 type BatchHandler struct {
 	*handler.Handler
-	BatchStore *firestore.BatchStore
+	BatchStore       *firestore.BatchStore
+	ImageStore       *firestore.ImageStore
+	ImageBucket      *bk.ImageBucket
+	KeypointStore    *firestore.KeypointStore
+	BoundingBoxStore *firestore.BoundingBoxStore
 }
 
 func newBatchHandler(h *handler.Handler) *BatchHandler {
 	return &BatchHandler{
-		Handler:    h,
-		BatchStore: firestore.NewBatchStore(h.Clients.Firestore),
+		Handler:          h,
+		BatchStore:       firestore.NewBatchStore(h.Clients.Firestore),
+		ImageStore:       firestore.NewImageStore(h.Clients.Firestore),
+		ImageBucket:      bk.NewImageBucket(h.Clients.Bucket),
+		KeypointStore:    firestore.NewKeypointStore(h.Clients.Firestore),
+		BoundingBoxStore: firestore.NewBoundingBoxStore(h.Clients.Firestore),
 	}
 }
 
@@ -35,6 +44,8 @@ func RegisterBatchRoutes(r *mux.Router, h *handler.Handler) {
 		{"DELETE", "/batch/{batchID}", bh.DeleteBatchHandler},
 		// Get all batches associated with a project
 		{"GET", "/projects/{projectID}/batches", bh.LoadBatchInfoHandler},
+		// Delete all batches associated with a project
+		{"DELETE", "/projects/{projectID}/batches", bh.DeleteAllBatchesHandler},
 		// Increment numberOfTotalFiles
 		{"PATCH", "/batch/{batchID}/numberofTotalFiles", bh.UpdateNumberOfTotalFilesHandler},
 		// Increment numberOfAnnotatedFiles
@@ -113,7 +124,45 @@ func (h *BatchHandler) DeleteBatchHandler(w http.ResponseWriter, r *http.Request
 	vars := mux.Vars(r)
 	batchID := vars["batchID"]
 
-	err := h.BatchStore.DeleteBatch(h.Ctx, batchID)
+	// 1) List images in this batch
+	images, err := h.ImageStore.GetImagesByBatchID(h.Ctx, batchID)
+	if err != nil {
+		http.Error(w, "Error deleting batch", http.StatusInternalServerError)
+		log.Error().Err(err).Str("batchID", batchID).Msg("Error listing images for batch delete")
+		return
+	}
+
+	// 2) Delete all image objects in bucket
+	if err := h.ImageBucket.DeleteImagesByBatchID(h.Ctx, batchID); err != nil {
+		http.Error(w, "Error deleting images in bucket", http.StatusInternalServerError)
+		log.Error().Err(err).Str("batchID", batchID).Msg("Error deleting images in bucket for batch")
+		return
+	}
+	// 3) Delete image metadata in firestore
+	if err := h.ImageStore.DeleteImagesByBatchID(h.Ctx, batchID); err != nil {
+		http.Error(w, "Error deleting images metadata", http.StatusInternalServerError)
+		log.Error().Err(err).Str("batchID", batchID).Msg("Error deleting images metadata for batch")
+		return
+	}
+
+	// 4) Cascade delete annotations: keypoints and bounding boxes associated with those images
+	imageIDs := make([]string, 0, len(images))
+	for _, img := range images {
+		imageIDs = append(imageIDs, img.ImageID)
+	}
+	if err := h.KeypointStore.DeleteKeypointsByImageIDs(h.Ctx, imageIDs); err != nil {
+		http.Error(w, "Error deleting keypoints for batch", http.StatusInternalServerError)
+		log.Error().Err(err).Str("batchID", batchID).Msg("Error deleting keypoints for images in batch")
+		return
+	}
+	if err := h.BoundingBoxStore.DeleteBoundingBoxesByImageIDs(h.Ctx, imageIDs); err != nil {
+		http.Error(w, "Error deleting bounding boxes for batch", http.StatusInternalServerError)
+		log.Error().Err(err).Str("batchID", batchID).Msg("Error deleting bounding boxes for images in batch")
+		return
+	}
+
+	// 5) Finally delete the batch document
+	err = h.BatchStore.DeleteBatch(h.Ctx, batchID)
 	if err != nil {
 		http.Error(w, "Error deleting batch", http.StatusInternalServerError)
 		log.Error().Err(err).Str("batchID", batchID).Msg("Error deleting batch")
@@ -123,6 +172,22 @@ func (h *BatchHandler) DeleteBatchHandler(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("batchID", batchID).Msg("Batch deleted successfully")
 	fmt.Fprintf(w, "Batch %s deleted", batchID)
+}
+
+func (h *BatchHandler) DeleteAllBatchesHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	projectID := vars["projectID"]
+
+	err := h.BatchStore.DeleteAllBatches(h.Ctx, projectID)
+	if err != nil {
+		http.Error(w, "Error deleting batches", http.StatusInternalServerError)
+		log.Error().Err(err).Str("projectID", projectID).Msg("Error deleting batches")
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	log.Info().Str("projectID", projectID).Msg("All batches deleted successfully")
+	fmt.Fprintf(w, "All batches deleted for project %s", projectID)
 }
 
 func (h *BatchHandler) UpdateNumberOfTotalFilesHandler(w http.ResponseWriter, r *http.Request) {
