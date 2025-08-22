@@ -13,7 +13,6 @@ import {
   Menu,
   MenuItem,
 } from "@mui/material";
-import Grid from "@mui/material/Grid";
 import SearchIcon from "@mui/icons-material/Search";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import * as projectHandler from "./projectHandler";
@@ -43,7 +42,7 @@ const ProjectsPage: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [modalOpen, setModalOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
-  // Rename modal state
+  // Renacame modal state
   const [renameModalOpen, setRenameModalOpen] = useState(false);
   const [renameProjectId, setRenameProjectId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -77,18 +76,28 @@ const ProjectsPage: React.FC = () => {
     setNewProjectName("");
   }
 
+  const handleProjectClick = (projectID: string) => {
+    projectHandler.handleProjectPage(projectID, navigate);
+  };
+
   return (
     <Box
       sx={{
-        mx: "auto",
-        maxWidth: "80vw",
-        bgcolor: "#f5f5f5",
+        width: "100%",
         minHeight: "100vh",
-        minWidth: "fit-content",
+        bgcolor: "#f5f5f5",
       }}
     >
-      <AppBar position="static" color="default" elevation={1}>
-        <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
+      <AppBar position="static" color="default" elevation={3}>
+        <Toolbar
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            minHeight: 78,
+            px: 3,
+          }}
+        >
           <Typography variant="h4" sx={{ fontWeight: "bold" }}>
             Projects
           </Typography>
@@ -124,7 +133,7 @@ const ProjectsPage: React.FC = () => {
           </Button>
         </Toolbar>
       </AppBar>
-      <Box sx={{ px: 4, py: 2 }}>
+      <Box sx={{ px: "10%", py: 2 }}>
         <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
           <TextField
             select
@@ -152,29 +161,33 @@ const ProjectsPage: React.FC = () => {
             <option value="lastUpdated-asc">Last Updated (Oldest)</option>
           </TextField>
         </Box>
-        <Grid container spacing={3} justifyContent="center">
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+            columnGap: "5%",
+            rowGap: "35%",
+          }}
+        >
           {filteredProjects.map((project) => (
-            <Grid
-              key={project.projectID}
-              sx={{ minHeight: "10vh", minWidth: "15vw" }}
-            >
+            <Box key={project.projectID} sx={{ minHeight: "10vh" }}>
               <Paper
-                elevation={3}
                 sx={{
                   p: 3,
                   textAlign: "center",
                   position: "relative",
                   minHeight: 180,
                   cursor: "pointer",
+                  height: "100%",
+                  boxShadow: 8,
+                  transition:
+                    "box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out",
                   "&:hover": {
-                    elevation: 6,
+                    boxShadow: 16,
                     transform: "translateY(-2px)",
-                    transition: "all 0.2s ease-in-out",
                   },
                 }}
-                onClick={() =>
-                  projectHandler.handleProjectsPage(project.projectID, navigate)
-                }
+                onClick={() => handleProjectClick(project.projectID)}
               >
                 <IconButton
                   sx={{
@@ -209,6 +222,16 @@ const ProjectsPage: React.FC = () => {
                     vertical: "top",
                     horizontal: "right",
                   }}
+                  slotProps={{
+                    paper: {
+                      sx: {
+                        bgcolor: "#fff",
+                        color: "#000",
+                        border: "1px solid #e0e0e0",
+                        boxShadow: 8,
+                      },
+                    },
+                  }}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <MenuItem
@@ -235,20 +258,26 @@ const ProjectsPage: React.FC = () => {
                     Delete
                   </MenuItem>
                 </Menu>
-                <Typography variant="h5" sx={{ fontWeight: "bold", mb: 2 }}>
+                <Typography
+                  variant="h5"
+                  sx={{ fontWeight: "bold", mb: 2, fontSize: "1.6rem" }}
+                >
                   {project.projectName}
                 </Typography>
                 <Box
                   sx={{ position: "absolute", bottom: 16, left: 0, right: 0 }}
                 >
-                  <Typography variant="subtitle1" sx={{ fontWeight: "medium" }}>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ fontWeight: "medium", fontSize: "1.2rem" }}
+                  >
                     {project.numberOfFiles} files
                   </Typography>
                 </Box>
               </Paper>
-            </Grid>
+            </Box>
           ))}
-        </Grid>
+        </Box>
       </Box>
 
       {/* Rename Project Modal */}

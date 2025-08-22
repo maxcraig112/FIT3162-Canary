@@ -64,3 +64,10 @@ func (s *ImageStore) CreateImageMetadata(ctx context.Context, batchID string, im
 	_, err := s.genericStore.CreateDocsBatch(ctx, batch)
 	return err
 }
+
+func (s *ImageStore) DeleteImagesByBatchID(ctx context.Context, batchID string) error {
+	queryParams := []fs.QueryParameter{
+		{Path: "batchID", Op: "==", Value: batchID},
+	}
+	return s.genericStore.DeleteDocsByQuery(ctx, queryParams)
+}
