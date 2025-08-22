@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"pkg/handler"
 	bk "project-service/bucket"
@@ -92,9 +91,14 @@ func (h *BatchHandler) CreateBatchHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	log.Info().Str("batchID", batchID).Msg("Batch created successfully")
-	fmt.Fprintf(w, "Batch %s created", batchID)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"batchID":  batchID,
+		"message":  "Batch created",
+		"created":  true,
+	})
 }
 
 func (h *BatchHandler) RenameBatchHandler(w http.ResponseWriter, r *http.Request) {
@@ -115,9 +119,14 @@ func (h *BatchHandler) RenameBatchHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("batchID", batchID).Str("newName", req.NewBatchName).Msg("Batch renamed successfully")
-	fmt.Fprintf(w, "Batch %s renamed to %s", batchID, req.NewBatchName)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"batchID": batchID,
+		"newName": req.NewBatchName,
+		"message": "Batch renamed",
+	})
 }
 
 func (h *BatchHandler) DeleteBatchHandler(w http.ResponseWriter, r *http.Request) {
@@ -169,9 +178,14 @@ func (h *BatchHandler) DeleteBatchHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("batchID", batchID).Msg("Batch deleted successfully")
-	fmt.Fprintf(w, "Batch %s deleted", batchID)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"batchID": batchID,
+		"deleted": true,
+		"message": "Batch deleted",
+	})
 }
 
 func (h *BatchHandler) DeleteAllBatchesHandler(w http.ResponseWriter, r *http.Request) {
@@ -185,9 +199,14 @@ func (h *BatchHandler) DeleteAllBatchesHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("projectID", projectID).Msg("All batches deleted successfully")
-	fmt.Fprintf(w, "All batches deleted for project %s", projectID)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"projectID": projectID,
+		"deleted":   true,
+		"message":   "All batches deleted",
+	})
 }
 
 func (h *BatchHandler) UpdateNumberOfTotalFilesHandler(w http.ResponseWriter, r *http.Request) {
@@ -208,9 +227,14 @@ func (h *BatchHandler) UpdateNumberOfTotalFilesHandler(w http.ResponseWriter, r 
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("batchID", batchID).Int64("newNumberOfTotalFiles", newVal).Msg("Updated number of total files successfully")
-	fmt.Fprintf(w, "Batch: %s numberOfTotalFiles: %d", batchID, newVal)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"batchID":               batchID,
+		"numberOfTotalFiles":    newVal,
+		"message":               "Updated numberOfTotalFiles",
+	})
 }
 
 func (h *BatchHandler) UpdateNumberOfAnnotatedFilesHandler(w http.ResponseWriter, r *http.Request) {
@@ -231,7 +255,12 @@ func (h *BatchHandler) UpdateNumberOfAnnotatedFilesHandler(w http.ResponseWriter
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("batchID", batchID).Int64("newNumberOfAnnotatedFiles", newVal).Msg("Updated number of annotated files successfully")
-	fmt.Fprintf(w, "Batch: %s numberOfAnnotatedFiles: %d", batchID, newVal)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"batchID":                   batchID,
+		"numberOfAnnotatedFiles":    newVal,
+		"message":                   "Updated numberOfAnnotatedFiles",
+	})
 }

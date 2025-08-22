@@ -137,9 +137,14 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("batchID", batchID).Int("numImages", len(files)).Msg("Images uploaded and metadata created successfully")
-	w.Write([]byte("Images uploaded successfully"))
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"batchID":   batchID,
+		"uploaded":  len(files),
+		"message":   "Images uploaded successfully",
+	})
 }
 
 func (h *ImageHandler) DeleteImagesHandler(w http.ResponseWriter, r *http.Request) {
@@ -190,7 +195,12 @@ func (h *ImageHandler) DeleteImagesHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("batchID", batchID).Msg("All images and annotations deleted successfully")
-	w.Write([]byte("All images and annotations deleted successfully for batch ID " + batchID))
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"batchID": batchID,
+		"deleted": true,
+		"message": "All images and annotations deleted",
+	})
 }
