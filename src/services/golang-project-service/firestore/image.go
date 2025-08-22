@@ -33,6 +33,9 @@ func (s *ImageStore) GetImagesByBatchID(ctx context.Context, batchID string) ([]
 		{Path: "batchID", Op: "==", Value: batchID},
 	}
 	docs, err := s.genericStore.ReadCollection(ctx, queryParams)
+	if err == fs.ErrNotFound {
+		return []Image{}, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -69,5 +72,9 @@ func (s *ImageStore) DeleteImagesByBatchID(ctx context.Context, batchID string) 
 	queryParams := []fs.QueryParameter{
 		{Path: "batchID", Op: "==", Value: batchID},
 	}
-	return s.genericStore.DeleteDocsByQuery(ctx, queryParams)
+	err := s.genericStore.DeleteDocsByQuery(ctx, queryParams)
+	if err == fs.ErrNotFound {
+		return nil
+	}
+	return err
 }

@@ -13,6 +13,7 @@ import {
   Menu,
   MenuItem,
 } from "@mui/material";
+import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import SearchIcon from "@mui/icons-material/Search";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import * as projectHandler from "./projectHandler";
@@ -67,6 +68,9 @@ const ProjectsPage: React.FC = () => {
     setFilteredProjects(result);
   }, [search, projects, sortKey, sortDirection]);
 
+  function handleBackToAllProjects() {
+    navigate("/home");
+  }
   function handleNewProject() {
     setModalOpen(true);
   }
@@ -98,6 +102,18 @@ const ProjectsPage: React.FC = () => {
             px: 3,
           }}
         >
+          <Button
+            startIcon={<ExitToAppIcon sx={{ fontSize: 32 }} />}
+            onClick={handleBackToAllProjects}
+            sx={{
+              color: "#000000",
+              display: "flex",
+              alignItems: "center",
+              minWidth: 56,
+              minHeight: 56,
+              p: 1,
+            }}
+          ></Button>
           <Typography variant="h4" sx={{ fontWeight: "bold" }}>
             Projects
           </Typography>
