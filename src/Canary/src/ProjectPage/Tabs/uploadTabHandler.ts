@@ -20,15 +20,15 @@ export function useUploadTab(project: Project | null) {
         (nameHint && nameHint.trim()) ||
         `Upload ${new Date().toLocaleString()}`;
 
-      const text = await CallAPI<string>(url, {
+      const data = await CallAPI<{ batchID?: string; message?: string; created?: boolean }>(url, {
         method: "POST",
         json: { projectID, batchName: finalName },
-        parseJson: false,
       });
 
-      const m = text?.match(/Batch\s+([A-Za-z0-9\-_]+)\s+created/i);
-      const batchID = m?.[1] || text?.trim();
-      if (!batchID) throw new Error("Failed to parse created batch ID.");
+      const batchID = data?.batchID;
+      if (!batchID || typeof batchID !== "string") {
+        throw new Error("Failed to parse created batch ID.");
+      }
       return { batchID, batchName: finalName };
     },
     [],
