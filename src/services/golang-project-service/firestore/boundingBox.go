@@ -108,3 +108,23 @@ func (s *BoundingBoxStore) UpdateBoundingBoxPosition(ctx context.Context, req Up
 func (s *BoundingBoxStore) DeleteBoundingBox(ctx context.Context, boundingBoxID string) error {
 	return s.genericStore.DeleteDoc(ctx, boundingBoxID)
 }
+
+// Delete all bounding boxes associated with a given imageID
+func (s *BoundingBoxStore) DeleteBoundingBoxesByImageID(ctx context.Context, imageID string) error {
+	qp := []fs.QueryParameter{{Path: "imageID", Op: "==", Value: imageID}}
+	err := s.genericStore.DeleteDocsByQuery(ctx, qp)
+	if err != fs.ErrNotFound {
+		return err
+	}
+	return nil
+}
+
+// Delete all bounding boxes associated with any of the provided imageIDs
+func (s *BoundingBoxStore) DeleteBoundingBoxesByImageIDs(ctx context.Context, imageIDs []string) error {
+	for _, id := range imageIDs {
+		if err := s.DeleteBoundingBoxesByImageID(ctx, id); err != nil {
+			return err
+		}
+	}
+	return nil
+}

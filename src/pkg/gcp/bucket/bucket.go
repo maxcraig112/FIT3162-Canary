@@ -39,6 +39,10 @@ func (bc *BucketClient) Object(objectName string) *storage.ObjectHandle {
 	return bc.Handle.Object(objectName)
 }
 
+func (bc *BucketClient) Objects(ctx context.Context, q *storage.Query) *storage.ObjectIterator {
+	return bc.Handle.Objects(ctx, q)
+}
+
 // Close closes the Firestore client connection.
 func (bc *BucketClient) Close() error {
 	return bc.Client.Close()

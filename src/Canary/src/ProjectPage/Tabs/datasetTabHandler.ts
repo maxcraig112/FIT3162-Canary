@@ -25,12 +25,21 @@ export async function renameBatch(
   newBatchName: string,
 ): Promise<void> {
   const url = `${projectServiceUrl()}/batch/${batchID}`;
-  await CallAPI<void>(url, { method: "PUT", json: { newBatchName } });
+  await CallAPI<void>(url, {
+    method: "PUT",
+    json: { newBatchName },
+    // Backend returns plain text, not JSON
+    parseJson: false,
+  });
 }
 
 export async function deleteBatch(batchID: string): Promise<void> {
   const url = `${projectServiceUrl()}/batch/${batchID}`;
-  await CallAPI<void>(url, { method: "DELETE" });
+  await CallAPI<void>(url, {
+    method: "DELETE",
+    // Backend returns plain text, not JSON
+    parseJson: false,
+  });
 }
 
 // --- Helpers ---

@@ -94,6 +94,26 @@ func (s *BatchStore) DeleteBatch(ctx context.Context, batchID string) error {
 	return s.genericStore.DeleteDoc(ctx, batchID)
 }
 
+func (s *BatchStore) DeleteAllBatches(ctx context.Context, projectID string) error {
+	queryParams := []fs.QueryParameter{
+		{Path: "projectID", Op: "==", Value: projectID},
+	}
+	return s.genericStore.DeleteDocsByQuery(ctx, queryParams)
+}
+
+// Helper to list batch IDs by project (used by cascading operations)
+func (s *BatchStore) ListBatchIDsByProjectID(ctx context.Context, projectID string) ([]string, error) {
+	batches, err := s.GetBatchesByProjectID(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, 0, len(batches))
+	for _, b := range batches {
+		ids = append(ids, b.BatchID)
+	}
+	return ids, nil
+}
+
 func (s *BatchStore) IncrementNumberOfTotalFiles(ctx context.Context, batchID string, req IncrementQuantityRequest) (int64, error) {
 	docSnap, err := s.genericStore.GetDoc(ctx, batchID)
 	if err != nil {

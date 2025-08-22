@@ -26,3 +26,7 @@ func (b *ImageBucket) DeleteImage(ctx context.Context, batchID string, imageName
 	objectName := fmt.Sprintf("%s/%s", batchID, imageName)
 	return b.genericBucket.DeleteObject(ctx, objectName)
 }
+
+func (b *ImageBucket) DeleteImagesByBatchID(ctx context.Context, batchID string) error {
+	return b.genericBucket.DeleteObjectsByPrefix(ctx, batchID)
+}

@@ -18,6 +18,7 @@
 | PUT    | /batch/{batchID}                        | Renames a batch.                                       | { "newBatchName": "string" }                     |
 | DELETE | /batch/{batchID}                        | Deletes a batch.                                       | None                                             |
 | GET    | /projects/{projectID}/batches           | Returns all batches associated with a project as JSON. | None                                             |
+| DELETE | /projects/{projectID}/batches        | Deletes all batches associated with a project.         | None                                             |
 | PATCH  | /batch/{batchID}/numberofTotalFiles     | Increments the number of total files in a batch.       | { "quantity": int }                              |
 | PATCH  | /batch/{batchID}/numberofAnnotatedFiles | Increments the number of annotated files in a batch.   | { "quantity": int }                              |
 
@@ -27,3 +28,4 @@
 | ------ | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
 | GET    | /batch/{batchID}/images | Returns all image metadata for a batch as JSON.                                                                                                       | None                |
 | POST   | /batch/{batchID}/images | Uploads multiple images to a batch. Multipart form-data field (files). Images are saved to the bucket and metadata is created in Firestore. | Multipart form-data |
+| DELETE   | /batch/{batchID}/images | Deletes all images associated with a batch |
