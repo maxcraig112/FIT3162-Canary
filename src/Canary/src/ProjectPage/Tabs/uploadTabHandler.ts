@@ -20,7 +20,11 @@ export function useUploadTab(project: Project | null) {
         (nameHint && nameHint.trim()) ||
         `Upload ${new Date().toLocaleString()}`;
 
-      const data = await CallAPI<{ batchID?: string; message?: string; created?: boolean }>(url, {
+      const data = await CallAPI<{
+        batchID?: string;
+        message?: string;
+        created?: boolean;
+      }>(url, {
         method: "POST",
         json: { projectID, batchName: finalName },
       });
