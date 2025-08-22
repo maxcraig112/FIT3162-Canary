@@ -49,6 +49,9 @@ func (s *BatchStore) GetBatchesByProjectID(ctx context.Context, projectID string
 		{Path: "projectID", Op: "==", Value: projectID},
 	}
 	docs, err := s.genericStore.ReadCollection(ctx, queryParams)
+	if err == fs.ErrNotFound {
+		return []Batch{}, nil
+	}
 	if err != nil {
 		return nil, err
 	}

@@ -1,7 +1,7 @@
 // src/Canary/src/AnnotatePage/annotateHandler.ts
 
 import * as fabric from "fabric";
-import { getAuthTokenFromCookie } from "../utils/cookieUtils";
+import { CallAPI } from "../utils/apis";
 
 export type ImageMeta = {
   imageURL: string;
@@ -29,26 +29,10 @@ function devRewriteURL(url: string): string {
 
 async function fetchImagesForBatch(batchID: string): Promise<ImageMeta[]> {
   const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
-  const token = getAuthTokenFromCookie();
   const url = `${baseUrl}/batch/${batchID}/images`;
 
   // get all the image metadata from the firestore database
-  const res = await fetch(url, {
-    method: "GET",
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(
-      `Failed to fetch images for batch ${batchID}: ${res.status} ${res.statusText} - ${text}`,
-    );
-  }
-
-  const data = (await res.json()) as ImageMeta[];
-  return data;
+  return CallAPI<ImageMeta[]>(url);
 }
 
 export const annotateHandler = {

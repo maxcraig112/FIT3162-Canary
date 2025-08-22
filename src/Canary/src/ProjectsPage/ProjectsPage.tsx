@@ -222,6 +222,16 @@ const ProjectsPage: React.FC = () => {
                     vertical: "top",
                     horizontal: "right",
                   }}
+                  slotProps={{
+                    paper: {
+                      sx: {
+                        bgcolor: "#fff",
+                        color: "#000",
+                        border: "1px solid #e0e0e0",
+                        boxShadow: 8,
+                      },
+                    },
+                  }}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <MenuItem
