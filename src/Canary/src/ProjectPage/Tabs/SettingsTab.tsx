@@ -304,4 +304,4 @@ export function SettingsTab({ project }: { project: Project | null }) {
       </Box>
     </Box>
   );
-};
+}
