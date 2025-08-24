@@ -123,13 +123,18 @@ func (s *ProjectStore) IncrementNumberOfFiles(ctx context.Context, projectID str
 	if err != nil {
 		return 0, err
 	}
+	// Field may be absent if initially written with omitempty; treat as 0
+	var currentInt int64
 	currentVal, err := docSnap.DataAt("numberOfFiles")
-	if err != nil {
-		return 0, err
-	}
-	currentInt, ok := currentVal.(int64)
-	if !ok {
-		return 0, fmt.Errorf("invalid type for numberOfFiles")
+	if err == nil {
+		if v, ok := currentVal.(int64); ok {
+			currentInt = v
+		} else {
+			return 0, fmt.Errorf("invalid type for numberOfFiles")
+		}
+	} else {
+		// missing field => start from 0
+		currentInt = 0
 	}
 
 	newVal := currentInt + int64(req.Quantity)
