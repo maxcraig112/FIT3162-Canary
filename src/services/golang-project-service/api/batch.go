@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"pkg/handler"
-	bk "project-service/bucket"
+	"pkg/jwt"
 	"project-service/firestore"
 
 	"github.com/gorilla/mux"
@@ -13,21 +13,16 @@ import (
 
 type BatchHandler struct {
 	*handler.Handler
-	BatchStore       *firestore.BatchStore
-	ImageStore       *firestore.ImageStore
-	ImageBucket      *bk.ImageBucket
-	KeypointStore    *firestore.KeypointStore
-	BoundingBoxStore *firestore.BoundingBoxStore
+	// These are embedded fields so you don't need to call .Stores to get the inner fields
+	Stores
+	Buckets
 }
 
 func newBatchHandler(h *handler.Handler) *BatchHandler {
 	return &BatchHandler{
-		Handler:          h,
-		BatchStore:       firestore.NewBatchStore(h.Clients.Firestore),
-		ImageStore:       firestore.NewImageStore(h.Clients.Firestore),
-		ImageBucket:      bk.NewImageBucket(h.Clients.Bucket),
-		KeypointStore:    firestore.NewKeypointStore(h.Clients.Firestore),
-		BoundingBoxStore: firestore.NewBoundingBoxStore(h.Clients.Firestore),
+		Handler: h,
+		Stores:  InitialiseStores(h),
+		Buckets: InitialiseBuckets(h),
 	}
 }
 
@@ -42,7 +37,9 @@ func RegisterBatchRoutes(r *mux.Router, h *handler.Handler) {
 		// Delete a batch
 		{"DELETE", "/batch/{batchID}", bh.DeleteBatchHandler},
 		// Get all batches associated with a project
-		{"GET", "/projects/{projectID}/batches", bh.LoadBatchInfoHandler},
+		{"GET", "/projects/{projectID}/batches", bh.LoadBatchesInfoHandler},
+		// Get a specific batch
+		{"GET", "/batch/{batchID}", bh.LoadBatchHandler},
 		// Delete all batches associated with a project
 		{"DELETE", "/projects/{projectID}/batches", bh.DeleteAllBatchesHandler},
 		// Increment numberOfTotalFiles
@@ -52,11 +49,67 @@ func RegisterBatchRoutes(r *mux.Router, h *handler.Handler) {
 	}
 
 	for _, rt := range routes {
-		r.Handle(rt.pattern, h.AuthMw(http.HandlerFunc(rt.handlerFunc))).Methods(rt.method)
+		wrapped := h.AuthMw(ValidateOwnershipMiddleware(http.HandlerFunc(rt.handlerFunc), bh.Stores))
+		r.Handle(rt.pattern, wrapped).Methods(rt.method)
 	}
 }
 
-func (h *BatchHandler) LoadBatchInfoHandler(w http.ResponseWriter, r *http.Request) {
+// ValidateProjectOwnershipMiddleware runs before the actual project handler to
+// validate the userID has access to the project being requested
+func (h *BatchHandler) ValidateBatchOwnershipMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		projectID, ok := vars["projectID"]
+		if !ok {
+			next.ServeHTTP(w, r)
+			return
+		}
+		userID, err := jwt.GetUserIDFromJWT(r)
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			log.Error().Err(err).Msg("Failed to get userID from JWT")
+			return
+		}
+
+		// Validate ownership if not wildcard
+		if projectID != "*" {
+			project, err := h.ProjectStore.GetProject(h.Ctx, projectID)
+			if err != nil {
+				http.Error(w, "Error retrieving project", http.StatusForbidden)
+				log.Error().Err(err).Str("projectID", projectID).Msg("Error retrieving project durin middleware validation")
+				return
+			}
+
+			if project.UserID != userID {
+				http.Error(w, "Forbidden", http.StatusForbidden)
+				log.Error().Str("projectID", projectID).Str("userID", userID).Msg("User does not own the project")
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (h *BatchHandler) LoadBatchHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	batchID := vars["batchID"]
+
+	batch, err := h.BatchStore.GetBatch(h.Ctx, batchID)
+	if err != nil {
+		http.Error(w, "Error getting batch", http.StatusInternalServerError)
+		log.Error().Err(err).Str("batchID", batchID).Msg("Failed to get batch by batchID")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(batch); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		log.Error().Err(err).Str("batchID", batchID).Msg("Failed to encode batch response")
+		return
+	}
+	log.Info().Str("batchID", batchID).Msg("Successfully returned batch by batchID")
+}
+
+func (h *BatchHandler) LoadBatchesInfoHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	projectID := vars["projectID"]
 

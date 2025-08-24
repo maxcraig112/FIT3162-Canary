@@ -28,6 +28,21 @@ func NewImageStore(client fs.FirestoreClientInterface) *ImageStore {
 	return &ImageStore{genericStore: fs.NewGenericStore(client, imageCollectionID)}
 }
 
+func (s *ImageStore) GetImage(ctx context.Context, imageID string) (*Image, error) {
+	docSnap, err := s.genericStore.GetDoc(ctx, imageID)
+	if err != nil {
+		return nil, err
+	}
+
+	var i Image
+	if err := docSnap.DataTo(&i); err != nil {
+		return nil, err
+	}
+
+	i.ImageID = docSnap.Ref.ID
+	return &i, nil
+}
+
 func (s *ImageStore) GetImagesByBatchID(ctx context.Context, batchID string) ([]Image, error) {
 	queryParams := []fs.QueryParameter{
 		{Path: "batchID", Op: "==", Value: batchID},

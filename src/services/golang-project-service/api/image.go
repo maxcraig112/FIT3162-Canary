@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"pkg/gcp/bucket"
 	"pkg/handler"
-	bk "project-service/bucket"
-	"project-service/firestore"
 	"strings"
 
 	"github.com/google/uuid"
@@ -17,19 +15,16 @@ import (
 
 type ImageHandler struct {
 	*handler.Handler
-	ImageStore       *firestore.ImageStore
-	ImageBucket      *bk.ImageBucket
-	KeypointStore    *firestore.KeypointStore
-	BoundingBoxStore *firestore.BoundingBoxStore
+	// These are embedded fields so you don't need to call .Stores to get the inner fields
+	Stores
+	Buckets
 }
 
 func newImageHandler(h *handler.Handler) *ImageHandler {
 	return &ImageHandler{
-		Handler:          h,
-		ImageStore:       firestore.NewImageStore(h.Clients.Firestore),
-		ImageBucket:      bk.NewImageBucket(h.Clients.Bucket),
-		KeypointStore:    firestore.NewKeypointStore(h.Clients.Firestore),
-		BoundingBoxStore: firestore.NewBoundingBoxStore(h.Clients.Firestore),
+		Handler: h,
+		Stores:  InitialiseStores(h),
+		Buckets: InitialiseBuckets(h),
 	}
 }
 
@@ -46,7 +41,8 @@ func RegisterImageRoutes(r *mux.Router, h *handler.Handler) {
 	}
 
 	for _, rt := range routes {
-		r.Handle(rt.pattern, h.AuthMw(http.HandlerFunc(rt.handlerFunc))).Methods(rt.method)
+		wrapped := h.AuthMw(ValidateOwnershipMiddleware(http.HandlerFunc(rt.handlerFunc), ih.Stores))
+		r.Handle(rt.pattern, wrapped).Methods(rt.method)
 	}
 }
 

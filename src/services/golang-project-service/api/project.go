@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"pkg/handler"
 	"pkg/jwt"
-	bk "project-service/bucket"
 	"project-service/firestore"
 
 	"github.com/gorilla/mux"
@@ -15,23 +14,16 @@ import (
 
 type ProjectHandler struct {
 	*handler.Handler
-	ProjectStore     *firestore.ProjectStore
-	BatchStore       *firestore.BatchStore
-	ImageStore       *firestore.ImageStore
-	ImageBucket      *bk.ImageBucket
-	KeypointStore    *firestore.KeypointStore
-	BoundingBoxStore *firestore.BoundingBoxStore
+	// These are embedded fields so you don't need to call .Stores to get the inner fields
+	Stores
+	Buckets
 }
 
 func newProjectHandler(h *handler.Handler) *ProjectHandler {
 	return &ProjectHandler{
-		Handler:          h,
-		ProjectStore:     firestore.NewProjectStore(h.Clients.Firestore),
-		BatchStore:       firestore.NewBatchStore(h.Clients.Firestore),
-		ImageStore:       firestore.NewImageStore(h.Clients.Firestore),
-		ImageBucket:      bk.NewImageBucket(h.Clients.Bucket),
-		KeypointStore:    firestore.NewKeypointStore(h.Clients.Firestore),
-		BoundingBoxStore: firestore.NewBoundingBoxStore(h.Clients.Firestore),
+		Handler: h,
+		Stores:  InitialiseStores(h),
+		Buckets: InitialiseBuckets(h),
 	}
 }
 
@@ -54,7 +46,8 @@ func RegisterProjectRoutes(r *mux.Router, h *handler.Handler) {
 	}
 
 	for _, rt := range routes {
-		r.Handle(rt.pattern, h.AuthMw(http.HandlerFunc(rt.handlerFunc))).Methods(rt.method)
+		wrapped := h.AuthMw(ValidateOwnershipMiddleware(http.HandlerFunc(rt.handlerFunc), ph.Stores))
+		r.Handle(rt.pattern, wrapped).Methods(rt.method)
 	}
 }
 
@@ -82,7 +75,7 @@ func (h *ProjectHandler) LoadProjectsHandler(w http.ResponseWriter, r *http.Requ
 		json.NewEncoder(w).Encode(projects)
 		return
 	} else {
-		project, err := h.ProjectStore.GetProject(h.Ctx, projectID, userID)
+		project, err := h.ProjectStore.GetProject(h.Ctx, projectID)
 		if err != nil {
 			http.Error(w, "Error getting project", http.StatusInternalServerError)
 			log.Error().Str("projectID", projectID).Err(err).Msg("Failed to get project by Project ID")

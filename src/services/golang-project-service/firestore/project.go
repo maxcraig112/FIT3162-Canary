@@ -78,7 +78,7 @@ func (s *ProjectStore) GetProjectsByUserID(ctx context.Context, userID string) (
 	return projects, nil
 }
 
-func (s *ProjectStore) GetProject(ctx context.Context, projectID string, userID string) (*Project, error) {
+func (s *ProjectStore) GetProject(ctx context.Context, projectID string) (*Project, error) {
 	docSnap, err := s.genericStore.GetDoc(ctx, projectID)
 	if err != nil {
 		return nil, err
@@ -87,10 +87,6 @@ func (s *ProjectStore) GetProject(ctx context.Context, projectID string, userID 
 	var p Project
 	if err := docSnap.DataTo(&p); err != nil {
 		return nil, err
-	}
-
-	if p.UserID != userID {
-		return nil, fmt.Errorf("project %s does not belong to user %s", projectID, userID)
 	}
 
 	p.ProjectID = docSnap.Ref.ID
