@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"pkg/handler"
-	"pkg/jwt"
 	"project-service/firestore"
 
 	"github.com/gorilla/mux"
@@ -52,41 +51,6 @@ func RegisterBatchRoutes(r *mux.Router, h *handler.Handler) {
 		wrapped := h.AuthMw(ValidateOwnershipMiddleware(http.HandlerFunc(rt.handlerFunc), bh.Stores))
 		r.Handle(rt.pattern, wrapped).Methods(rt.method)
 	}
-}
-
-// ValidateProjectOwnershipMiddleware runs before the actual project handler to
-// validate the userID has access to the project being requested
-func (h *BatchHandler) ValidateBatchOwnershipMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		projectID, ok := vars["projectID"]
-		if !ok {
-			next.ServeHTTP(w, r)
-			return
-		}
-		userID, err := jwt.GetUserIDFromJWT(r)
-		if err != nil {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			log.Error().Err(err).Msg("Failed to get userID from JWT")
-			return
-		}
-
-		// Validate ownership if not wildcard
-		if projectID != "*" {
-			project, err := h.ProjectStore.GetProject(h.Ctx, projectID)
-			if err != nil {
-				http.Error(w, "Error retrieving project", http.StatusForbidden)
-				log.Error().Err(err).Str("projectID", projectID).Msg("Error retrieving project durin middleware validation")
-				return
-			}
-
-			if project.UserID != userID {
-				http.Error(w, "Forbidden", http.StatusForbidden)
-				log.Error().Str("projectID", projectID).Str("userID", userID).Msg("User does not own the project")
-			}
-		}
-		next.ServeHTTP(w, r)
-	})
 }
 
 func (h *BatchHandler) LoadBatchHandler(w http.ResponseWriter, r *http.Request) {
