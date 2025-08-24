@@ -13,13 +13,16 @@ import (
 
 type KeypointHandler struct {
 	*handler.Handler
-	KeypointStore *firestore.KeypointStore
+	// These are embedded fields so you don't need to call .Stores to get the inner fields
+	Stores
+	Buckets
 }
 
 func newKeypointHandler(h *handler.Handler) *KeypointHandler {
 	return &KeypointHandler{
-		Handler:       h,
-		KeypointStore: firestore.NewKeypointStore(h.Clients.Firestore),
+		Handler: h,
+		Stores:  InitialiseStores(h),
+		Buckets: InitialiseBuckets(h),
 	}
 }
 

@@ -13,13 +13,16 @@ import (
 
 type KeypointLabelHandler struct {
 	*handler.Handler
-	KeypointLabelStore *firestore.KeypointLabelStore
+	// These are embedded fields so you don't need to call .Stores to get the inner fields
+	Stores
+	Buckets
 }
 
 func newKeypointLabelHandler(h *handler.Handler) *KeypointLabelHandler {
 	return &KeypointLabelHandler{
-		Handler:            h,
-		KeypointLabelStore: firestore.NewKeypointLabelStore(h.Clients.Firestore),
+		Handler: h,
+		Stores:  InitialiseStores(h),
+		Buckets: InitialiseBuckets(h),
 	}
 }
 
