@@ -6,9 +6,9 @@ import { getAuthTokenFromCookie } from '../utils/cookieUtils';
 export const keypointHandler = {
   // Render a persisted keypoint annotation as a Fabric group
   renderAnnotation(ann: KeypointAnnotation): { group: fabric.Group } {
-  // Support either our internal shape (points[0]) or backend shape (position)
-  const src = ann as KeypointAnnotation & { position?: { x: number; y: number } };
-  const p = (Array.isArray(src.points) && src.points.length > 0 ? src.points[0] : src.position) ?? { x: 0, y: 0 };
+    // Support either our internal shape (points[0]) or backend shape (position)
+    const src = ann as KeypointAnnotation & { position?: { x: number; y: number } };
+    const p = (Array.isArray(src.points) && src.points.length > 0 ? src.points[0] : src.position) ?? { x: 0, y: 0 };
     const marker = new fabric.Circle(fabricKPMarkerProps({ x: p.x, y: p.y }));
     const text = new fabric.FabricText(ann.label, fabricKPProps({ x: p.x, y: p.y }));
     const group = new fabric.Group([marker, text], fabricGroupProps);
@@ -155,7 +155,7 @@ export const keypointHandler = {
         return kp;
       })
       .filter((v): v is KeypointAnnotation => Boolean(v));
-    console.log(normalized)
+    console.log(normalized);
     return normalized;
   },
 };

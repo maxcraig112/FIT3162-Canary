@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { CallAPI } from "../../utils/apis";
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { CallAPI } from '../../utils/apis';
 
 export interface Batch {
   batchID: string;
@@ -20,13 +20,10 @@ export async function fetchBatches(projectID: string): Promise<Batch[]> {
   return arr.map(normalizeBatch);
 }
 
-export async function renameBatch(
-  batchID: string,
-  newBatchName: string,
-): Promise<void> {
+export async function renameBatch(batchID: string, newBatchName: string): Promise<void> {
   const url = `${projectServiceUrl()}/batch/${batchID}`;
   await CallAPI<void>(url, {
-    method: "PUT",
+    method: 'PUT',
     json: { newBatchName },
     // Backend returns plain text, not JSON
     parseJson: false,
@@ -36,7 +33,7 @@ export async function renameBatch(
 export async function deleteBatch(batchID: string): Promise<void> {
   const url = `${projectServiceUrl()}/batch/${batchID}`;
   await CallAPI<void>(url, {
-    method: "DELETE",
+    method: 'DELETE',
     // Backend returns plain text, not JSON
     parseJson: false,
   });
@@ -45,14 +42,10 @@ export async function deleteBatch(batchID: string): Promise<void> {
 // --- Helpers ---
 
 function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
+  return typeof v === 'object' && v !== null;
 }
 
-function firstDefined<T = unknown>(
-  obj: unknown,
-  keys: string[],
-  fallback?: T,
-): T | undefined {
+function firstDefined<T = unknown>(obj: unknown, keys: string[], fallback?: T): T | undefined {
   if (!isRecord(obj)) return fallback;
   for (const k of keys) {
     if (Object.prototype.hasOwnProperty.call(obj, k)) {
@@ -64,50 +57,26 @@ function firstDefined<T = unknown>(
 }
 
 function toNumber(v: unknown, def = 0): number {
-  if (typeof v === "number") return v;
-  if (typeof v === "string") {
+  if (typeof v === 'number') return v;
+  if (typeof v === 'string') {
     const n = Number(v);
     return isNaN(n) ? def : n;
   }
   return def;
 }
 
-function toStringMaybe(v: unknown, def = ""): string {
+function toStringMaybe(v: unknown, def = ''): string {
   return v === undefined || v === null ? def : String(v);
 }
 
 function normalizeBatch(raw: unknown): Batch {
-  const batchID = toStringMaybe(
-    firstDefined(raw, ["batchID", "batchId", "id", "batch_id"]) ?? "",
-  );
-  const batchName = toStringMaybe(
-    firstDefined(raw, ["batchName", "name", "batch_name"]) ?? "",
-  );
-  const projectID = toStringMaybe(
-    firstDefined(raw, ["projectID", "projectId", "project_id"]) ?? "",
-  );
+  const batchID = toStringMaybe(firstDefined(raw, ['batchID', 'batchId', 'id', 'batch_id']) ?? '');
+  const batchName = toStringMaybe(firstDefined(raw, ['batchName', 'name', 'batch_name']) ?? '');
+  const projectID = toStringMaybe(firstDefined(raw, ['projectID', 'projectId', 'project_id']) ?? '');
 
-  const numberOfTotalFiles = toNumber(
-    firstDefined(raw, [
-      "numberOfTotalFiles",
-      "number_of_total_files",
-      "totalFiles",
-      "total_files",
-      "numberOfFiles",
-    ]),
-    0,
-  );
+  const numberOfTotalFiles = toNumber(firstDefined(raw, ['numberOfTotalFiles', 'number_of_total_files', 'totalFiles', 'total_files', 'numberOfFiles']), 0);
 
-  const numberOfAnnotatedFiles = toNumber(
-    firstDefined(raw, [
-      "numberOfAnnotatedFiles",
-      "number_of_annotated_files",
-      "annotatedFiles",
-      "annotated_files",
-      "numberOfAnnotated",
-    ]),
-    0,
-  );
+  const numberOfAnnotatedFiles = toNumber(firstDefined(raw, ['numberOfAnnotatedFiles', 'number_of_annotated_files', 'annotatedFiles', 'annotated_files', 'numberOfAnnotated']), 0);
 
   return {
     batchID,
@@ -129,17 +98,14 @@ export function useDatasetTab(projectID?: string) {
 
   // rename state
   const [renameOpen, setRenameOpen] = useState(false);
-  const [renameValue, setRenameValue] = useState("");
+  const [renameValue, setRenameValue] = useState('');
   const [renaming, setRenaming] = useState(false);
 
   // delete state
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const selectedBatch = useMemo(
-    () => batches.find((b) => b.batchID === menuBatchId) || null,
-    [batches, menuBatchId],
-  );
+  const selectedBatch = useMemo(() => batches.find((b) => b.batchID === menuBatchId) || null, [batches, menuBatchId]);
 
   const load = useCallback(async () => {
     if (!projectID) return;
@@ -149,7 +115,7 @@ export function useDatasetTab(projectID?: string) {
       const data = await fetchBatches(projectID);
       setBatches(data || []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load batches");
+      setError(e instanceof Error ? e.message : 'Failed to load batches');
     } finally {
       setLoading(false);
     }
@@ -160,14 +126,11 @@ export function useDatasetTab(projectID?: string) {
   }, [load]);
 
   // menu handlers
-  const openMenu = useCallback(
-    (evt: React.MouseEvent<HTMLElement>, batchID: string) => {
-      evt.stopPropagation();
-      setMenuAnchorEl(evt.currentTarget);
-      setMenuBatchId(batchID);
-    },
-    [],
-  );
+  const openMenu = useCallback((evt: React.MouseEvent<HTMLElement>, batchID: string) => {
+    evt.stopPropagation();
+    setMenuAnchorEl(evt.currentTarget);
+    setMenuBatchId(batchID);
+  }, []);
 
   const closeMenu = useCallback(() => {
     setMenuAnchorEl(null);
@@ -196,17 +159,11 @@ export function useDatasetTab(projectID?: string) {
     setRenaming(true);
     try {
       await renameBatch(menuBatchId, renameValue.trim());
-      setBatches((prev) =>
-        prev.map((b) =>
-          b.batchID === menuBatchId
-            ? { ...b, batchName: renameValue.trim() }
-            : b,
-        ),
-      );
+      setBatches((prev) => prev.map((b) => (b.batchID === menuBatchId ? { ...b, batchName: renameValue.trim() } : b)));
       setRenameOpen(false);
       setMenuBatchId(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to rename batch");
+      setError(e instanceof Error ? e.message : 'Failed to rename batch');
     } finally {
       setRenaming(false);
     }
@@ -231,7 +188,7 @@ export function useDatasetTab(projectID?: string) {
       setDeleteOpen(false);
       setMenuBatchId(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to delete batch");
+      setError(e instanceof Error ? e.message : 'Failed to delete batch');
     } finally {
       setDeleting(false);
     }

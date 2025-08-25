@@ -99,7 +99,7 @@ export const annotateHandler = {
     const s = annotationStore.get(currentImageKey);
     return s ? s.kps : [];
   },
-  
+
   getBoundingBoxes(): BoundingBoxAnnotation[] {
     if (!currentImageKey) return [];
     const s = annotationStore.get(currentImageKey);
@@ -133,7 +133,6 @@ export const annotateHandler = {
             console.log('[BB] Renamed:', { label, group });
             void boundingBoxHandler.renameBoundingBox(meta.ann as BoundingBoxAnnotation, label, projectID);
           }
-
         }
         canvasRef.requestRenderAll();
       }
@@ -147,21 +146,21 @@ export const annotateHandler = {
 
       const { x, y, marker } = pendingKP;
       if (!marker) return;
-      
+
       canvasRef.remove(marker);
 
       const { group, annotation: ann } = await keypointHandler.finalizeCreate(marker, x, y, label, projectID, currentImageID ?? undefined);
-      
+
       canvasRef.add(group);
       canvasRef.requestRenderAll();
-      
+
       const s = annotationStore.get(currentImageKey) ?? { kps: [], bbs: [] };
-      
+
       s.kps.push(ann);
-      
+
       annotationStore.set(currentImageKey, s);
       groupToAnnotation.set(group, { kind: 'kp', ann });
-      
+
       console.log('[KP] Created:', { x, y, label, ann });
       pendingKP = null;
       return;
@@ -170,25 +169,25 @@ export const annotateHandler = {
     // Label a newly created rectangle
     if (currentTool === 'bb' && pendingBB) {
       if (!currentImageKey) return;
-      
+
       const { polygon, points } = pendingBB;
-      
+
       canvasRef.remove(polygon);
-      
+
       const { group, annotation } = boundingBoxHandler.finalizeCreate(polygon, points, label, projectID, currentImageID ?? undefined);
-      
+
       canvasRef.add(group);
       canvasRef.requestRenderAll();
 
       const ann: BoundingBoxAnnotation = annotation;
-      
+
       const s = annotationStore.get(currentImageKey) ?? { kps: [], bbs: [] };
-      
+
       s.bbs.push(ann);
-      
+
       annotationStore.set(currentImageKey, s);
       groupToAnnotation.set(group, { kind: 'bb', ann });
-      
+
       console.log('[BB] Labeled:', { points, label, ann });
       pendingBB = null;
       return;
@@ -334,7 +333,7 @@ export const annotateHandler = {
         for (const kp of kps) {
           // Ensure IDs are set for downstream rename/delete
           kp.projectID = kp.projectID ?? projectID;
-          kp.imageID = kp.imageID ?? (currentImageID ?? undefined);
+          kp.imageID = kp.imageID ?? currentImageID ?? undefined;
           s.kps.push(kp);
         }
         annotationStore.set(currentImageKey, s);
@@ -370,7 +369,6 @@ export const annotateHandler = {
     return { current: currentImageNumber, total };
   },
 };
-
 
 function handleBoundingBoxClick(x: number, y: number) {
   if (!canvasRef) return;

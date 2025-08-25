@@ -1,54 +1,44 @@
-import { useCallback, useState } from "react";
-import { CallAPI } from "../../utils/apis";
-import type { Project } from "../ProjectPage";
+import { useCallback, useState } from 'react';
+import { CallAPI } from '../../utils/apis';
+import type { Project } from '../ProjectPage';
 
 export function useUploadTab(project: Project | null) {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
-  const [batchName, setBatchName] = useState<string>("");
+  const [batchName, setBatchName] = useState<string>('');
 
-  const createBatch = useCallback(
-    async (
-      projectID: string,
-      nameHint?: string,
-    ): Promise<{ batchID: string; batchName: string }> => {
-      const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
-      const url = `${baseUrl}/batch`;
-      const finalName =
-        (nameHint && nameHint.trim()) ||
-        `Upload ${new Date().toLocaleString()}`;
+  const createBatch = useCallback(async (projectID: string, nameHint?: string): Promise<{ batchID: string; batchName: string }> => {
+    const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
+    const url = `${baseUrl}/batch`;
+    const finalName = (nameHint && nameHint.trim()) || `Upload ${new Date().toLocaleString()}`;
 
-      const data = await CallAPI<{
-        batchID?: string;
-        message?: string;
-        created?: boolean;
-      }>(url, {
-        method: "POST",
-        json: { projectID, batchName: finalName },
-      });
+    const data = await CallAPI<{
+      batchID?: string;
+      message?: string;
+      created?: boolean;
+    }>(url, {
+      method: 'POST',
+      json: { projectID, batchName: finalName },
+    });
 
-      const batchID = data?.batchID;
-      if (!batchID || typeof batchID !== "string") {
-        throw new Error("Failed to parse created batch ID.");
-      }
-      return { batchID, batchName: finalName };
-    },
-    [],
-  );
+    const batchID = data?.batchID;
+    if (!batchID || typeof batchID !== 'string') {
+      throw new Error('Failed to parse created batch ID.');
+    }
+    return { batchID, batchName: finalName };
+  }, []);
 
   const beginUpload = useCallback(
     async (files: FileList | File[]) => {
-      const list = Array.from(files).filter((f) =>
-        /^image\//i.test(f.type || ""),
-      );
+      const list = Array.from(files).filter((f) => /^image\//i.test(f.type || ''));
       if (!list.length) {
-        setError("No image files selected.");
+        setError('No image files selected.');
         return;
       }
       if (!project?.projectID) {
-        setError("Project not loaded yet.");
+        setError('Project not loaded yet.');
         return;
       }
 
@@ -57,30 +47,23 @@ export function useUploadTab(project: Project | null) {
       setMessage(null);
 
       try {
-        const { batchID, batchName: finalBatchName } = await createBatch(
-          project.projectID,
-          batchName,
-        );
+        const { batchID, batchName: finalBatchName } = await createBatch(project.projectID, batchName);
 
         const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
         const url = `${baseUrl}/batch/${encodeURIComponent(batchID)}/images`;
 
         const formData = new FormData();
-        list.forEach((f) => formData.append("images", f, f.name));
+        list.forEach((f) => formData.append('images', f, f.name));
 
         await CallAPI<string>(url, {
-          method: "POST",
+          method: 'POST',
           body: formData,
           parseJson: false,
         });
 
-        setMessage(
-          `Uploaded ${list.length} image${list.length === 1 ? "" : "s"} to batch "${finalBatchName}" (${batchID}).`,
-        );
+        setMessage(`Uploaded ${list.length} image${list.length === 1 ? '' : 's'} to batch "${finalBatchName}" (${batchID}).`);
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to upload images.",
-        );
+        setError(err instanceof Error ? err.message : 'Failed to upload images.');
       } finally {
         setUploading(false);
       }
@@ -94,7 +77,7 @@ export function useUploadTab(project: Project | null) {
       if (files && files.length > 0) {
         await beginUpload(files);
       }
-      e.target.value = "";
+      e.target.value = '';
     },
     [beginUpload],
   );
@@ -120,7 +103,7 @@ export function useUploadTab(project: Project | null) {
       e.stopPropagation();
       setDragActive(false);
       if (!project) {
-        setError("Project not loaded yet.");
+        setError('Project not loaded yet.');
         return;
       }
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
@@ -134,7 +117,7 @@ export function useUploadTab(project: Project | null) {
   const openPicker = useCallback(
     (click: () => void) => {
       if (!project) {
-        setError("Project not loaded yet.");
+        setError('Project not loaded yet.');
         return;
       }
       setError(null);

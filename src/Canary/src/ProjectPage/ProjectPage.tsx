@@ -1,26 +1,18 @@
-import React, { useState, useEffect } from "react";
-import {
-  Box,
-  Button,
-  Typography,
-  Paper,
-  Tabs,
-  Tab,
-  Divider,
-} from "@mui/material";
-import AppThemeProvider from "../assets/AppThemeProvider";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { fetchProjectByID } from "./projectHandlers";
-import { DatasetTab } from "./Tabs/DatasetTab";
-import { ExportTab } from "./Tabs/ExportTab";
-import { SettingsTab } from "./Tabs/SettingsTab";
-import { UploadTab } from "./Tabs/UploadTab";
-import CloudUploadOutlined from "@mui/icons-material/CloudUploadOutlined";
-import GpsFixedOutlined from "@mui/icons-material/GpsFixedOutlined";
-import BarChartOutlined from "@mui/icons-material/BarChartOutlined";
-import IosShareOutlined from "@mui/icons-material/IosShareOutlined";
-import SettingsOutlined from "@mui/icons-material/SettingsOutlined";
-import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import React, { useState, useEffect } from 'react';
+import { Box, Button, Typography, Paper, Tabs, Tab, Divider } from '@mui/material';
+import AppThemeProvider from '../assets/AppThemeProvider';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { fetchProjectByID } from './projectHandlers';
+import { DatasetTab } from './Tabs/DatasetTab';
+import { ExportTab } from './Tabs/ExportTab';
+import { SettingsTab } from './Tabs/SettingsTab';
+import { UploadTab } from './Tabs/UploadTab';
+import CloudUploadOutlined from '@mui/icons-material/CloudUploadOutlined';
+import GpsFixedOutlined from '@mui/icons-material/GpsFixedOutlined';
+import BarChartOutlined from '@mui/icons-material/BarChartOutlined';
+import IosShareOutlined from '@mui/icons-material/IosShareOutlined';
+import SettingsOutlined from '@mui/icons-material/SettingsOutlined';
+import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 
 export interface Project {
   projectID: string;
@@ -38,9 +30,7 @@ const ProjectPage: React.FC = () => {
   const projectID = paramProjectID;
 
   const passedProject = (location.state as { project?: Project })?.project;
-  const [projectData, setProjectData] = useState<Project | null>(
-    passedProject || null,
-  );
+  const [projectData, setProjectData] = useState<Project | null>(passedProject || null);
 
   const [loading, setLoading] = useState<boolean>(!passedProject);
   const [selectedTab, setSelectedTab] = useState(0);
@@ -51,7 +41,7 @@ const ProjectPage: React.FC = () => {
     let cancelled = false;
     async function load() {
       if (!projectID) {
-        setError("No project selected.");
+        setError('No project selected.');
         return;
       }
       setLoading(true);
@@ -61,9 +51,7 @@ const ProjectPage: React.FC = () => {
         if (!cancelled) setProjectData(data);
       } catch (e) {
         if (!cancelled) {
-          setError(
-            e instanceof Error ? e.message : "Failed to load project data.",
-          );
+          setError(e instanceof Error ? e.message : 'Failed to load project data.');
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -76,7 +64,7 @@ const ProjectPage: React.FC = () => {
   }, [projectID]);
 
   function handleBackToAllProjects() {
-    navigate("/projects");
+    navigate('/projects');
   }
 
   function handleTabChange(_: React.SyntheticEvent, newValue: number) {
@@ -89,54 +77,50 @@ const ProjectPage: React.FC = () => {
     setSettingsTab(true);
   }
 
-  const title =
-    projectData?.projectName ||
-    (error ? "Error" : loading ? "Loading project..." : "Project");
+  const title = projectData?.projectName || (error ? 'Error' : loading ? 'Loading project...' : 'Project');
 
   return (
     <AppThemeProvider>
       <Box
         sx={{
-          display: "flex",
-          flexDirection: "column",
-          minHeight: "100vh",
-          width: "100%",
-          overflowX: "hidden",
-          backgroundColor: "#ffffff", // force white background
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100vh',
+          width: '100%',
+          overflowX: 'hidden',
+          backgroundColor: '#ffffff', // force white background
         }}
       >
         <Box
           sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            width: "100%",
-            backgroundColor: "#f5f5f5",
-            padding: "10px 20px",
-            boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+            backgroundColor: '#f5f5f5',
+            padding: '10px 20px',
+            boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
           }}
         >
           <Button
             startIcon={<ExitToAppIcon />}
             onClick={handleBackToAllProjects}
             sx={{
-              color: "#000000",
-              display: "flex",
-              alignItems: "center",
+              color: '#000000',
+              display: 'flex',
+              alignItems: 'center',
             }}
           >
-            <Box sx={{ display: "flex", alignItems: "center" }}>
-              Back to Projects
-            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>Back to Projects</Box>
           </Button>
-          <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center" }}>
+          <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center' }}>
             <Typography
               variant="h4"
               sx={{
-                display: "flex",
-                alignItems: "center",
-                color: "#000000",
-                textAlign: "center",
+                display: 'flex',
+                alignItems: 'center',
+                color: '#000000',
+                textAlign: 'center',
               }}
             >
               {title}
@@ -146,69 +130,53 @@ const ProjectPage: React.FC = () => {
 
         <Box
           sx={{
-            display: "flex",
-            flexDirection: "row",
+            display: 'flex',
+            flexDirection: 'row',
             flexGrow: 1,
-            width: "100%",
+            width: '100%',
           }}
         >
           <Box
             sx={{
               width: 260,
               flexShrink: 0,
-              backgroundColor: "#ffffff", // sidebar white
-              padding: "20px",
-              boxShadow: "2px 0 5px rgba(0, 0, 0, 0.1)",
-              display: "flex",
-              flexDirection: "column",
+              backgroundColor: '#ffffff', // sidebar white
+              padding: '20px',
+              boxShadow: '2px 0 5px rgba(0, 0, 0, 0.1)',
+              display: 'flex',
+              flexDirection: 'column',
               borderRight: (t) => `1px solid ${t.palette.divider}`,
             }}
           >
-            <Box sx={{ height: "50vh" }}>
+            <Box sx={{ height: '50vh' }}>
               <Tabs
                 orientation="vertical"
                 value={selectedTab}
                 onChange={handleTabChange}
                 sx={{
-                  height: "100%",
+                  height: '100%',
                   borderRight: 1,
-                  borderColor: "divider",
-                  color: "#000000",
-                  "& .MuiTabs-flexContainer": {
-                    flexDirection: "column",
-                    justifyContent: "space-between",
+                  borderColor: 'divider',
+                  color: '#000000',
+                  '& .MuiTabs-flexContainer': {
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
                   },
-                  "& .MuiTab-root": {
-                    color: "#000000",
-                    fontSize: "1.3rem",
-                    textTransform: "none",
-                    alignItems: "center",
-                    justifyContent: "flex-start",
+                  '& .MuiTab-root': {
+                    color: '#000000',
+                    fontSize: '1.3rem',
+                    textTransform: 'none',
+                    alignItems: 'center',
+                    justifyContent: 'flex-start',
                     minHeight: 56,
                   },
-                  "& .Mui-selected": { fontWeight: 700 },
+                  '& .Mui-selected': { fontWeight: 700 },
                 }}
               >
-                <Tab
-                  icon={<CloudUploadOutlined />}
-                  iconPosition="start"
-                  label="Upload"
-                />
-                <Tab
-                  icon={<GpsFixedOutlined />}
-                  iconPosition="start"
-                  label="Annotate"
-                />
-                <Tab
-                  icon={<BarChartOutlined />}
-                  iconPosition="start"
-                  label="Dataset"
-                />
-                <Tab
-                  icon={<IosShareOutlined />}
-                  iconPosition="start"
-                  label="Export"
-                />
+                <Tab icon={<CloudUploadOutlined />} iconPosition="start" label="Upload" />
+                <Tab icon={<GpsFixedOutlined />} iconPosition="start" label="Annotate" />
+                <Tab icon={<BarChartOutlined />} iconPosition="start" label="Dataset" />
+                <Tab icon={<IosShareOutlined />} iconPosition="start" label="Export" />
               </Tabs>
             </Box>
             <Divider sx={{ my: 2 }} />
@@ -218,60 +186,58 @@ const ProjectPage: React.FC = () => {
               label="Settings"
               onClick={handleSettingsClick}
               sx={{
-                textAlign: "left",
-                padding: "10px 16px",
+                textAlign: 'left',
+                padding: '10px 16px',
                 borderTop: 1,
-                borderColor: "divider",
-                mt: "auto",
-                color: "#000000",
-                fontSize: "1.3rem",
-                textTransform: "none",
-                justifyContent: "flex-start",
+                borderColor: 'divider',
+                mt: 'auto',
+                color: '#000000',
+                fontSize: '1.3rem',
+                textTransform: 'none',
+                justifyContent: 'flex-start',
               }}
             />
           </Box>
 
           <Box
             sx={{
-              display: "flex",
-              flexDirection: "column",
+              display: 'flex',
+              flexDirection: 'column',
               flexGrow: 1,
               p: 4,
-              overflow: "hidden",
-              alignItems: "stretch", // stretch so child fills width
+              overflow: 'hidden',
+              alignItems: 'stretch', // stretch so child fills width
             }}
           >
             {error && (
-              <Paper sx={{ p: 3, mb: 2, width: "100%" }} elevation={2}>
+              <Paper sx={{ p: 3, mb: 2, width: '100%' }} elevation={2}>
                 <Typography color="error">{error}</Typography>
               </Paper>
             )}
             <Paper
               elevation={3}
               sx={{
-                flex: "1 1 auto",
-                width: "100%",
+                flex: '1 1 auto',
+                width: '100%',
                 minWidth: 1000, // keep a stable wide layout
                 minHeight: 500,
                 px: 5,
                 py: 4,
-                display: "flex",
-                flexDirection: "column",
-                boxSizing: "border-box",
-                backgroundColor: "#ffffff", // ensure paper stays white
+                display: 'flex',
+                flexDirection: 'column',
+                boxSizing: 'border-box',
+                backgroundColor: '#ffffff', // ensure paper stays white
               }}
             >
               <Box
                 sx={{
                   flexGrow: 1,
-                  display: "flex",
-                  flexDirection: "column",
-                  width: "100%",
+                  display: 'flex',
+                  flexDirection: 'column',
+                  width: '100%',
                 }}
               >
-                {loading && !projectData && (
-                  <Typography variant="body1">Loading content...</Typography>
-                )}
+                {loading && !projectData && <Typography variant="body1">Loading content...</Typography>}
                 {!loading && !error && (
                   <>
                     {selectedTab === 0 && <UploadTab project={projectData} />}
@@ -291,10 +257,6 @@ const ProjectPage: React.FC = () => {
 };
 
 // Tab content (untyped now, since ProjectDetails removed)
-const AnnotateTab: React.FC<{ project: Project | null }> = ({ project }) => (
-  <Typography sx={{ color: "#000" }}>
-    Annotate assets for {project?.projectName}
-  </Typography>
-);
+const AnnotateTab: React.FC<{ project: Project | null }> = ({ project }) => <Typography sx={{ color: '#000' }}>Annotate assets for {project?.projectName}</Typography>;
 
 export default ProjectPage;

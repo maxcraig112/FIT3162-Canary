@@ -1,7 +1,7 @@
-import Cookies from "js-cookie";
+import Cookies from 'js-cookie';
 
 export function setCookie(name: string, value: string) {
-  Cookies.set(name, value, { path: "/" });
+  Cookies.set(name, value, { path: '/' });
 }
 
 export function getCookie(name: string): string | null {
@@ -9,13 +9,13 @@ export function getCookie(name: string): string | null {
 }
 
 export function clearCookie(name: string) {
-  Cookies.remove(name, { path: "/" });
+  Cookies.remove(name, { path: '/' });
 }
 
 export function getUserIDFromCookie(): string {
-  return getCookie("user_id") || "";
+  return getCookie('user_id') || '';
 }
 
 export function getAuthTokenFromCookie(): string {
-  return getCookie("auth_token") || "";
+  return getCookie('auth_token') || '';
 }

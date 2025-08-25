@@ -1,23 +1,23 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState } from 'react';
 
 export function useSettingsTab() {
   const [keypointLabels, setKeypointLabels] = useState<string[]>([]);
   const [bboxLabels, setBboxLabels] = useState<string[]>([]);
-  const [keypointInput, setKeypointInput] = useState("");
-  const [bboxInput, setBboxInput] = useState("");
+  const [keypointInput, setKeypointInput] = useState('');
+  const [bboxInput, setBboxInput] = useState('');
 
   const addKeypoint = useCallback(() => {
     const v = keypointInput.trim();
     if (!v) return;
     setKeypointLabels((prev) => (prev.includes(v) ? prev : [...prev, v]));
-    setKeypointInput("");
+    setKeypointInput('');
   }, [keypointInput]);
 
   const addBbox = useCallback(() => {
     const v = bboxInput.trim();
     if (!v) return;
     setBboxLabels((prev) => (prev.includes(v) ? prev : [...prev, v]));
-    setBboxInput("");
+    setBboxInput('');
   }, [bboxInput]);
 
   const deleteKeypoint = useCallback((val: string) => {
