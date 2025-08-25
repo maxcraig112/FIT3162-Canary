@@ -101,6 +101,21 @@ func (s *BatchStore) DeleteAllBatches(ctx context.Context, projectID string) err
 	return s.genericStore.DeleteDocsByQuery(ctx, queryParams)
 }
 
+func (s *BatchStore) GetBatch(ctx context.Context, batchID string) (*Batch, error) {
+	docSnap, err := s.genericStore.GetDoc(ctx, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	var b Batch
+	if err := docSnap.DataTo(&b); err != nil {
+		return nil, err
+	}
+
+	b.BatchID = docSnap.Ref.ID
+	return &b, nil
+}
+
 // Helper to list batch IDs by project (used by cascading operations)
 func (s *BatchStore) ListBatchIDsByProjectID(ctx context.Context, projectID string) ([]string, error) {
 	batches, err := s.GetBatchesByProjectID(ctx, projectID)
