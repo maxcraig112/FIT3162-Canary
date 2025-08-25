@@ -26,10 +26,12 @@ const AnnotatePage: React.FC = () => {
   const boxRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (boxRef.current && canvasRef.current) {
-      const { offsetWidth, offsetHeight } = boxRef.current;
-      canvasRef.current.width = offsetWidth;
-      canvasRef.current.height = offsetHeight;
+    const boxEl = boxRef.current as HTMLDivElement | null;
+    const canvasEl = canvasRef.current as HTMLCanvasElement | null;
+    if (boxEl && canvasEl) {
+      const { offsetWidth, offsetHeight } = boxEl;
+      canvasEl.width = offsetWidth;
+      canvasEl.height = offsetHeight;
     }
   }, []);
 

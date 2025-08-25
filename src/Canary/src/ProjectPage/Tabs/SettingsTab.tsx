@@ -12,6 +12,7 @@ import ListItemText from '@mui/material/ListItemText';
 import IconButton from '@mui/material/IconButton';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useSettingsTab } from './settingsTabHandler';
+import type { Project } from '../ProjectPage';
 
 type ListPanelProps = {
   title: string;
@@ -61,7 +62,8 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ title, inputValue, onI
   </Paper>
 ));
 
-export function SettingsTab() {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function SettingsTab({ project: _project }: { project: Project | null }) {
   const { keypointLabels, bboxLabels, keypointInput, bboxInput, setKeypointInput, setBboxInput, addKeypoint, addBbox, deleteKeypoint, deleteBbox } = useSettingsTab();
 
   return (
