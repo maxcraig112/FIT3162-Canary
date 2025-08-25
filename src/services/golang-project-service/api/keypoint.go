@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"pkg/handler"
 	"project-service/firestore"
@@ -80,7 +79,7 @@ func (h *KeypointHandler) CreateKeypointHandler(w http.ResponseWriter, r *http.R
 
 	w.WriteHeader(http.StatusCreated)
 	log.Info().Str("keypointID", id).Msg("Keypoint created successfully")
-	w.Write([]byte(fmt.Sprintf("Keypoint %s created", id)))
+	json.NewEncoder(w).Encode(map[string]string{"keypointID": id})
 }
 
 func (h *KeypointHandler) GetKeypointsByImageHandler(w http.ResponseWriter, r *http.Request) {

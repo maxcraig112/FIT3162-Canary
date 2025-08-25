@@ -75,9 +75,7 @@ func (s *GenericStore) ReadCollection(ctx context.Context, query []QueryParamete
 	if err != nil {
 		return nil, err
 	}
-	if len(docs) == 0 {
-		return nil, ErrNotFound
-	}
+
 	return docs, nil
 }
 
