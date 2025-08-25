@@ -1,24 +1,11 @@
-import React, { useEffect, useState } from "react";
-import {
-  Box,
-  Typography,
-  Toolbar,
-  AppBar,
-  Button,
-  TextField,
-  Paper,
-  IconButton,
-  InputAdornment,
-  Modal,
-  Menu,
-  MenuItem,
-} from "@mui/material";
-import Grid from "@mui/material/Grid";
-import SearchIcon from "@mui/icons-material/Search";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
-import * as projectHandler from "./projectHandler";
-import { useNavigate } from "react-router-dom";
-import { useAuthGuard } from "../utils/authUtil";
+import React, { useEffect, useState } from 'react';
+import { Box, Typography, Toolbar, AppBar, Button, TextField, Paper, IconButton, InputAdornment, Modal, Menu, MenuItem } from '@mui/material';
+import ExitToAppIcon from '@mui/icons-material/ExitToApp';
+import SearchIcon from '@mui/icons-material/Search';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import * as projectHandler from './projectHandler';
+import { useNavigate } from 'react-router-dom';
+import { useAuthGuard } from '../utils/authUtil';
 
 // Project type based on Go struct
 export interface Project {
@@ -37,16 +24,16 @@ const ProjectsPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [projects, setProjects] = useState<Project[]>([]);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
-  const [sortKey, setSortKey] = useState<keyof Project>("projectName");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [sortKey, setSortKey] = useState<keyof Project>('projectName');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [modalOpen, setModalOpen] = useState(false);
-  const [newProjectName, setNewProjectName] = useState("");
-  // Rename modal state
+  const [newProjectName, setNewProjectName] = useState('');
+  // Renacame modal state
   const [renameModalOpen, setRenameModalOpen] = useState(false);
   const [renameProjectId, setRenameProjectId] = useState<string | null>(null);
-  const [renameValue, setRenameValue] = useState("");
+  const [renameValue, setRenameValue] = useState('');
   // Delete confirm state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
@@ -68,33 +55,56 @@ const ProjectsPage: React.FC = () => {
     setFilteredProjects(result);
   }, [search, projects, sortKey, sortDirection]);
 
+  function handleBackToAllProjects() {
+    navigate('/home');
+  }
   function handleNewProject() {
     setModalOpen(true);
   }
 
   function handleCloseModal() {
     setModalOpen(false);
-    setNewProjectName("");
+    setNewProjectName('');
   }
+
+  const handleProjectClick = (projectID: string) => {
+    projectHandler.handleProjectPage(projectID, navigate);
+  };
 
   return (
     <Box
       sx={{
-        mx: "auto",
-        maxWidth: "80vw",
-        bgcolor: "#f5f5f5",
-        minHeight: "100vh",
-        minWidth: "fit-content",
+        width: '100%',
+        minHeight: '100vh',
+        bgcolor: '#f5f5f5',
       }}
     >
-      <AppBar position="static" color="default" elevation={1}>
-        <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-          <Typography variant="h4" sx={{ fontWeight: "bold" }}>
+      <AppBar position="static" color="default" elevation={3}>
+        <Toolbar
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            minHeight: 78,
+            px: 3,
+          }}
+        >
+          <Button
+            startIcon={<ExitToAppIcon sx={{ fontSize: 32 }} />}
+            onClick={handleBackToAllProjects}
+            sx={{
+              color: '#000000',
+              display: 'flex',
+              alignItems: 'center',
+              minWidth: 56,
+              minHeight: 56,
+              p: 1,
+            }}
+          ></Button>
+          <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
             Projects
           </Typography>
-          <Box
-            sx={{ display: "flex", alignItems: "center", flexGrow: 1, mx: 4 }}
-          >
+          <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1, mx: 4 }}>
             <TextField
               variant="outlined"
               placeholder="Search projects..."
@@ -114,28 +124,19 @@ const ProjectsPage: React.FC = () => {
               }}
             />
           </Box>
-          <Button
-            variant="contained"
-            color="primary"
-            sx={{ fontWeight: "bold" }}
-            onClick={handleNewProject}
-          >
+          <Button variant="contained" color="primary" sx={{ fontWeight: 'bold' }} onClick={handleNewProject}>
             New Project
           </Button>
         </Toolbar>
       </AppBar>
-      <Box sx={{ px: 4, py: 2 }}>
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+      <Box sx={{ px: '10%', py: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
           <TextField
             select
             label="Sort By"
             value={`${sortKey}-${sortDirection}`}
             onChange={(e) => {
-              projectHandler.handleSortChange(
-                e.target.value,
-                setSortKey,
-                setSortDirection,
-              );
+              projectHandler.handleSortChange(e.target.value, setSortKey, setSortDirection);
             }}
             size="small"
             variant="outlined"
@@ -152,33 +153,36 @@ const ProjectsPage: React.FC = () => {
             <option value="lastUpdated-asc">Last Updated (Oldest)</option>
           </TextField>
         </Box>
-        <Grid container spacing={3} justifyContent="center">
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            columnGap: '5%',
+            rowGap: '35%',
+          }}
+        >
           {filteredProjects.map((project) => (
-            <Grid
-              key={project.projectID}
-              sx={{ minHeight: "10vh", minWidth: "15vw" }}
-            >
+            <Box key={project.projectID} sx={{ minHeight: '10vh' }}>
               <Paper
-                elevation={3}
                 sx={{
                   p: 3,
-                  textAlign: "center",
-                  position: "relative",
+                  textAlign: 'center',
+                  position: 'relative',
                   minHeight: 180,
-                  cursor: "pointer",
-                  "&:hover": {
-                    elevation: 6,
-                    transform: "translateY(-2px)",
-                    transition: "all 0.2s ease-in-out",
+                  cursor: 'pointer',
+                  height: '100%',
+                  boxShadow: 8,
+                  transition: 'box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out',
+                  '&:hover': {
+                    boxShadow: 16,
+                    transform: 'translateY(-2px)',
                   },
                 }}
-                onClick={() =>
-                  projectHandler.handleProjectsPage(project.projectID, navigate)
-                }
+                onClick={() => handleProjectClick(project.projectID)}
               >
                 <IconButton
                   sx={{
-                    position: "absolute",
+                    position: 'absolute',
                     top: 8,
                     right: 8,
                     fontSize: 32,
@@ -202,12 +206,22 @@ const ProjectsPage: React.FC = () => {
                     setMenuProjectId(null);
                   }}
                   anchorOrigin={{
-                    vertical: "bottom",
-                    horizontal: "right",
+                    vertical: 'bottom',
+                    horizontal: 'right',
                   }}
                   transformOrigin={{
-                    vertical: "top",
-                    horizontal: "right",
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  slotProps={{
+                    paper: {
+                      sx: {
+                        bgcolor: '#fff',
+                        color: '#000',
+                        border: '1px solid #e0e0e0',
+                        boxShadow: 8,
+                      },
+                    },
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -235,58 +249,40 @@ const ProjectsPage: React.FC = () => {
                     Delete
                   </MenuItem>
                 </Menu>
-                <Typography variant="h5" sx={{ fontWeight: "bold", mb: 2 }}>
+                <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 2, fontSize: '1.6rem' }}>
                   {project.projectName}
                 </Typography>
-                <Box
-                  sx={{ position: "absolute", bottom: 16, left: 0, right: 0 }}
-                >
-                  <Typography variant="subtitle1" sx={{ fontWeight: "medium" }}>
+                <Box sx={{ position: 'absolute', bottom: 16, left: 0, right: 0 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'medium', fontSize: '1.2rem' }}>
                     {project.numberOfFiles} files
                   </Typography>
                 </Box>
               </Paper>
-            </Grid>
+            </Box>
           ))}
-        </Grid>
+        </Box>
       </Box>
 
       {/* Rename Project Modal */}
-      <Modal
-        open={renameModalOpen}
-        onClose={() => setRenameModalOpen(false)}
-        aria-labelledby="rename-project-modal-title"
-      >
+      <Modal open={renameModalOpen} onClose={() => setRenameModalOpen(false)} aria-labelledby="rename-project-modal-title">
         <Box
           sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
             width: 350,
-            bgcolor: "background.paper",
-            border: "2px solid #000",
+            bgcolor: 'background.paper',
+            border: '2px solid #000',
             boxShadow: 24,
             p: 3,
           }}
         >
-          <Typography
-            id="rename-project-modal-title"
-            variant="h6"
-            align="center"
-            sx={{ mb: 2 }}
-          >
+          <Typography id="rename-project-modal-title" variant="h6" align="center" sx={{ mb: 2 }}>
             Rename Project
           </Typography>
-          <TextField
-            label="New Project Name"
-            value={renameValue}
-            onChange={(e) => setRenameValue(e.target.value)}
-            fullWidth
-            autoFocus
-            sx={{ mb: 2 }}
-          />
-          <Box sx={{ display: "flex", gap: 2 }}>
+          <TextField label="New Project Name" value={renameValue} onChange={(e) => setRenameValue(e.target.value)} fullWidth autoFocus sx={{ mb: 2 }} />
+          <Box sx={{ display: 'flex', gap: 2 }}>
             <Button
               variant="contained"
               color="primary"
@@ -295,21 +291,15 @@ const ProjectsPage: React.FC = () => {
               onClick={async () => {
                 if (!renameProjectId) return;
                 try {
-                  await projectHandler.renameProject(
-                    renameProjectId,
-                    renameValue.trim(),
-                  );
+                  await projectHandler.renameProject(renameProjectId, renameValue.trim());
                   setRenameModalOpen(false);
                   setRenameProjectId(null);
-                  setRenameValue("");
+                  setRenameValue('');
                   // Refresh projects
                   const updatedProjects = await projectHandler.fetchProjects();
                   setProjects(updatedProjects);
                 } catch (error) {
-                  alert(
-                    (error instanceof Error ? error.message : error) ||
-                      "Failed to rename project",
-                  );
+                  alert((error instanceof Error ? error.message : error) || 'Failed to rename project');
                 }
               }}
             >
@@ -322,7 +312,7 @@ const ProjectsPage: React.FC = () => {
               onClick={() => {
                 setRenameModalOpen(false);
                 setRenameProjectId(null);
-                setRenameValue("");
+                setRenameValue('');
               }}
             >
               Cancel
@@ -332,37 +322,27 @@ const ProjectsPage: React.FC = () => {
       </Modal>
 
       {/* Delete Project Confirmation Dialog */}
-      <Modal
-        open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-        aria-labelledby="delete-project-modal-title"
-      >
+      <Modal open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} aria-labelledby="delete-project-modal-title">
         <Box
           sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
             width: 350,
-            bgcolor: "background.paper",
-            border: "2px solid #000",
+            bgcolor: 'background.paper',
+            border: '2px solid #000',
             boxShadow: 24,
             p: 3,
           }}
         >
-          <Typography
-            id="delete-project-modal-title"
-            variant="h6"
-            align="center"
-            sx={{ mb: 2 }}
-          >
+          <Typography id="delete-project-modal-title" variant="h6" align="center" sx={{ mb: 2 }}>
             Delete Project?
           </Typography>
-          <Typography align="center" sx={{ mb: 3, color: "text.primary" }}>
-            Are you sure you want to delete this project? This action cannot be
-            undone.
+          <Typography align="center" sx={{ mb: 3, color: 'text.primary' }}>
+            Are you sure you want to delete this project? This action cannot be undone.
           </Typography>
-          <Box sx={{ display: "flex", gap: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2 }}>
             <Button
               variant="contained"
               color="error"
@@ -377,10 +357,7 @@ const ProjectsPage: React.FC = () => {
                   const updatedProjects = await projectHandler.fetchProjects();
                   setProjects(updatedProjects);
                 } catch (error) {
-                  alert(
-                    (error instanceof Error ? error.message : error) ||
-                      "Failed to delete project",
-                  );
+                  alert((error instanceof Error ? error.message : error) || 'Failed to delete project');
                 }
               }}
             >
@@ -402,21 +379,16 @@ const ProjectsPage: React.FC = () => {
       </Modal>
 
       {/* New Project Modal */}
-      <Modal
-        open={modalOpen}
-        onClose={handleCloseModal}
-        aria-labelledby="project-modal-title"
-        aria-describedby="project-modal-description"
-      >
+      <Modal open={modalOpen} onClose={handleCloseModal} aria-labelledby="project-modal-title" aria-describedby="project-modal-description">
         <Box
           sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: "30vw",
-            bgcolor: "background.paper",
-            border: "2px solid #000",
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '30vw',
+            bgcolor: 'background.paper',
+            border: '2px solid #000',
             boxShadow: 24,
             p: 4,
           }}
@@ -425,7 +397,7 @@ const ProjectsPage: React.FC = () => {
             aria-label="close"
             onClick={handleCloseModal}
             sx={{
-              position: "absolute",
+              position: 'absolute',
               right: 8,
               top: 8,
               color: (theme) => theme.palette.grey[500],
@@ -433,44 +405,24 @@ const ProjectsPage: React.FC = () => {
           >
             ×
           </IconButton>
-          <Typography
-            id="project-modal-title"
-            variant="h5"
-            component="h2"
-            color="black"
-            align="center"
-            sx={{ mb: 2 }}
-          >
+          <Typography id="project-modal-title" variant="h5" component="h2" color="black" align="center" sx={{ mb: 2 }}>
             Create New Project
           </Typography>
-          <TextField
-            variant="outlined"
-            label="Project Name"
-            value={newProjectName}
-            onChange={(e) => setNewProjectName(e.target.value)}
-            size="medium"
-            fullWidth
-            sx={{ mb: 3 }}
-            autoFocus
-          />
+          <TextField variant="outlined" label="Project Name" value={newProjectName} onChange={(e) => setNewProjectName(e.target.value)} size="medium" fullWidth sx={{ mb: 3 }} autoFocus />
           <Button
             variant="contained"
             color="primary"
             fullWidth
             onClick={async () => {
               try {
-                const message =
-                  await projectHandler.handleNewProject(newProjectName);
-                console.log("Project created successfully:", message);
+                const message = await projectHandler.handleNewProject(newProjectName);
+                console.log('Project created successfully:', message);
                 handleCloseModal();
                 // Refresh the projects list
                 const updatedProjects = await projectHandler.fetchProjects();
                 setProjects(updatedProjects);
               } catch (error) {
-                const errorMessage =
-                  error instanceof Error
-                    ? error.message
-                    : "Failed to create project";
+                const errorMessage = error instanceof Error ? error.message : 'Failed to create project';
                 alert(errorMessage);
               }
             }}

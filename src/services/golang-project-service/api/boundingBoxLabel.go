@@ -13,13 +13,16 @@ import (
 
 type BoundingBoxLabelHandler struct {
 	*handler.Handler
-	BoundingBoxLabelStore *firestore.BoundingBoxLabelStore
+	// These are embedded fields so you don't need to call .Stores to get the inner fields
+	Stores
+	Buckets
 }
 
 func newBoundingBoxLabelHandler(h *handler.Handler) *BoundingBoxLabelHandler {
 	return &BoundingBoxLabelHandler{
-		Handler:               h,
-		BoundingBoxLabelStore: firestore.NewBoundingBoxLabelStore(h.Clients.Firestore),
+		Handler: h,
+		Stores:  InitialiseStores(h),
+		Buckets: InitialiseBuckets(h),
 	}
 }
 

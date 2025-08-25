@@ -75,9 +75,7 @@ func (s *GenericStore) ReadCollection(ctx context.Context, query []QueryParamete
 	if err != nil {
 		return nil, err
 	}
-	if len(docs) == 0 {
-		return nil, ErrNotFound
-	}
+
 	return docs, nil
 }
 
@@ -125,6 +123,27 @@ func (s *GenericStore) DeleteDocByQuery(ctx context.Context, query []QueryParame
 	}
 	_, err = docs[0].Ref.Delete(ctx)
 	return err
+}
+
+func (s *GenericStore) DeleteDocsByQuery(ctx context.Context, query []QueryParameter) error {
+	docs, err := s.ReadCollection(ctx, query)
+	if err != nil {
+		return err
+	}
+	if len(docs) == 0 {
+		return ErrNotFound
+	}
+
+	bulkWriter := s.client.BulkWriter(ctx)
+	for _, doc := range docs {
+		_, err := bulkWriter.Delete(doc.Ref)
+		if err != nil {
+			bulkWriter.End()
+			return err
+		}
+	}
+	bulkWriter.End()
+	return nil
 }
 
 func (s *GenericStore) UpdateDoc(ctx context.Context, docID string, updateParams []firestore.Update) error {
