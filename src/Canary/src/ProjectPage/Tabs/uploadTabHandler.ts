@@ -30,50 +30,50 @@ export function useUploadTab(project: Project | null) {
     return { batchID, batchName: finalName };
   }, []);
 
-const beginUpload = useCallback(
-  async (files: FileList | File[]) => {
-    const list = Array.from(files).filter((f) => /^(image|video)\//i.test(f.type || ''));
-    if (!list.length) {
-      setError('No image or video files selected.');
-      return;
-    }
-    if (!project?.projectID) {
-      setError('Project not loaded yet.');
-      return;
-    }
+  const beginUpload = useCallback(
+    async (files: FileList | File[]) => {
+      const list = Array.from(files).filter((f) => /^(image|video)\//i.test(f.type || ''));
+      if (!list.length) {
+        setError('No image or video files selected.');
+        return;
+      }
+      if (!project?.projectID) {
+        setError('Project not loaded yet.');
+        return;
+      }
 
-    setUploading(true);
-    setError(null);
-    setMessage(null);
+      setUploading(true);
+      setError(null);
+      setMessage(null);
 
-    try {
-      const { batchID, batchName: finalBatchName } = await createBatch(project.projectID, batchName);
-      const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
-      const url = `${baseUrl}/batch/${encodeURIComponent(batchID)}/images`;
+      try {
+        const { batchID, batchName: finalBatchName } = await createBatch(project.projectID, batchName);
+        const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
+        const url = `${baseUrl}/batch/${encodeURIComponent(batchID)}/images`;
 
-      const formData = new FormData();
-      list.forEach(f => {
-        if (/^image\//i.test(f.type)) formData.append('images', f, f.name);
-        else if (/^video\//i.test(f.type)) formData.append('videos', f, f.name);
-      });
+        const formData = new FormData();
+        list.forEach((f) => {
+          if (/^image\//i.test(f.type)) formData.append('images', f, f.name);
+          else if (/^video\//i.test(f.type)) formData.append('videos', f, f.name);
+        });
 
-      await CallAPI<string>(url, {
-        method: 'POST',
-        body: formData,
-        parseJson: false,
-      });
+        await CallAPI<string>(url, {
+          method: 'POST',
+          body: formData,
+          parseJson: false,
+        });
 
-      const imageCount = list.filter(f => /^image\//i.test(f.type)).length;
-      const videoCount = list.filter(f => /^video\//i.test(f.type)).length;
-      setMessage(`Uploaded ${imageCount} image${imageCount !== 1 ? 's' : ''} and ${videoCount} video${videoCount !== 1 ? 's' : ''} to batch "${finalBatchName}" (${batchID}).`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to upload files.');
-    } finally {
-      setUploading(false);
-    }
-  },
-  [batchName, createBatch, project?.projectID],
-);
+        const imageCount = list.filter((f) => /^image\//i.test(f.type)).length;
+        const videoCount = list.filter((f) => /^video\//i.test(f.type)).length;
+        setMessage(`Uploaded ${imageCount} image${imageCount !== 1 ? 's' : ''} and ${videoCount} video${videoCount !== 1 ? 's' : ''} to batch "${finalBatchName}" (${batchID}).`);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to upload files.');
+      } finally {
+        setUploading(false);
+      }
+    },
+    [batchName, createBatch, project?.projectID],
+  );
 
   const handleFilesSelected = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
