@@ -99,10 +99,10 @@ export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
             }}
           >
             <Typography variant="h5" sx={{ mb: 2, fontWeight: 600, color: '#111' }}>
-              {project ? `Upload images to "${project.projectName}"` : 'Loading project...'}
+              {project ? `Upload images/videos to "${project.projectName}"` : 'Loading project...'}
             </Typography>
             <Typography variant="body1" sx={{ maxWidth: 480, color: '#444', mb: 2 }}>
-              Drag & drop images here or click to select from your computer.
+              Drag & drop images/videos here or click to select from your computer.
             </Typography>
 
             <Button
@@ -129,7 +129,7 @@ export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
                 },
               }}
             >
-              {uploading ? 'Uploading...' : 'Select Images'}
+              {uploading ? 'Uploading...' : 'Select Images/Videos'}
             </Button>
 
             {uploading && (
@@ -141,7 +141,7 @@ export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
               </Box>
             )}
 
-            <input ref={inputRef} type="file" accept="image/*" multiple hidden onChange={handleFilesSelected} />
+            <input ref={inputRef} type="file" accept="image/*,video/*" multiple hidden onChange={handleFilesSelected} />
           </Box>
         </Fade>
 

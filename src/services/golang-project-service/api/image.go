@@ -1,17 +1,32 @@
 package api
 
 import (
+	"bytes"
+	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
+	"mime/multipart"
 	"net/http"
+	"os"
+	"path/filepath"
 	"pkg/gcp/bucket"
 	"pkg/handler"
 	"strings"
+	"time"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
+	ffmpeg "github.com/u2takey/ffmpeg-go"
 )
+
+// custom error for no media found
+var ErrNoMediaFound = errors.New("no media found")
+
+func ErrOpeningFile(filename string) error {
+	return fmt.Errorf("error opening file: %s", filename)
+}
 
 type ImageHandler struct {
 	*handler.Handler
@@ -34,7 +49,7 @@ func RegisterImageRoutes(r *mux.Router, h *handler.Handler) {
 	routes := []Route{
 		// Get all images from a batch
 		{"GET", "/batch/{batchID}/images", ih.LoadImagesHandler},
-		// Upload images
+		// Upload images/video
 		{"POST", "/batch/{batchID}/images", ih.UploadImagesHandler},
 		// Delete all images from a batch
 		{"DELETE", "/batch/{batchID}/images", ih.DeleteImagesHandler},
@@ -85,13 +100,6 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	files := r.MultipartForm.File["images"]
-	if len(files) == 0 {
-		http.Error(w, "No images uploaded", http.StatusBadRequest)
-		log.Error().Msg("No images uploaded in UploadImagesHandler")
-		return
-	}
-
 	vars := mux.Vars(r)
 	batchID := vars["batchID"]
 	if batchID == "" {
@@ -100,47 +108,230 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	objects := make(bucket.ObjectMap, len(files))
+	noImagesUploaded := false
+	imageObjects, err := generateImageData(batchID, r.MultipartForm)
+	if err == ErrNoMediaFound {
+		noImagesUploaded = true
+	} else if err != nil {
+		http.Error(w, "Failed to generate image data", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to generate image data in UploadImagesHandler")
+		return
+	}
+	// Upload the images to google bucket
 
-	for _, fileHeader := range files {
-		file, err := fileHeader.Open()
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Could not open file %s", fileHeader.Filename), http.StatusInternalServerError)
-			log.Error().Err(err).Str("filename", fileHeader.Filename).Msg("Could not open uploaded file")
-			return
-		}
-		defer file.Close()
-
-		// Construct object key, e.g. batchID/filename.png
-		sanitisedFileName := strings.ReplaceAll(fileHeader.Filename, " ", "_")
-		objectName := fmt.Sprintf("%s/%s-%s", batchID, sanitisedFileName, uuid.New().String())
-		// Assign io.Reader to ObjectMap
-		objects[objectName] = file
+	videoFrameObjects, cleanupVideo, err := generateVideoData(batchID, r.MultipartForm)
+	// Ensure any temp files/dirs from video processing are cleaned up at the very end of this handler
+	if cleanupVideo != nil {
+		defer cleanupVideo()
+	}
+	if err == ErrNoMediaFound && noImagesUploaded {
+		http.Error(w, "No images or videos found in the request", http.StatusBadRequest)
+		log.Error().Msg("No images or videos found in the request for UploadImagesHandler")
+		return
+	} else if err != nil && err != ErrNoMediaFound {
+		http.Error(w, "Failed to generate video data", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to generate video data in UploadImagesHandler")
+		return
 	}
 
-	// Upload the images to google bucket
 	var imageData map[string]string
-	if imageData, err = h.ImageBucket.CreateImages(ctx, batchID, objects); err != nil {
+	imgUpStart := time.Now()
+	if imageData, err = h.ImageBucket.CreateImages(ctx, batchID, imageObjects); err != nil {
 		http.Error(w, "Failed to upload images", http.StatusInternalServerError)
 		log.Error().Err(err).Str("batchID", batchID).Msg("Failed to upload images to bucket")
 		return
 	}
+	log.Info().
+		Str("batchID", batchID).
+		Int("count", len(imageData)).
+		Dur("took", time.Since(imgUpStart)).
+		Msg("Uploaded images to bucket")
 
 	// Once the images have been uploaded, we now want to create the image metadata in firestore
+	imgMetaStart := time.Now()
 	if err := h.ImageStore.CreateImageMetadata(ctx, batchID, imageData); err != nil {
 		http.Error(w, "Failed to create image metadata", http.StatusInternalServerError)
 		log.Error().Err(err).Str("batchID", batchID).Msg("Failed to create image metadata in Firestore")
 		return
 	}
+	log.Info().
+		Str("batchID", batchID).
+		Int("count", len(imageData)).
+		Dur("took", time.Since(imgMetaStart)).
+		Msg("Created image metadata in Firestore")
 
-	w.Header().Set("Content-Type", "application/json")
+	var videoData map[string]string
+	vidUpStart := time.Now()
+	if videoData, err = h.ImageBucket.CreateImages(ctx, batchID, videoFrameObjects); err != nil {
+		http.Error(w, "Failed to upload videos", http.StatusInternalServerError)
+		log.Error().Err(err).Str("batchID", batchID).Msg("Failed to upload videos to bucket")
+		return
+	}
+	log.Info().
+		Str("batchID", batchID).
+		Int("count", len(videoData)).
+		Dur("took", time.Since(vidUpStart)).
+		Msg("Uploaded video frames to bucket")
+
+	// Once the videos have been uploaded, we now want to create the video metadata in firestore
+	vidMetaStart := time.Now()
+	if err := h.ImageStore.CreateImageMetadata(ctx, batchID, videoData); err != nil {
+		http.Error(w, "Failed to create video metadata", http.StatusInternalServerError)
+		log.Error().Err(err).Str("batchID", batchID).Msg("Failed to create video metadata in Firestore")
+		return
+	}
+	log.Info().
+		Str("batchID", batchID).
+		Int("count", len(videoData)).
+		Dur("took", time.Since(vidMetaStart)).
+		Msg("Created video metadata in Firestore")
 	w.WriteHeader(http.StatusOK)
-	log.Info().Str("batchID", batchID).Int("numImages", len(files)).Msg("Images uploaded and metadata created successfully")
-	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"batchID":  batchID,
-		"uploaded": len(files),
-		"message":  "Images uploaded successfully",
-	})
+	log.Info().Str("batchID", batchID).Int("numImages", len(imageData)+len(videoData)).Msg("Images and videos uploaded and metadata created successfully")
+	w.Write([]byte("Images and videos uploaded successfully"))
+}
+
+func generateImageData(batchID string, form *multipart.Form) (bucket.ObjectMap, error) {
+	files := form.File["images"]
+	if len(files) == 0 {
+		return nil, ErrNoMediaFound
+	}
+
+	objects := make(bucket.ObjectMap, len(files))
+
+	for _, fileHeader := range files {
+		file, err := fileHeader.Open()
+		if err != nil {
+			return nil, ErrOpeningFile(fileHeader.Filename)
+		}
+		defer file.Close()
+
+		uuid := GenerateUUID()
+		// Construct object key, e.g. batchID/filename.png
+		objectName := fmt.Sprintf("%s/%s_%s", batchID, fileHeader.Filename, uuid)
+		// Assign io.Reader to ObjectMap
+		objects[objectName] = file
+	}
+
+	return objects, nil
+
+}
+
+func generateVideoData(batchID string, form *multipart.Form) (bucket.ObjectMap, func(), error) {
+	files := form.File["videos"]
+	if len(files) == 0 {
+		return nil, nil, ErrNoMediaFound
+	}
+
+	objects := make(bucket.ObjectMap)
+	// Track resources for cleanup outside this function
+	var closers []io.Closer
+	var tempDirs []string
+	var tempVideoPaths []string
+	cleanup := func() {
+		for _, c := range closers {
+			_ = c.Close()
+		}
+		for _, p := range tempVideoPaths {
+			_ = os.Remove(p)
+		}
+		for _, d := range tempDirs {
+			_ = os.RemoveAll(d)
+		}
+	}
+
+	for _, fileHeader := range files {
+		// Validate .mp4 extension
+		if !strings.HasSuffix(strings.ToLower(fileHeader.Filename), ".mp4") {
+			return nil, cleanup, fmt.Errorf("file %s is not an .mp4", fileHeader.Filename)
+		}
+
+		file, err := fileHeader.Open()
+		if err != nil {
+			return nil, cleanup, ErrOpeningFile(fileHeader.Filename)
+		}
+		// Defer file close via cleanup to ensure readers remain valid until upload finishes
+		closers = append(closers, file)
+
+		// Read the entire video into memory
+		var videoBuf bytes.Buffer
+		if _, err := io.Copy(&videoBuf, file); err != nil {
+			return nil, cleanup, fmt.Errorf("failed to read video into memory: %w", err)
+		}
+
+		// make a temporary directory where ffmpeg will save the frames
+		dname, err := os.MkdirTemp("", fmt.Sprintf("frames_%s_*", batchID))
+		if err != nil {
+			return nil, cleanup, fmt.Errorf("failed to create temporary directory for frames: %w", err)
+		}
+
+		log.Info().Str("tempDir", dname).Msg("Temporary directory created for video frames")
+		tempDirs = append(tempDirs, dname)
+
+		// Write the uploaded video to a temporary file to avoid stdin/pipe issues on Windows
+		tmpVid, err := os.CreateTemp(dname, "video_*.mp4")
+		if err != nil {
+			return nil, cleanup, fmt.Errorf("failed to create temp video file: %w", err)
+		}
+		if _, err := io.Copy(tmpVid, bytes.NewReader(videoBuf.Bytes())); err != nil {
+			_ = tmpVid.Close()
+			return nil, cleanup, fmt.Errorf("failed to write temp video file: %w", err)
+		}
+		if err := tmpVid.Close(); err != nil {
+			return nil, cleanup, fmt.Errorf("failed to close temp video file: %w", err)
+		}
+		videoPath := tmpVid.Name()
+		tempVideoPaths = append(tempVideoPaths, videoPath)
+
+		// Save frames as PNG files in the temporary directory using ffmpeg
+		outPattern := filepath.Join(dname, "frame_%04d.png")
+		err = ffmpeg.Input(videoPath).
+			Output(outPattern, ffmpeg.KwArgs{
+				"vsync": "0",
+				"f":     "image2",
+			}).
+			OverWriteOutput().
+			Run()
+		if err != nil {
+			return nil, cleanup, fmt.Errorf("failed to extract frames using ffmpeg-go: %w", err)
+		}
+
+		// Read all PNG files from the temp directory and add to objects
+		files, err := os.ReadDir(dname)
+		if err != nil {
+			return nil, cleanup, fmt.Errorf("failed to read frames directory: %w", err)
+		}
+
+		uuid := GenerateUUID()
+		for i, f := range files {
+			if !strings.HasSuffix(f.Name(), ".png") {
+				continue
+			}
+			framePath := filepath.Join(dname, f.Name())
+			frameFile, err := os.Open(framePath)
+			if err != nil {
+				return nil, cleanup, fmt.Errorf("failed to open frame file: %w", err)
+			}
+			// Keep these open for upload; close in cleanup
+			closers = append(closers, frameFile)
+			frameName := fmt.Sprintf("%s/%s_/%s_frame_%04d.png", batchID, uuid, fileHeader.Filename, i+1)
+			objects[frameName] = frameFile
+		}
+		if err != nil {
+			return nil, cleanup, fmt.Errorf("failed to extract frames using ffmpeg-go: %w", err)
+		}
+	}
+
+	return objects, cleanup, nil
+}
+
+func GenerateUUID() string {
+	const chars = "0123456789abcdef"
+	b := make([]byte, 8)
+	rand.Read(b)
+	for i := range b {
+		b[i] = chars[b[i]%16]
+	}
+	return string(b)
 }
 
 func (h *ImageHandler) DeleteImagesHandler(w http.ResponseWriter, r *http.Request) {
