@@ -12,7 +12,6 @@ import ListItemText from '@mui/material/ListItemText';
 import IconButton from '@mui/material/IconButton';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useSettingsTab } from './settingsTabHandler';
-import type { Project } from '../ProjectPage';
 
 type ListPanelProps = {
   title: string;
@@ -62,7 +61,7 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ title, inputValue, onI
   </Paper>
 ));
 
-export function SettingsTab({ project }: { project: Project | null }) {
+export function SettingsTab() {
   const { keypointLabels, bboxLabels, keypointInput, bboxInput, setKeypointInput, setBboxInput, addKeypoint, addBbox, deleteKeypoint, deleteBbox } = useSettingsTab();
 
   return (
@@ -99,7 +98,7 @@ export function SettingsTab({ project }: { project: Project | null }) {
           </Typography>
           <br />
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Typography variant="body3" sx={{ textAlign: 'center' }}>
+            <Typography variant="body1" sx={{ textAlign: 'center' }}>
               Sessions allow you to cross-collaborate with multiple users on the same project, allowing them to upload, annotate and export images.
               <br />
               <br />
@@ -171,7 +170,7 @@ export function SettingsTab({ project }: { project: Project | null }) {
           </Typography>
           <br />
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Typography variant="body3" sx={{ color: '#000', textAlign: 'center' }}>
+            <Typography variant="body1" sx={{ color: '#000', textAlign: 'center' }}>
               KeyPoints are used to identify specific points of interest within an image. Labels configured below are shared across all images within this project.
               <br />
               <br />
@@ -208,7 +207,7 @@ export function SettingsTab({ project }: { project: Project | null }) {
           </Typography>
           <br />
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Typography variant="body3" sx={{ color: '#000', textAlign: 'center' }}>
+            <Typography variant="body1" sx={{ color: '#000', textAlign: 'center' }}>
               BoundingBoxes are used to identify specific areas of interest within an image, defined by a rectangle area. In the annotate page, they are defined as two points (the top right and bottom
               left of the desired area).
               <br />

@@ -23,7 +23,7 @@ const AnnotatePage: React.FC = () => {
   const [labelValue, setLabelValue] = useState('');
   const textInputRef = useRef<HTMLInputElement | null>(null);
 
-  const boxRef = useRef(null);
+  const boxRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (boxRef.current && canvasRef.current) {
@@ -154,7 +154,8 @@ const AnnotatePage: React.FC = () => {
 
         {/* Canvas */}
         <Box sx={{ flexGrow: 1, position: 'relative', p: 2 }} ref={boxRef}>
-          <canvas ref={canvasRef} width={boxRef.current?.offsetWidth} height={boxRef.current?.offsetHeight} style={{ width: '100%', height: '100%' }} />
+          {/* Width/height are set programmatically in useEffect to match container; rely on style for initial sizing */}
+          <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
           {labelPrompt.open && (
             <Paper
               elevation={3}
