@@ -157,6 +157,60 @@ export const boundingBoxHandler = {
     void annotation.addToDatabase();
     return { group, annotation };
   },
+
+  async getAllBoundingBoxes(projectID?: string, imageID?: string) {
+    const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
+    const token = getAuthTokenFromCookie();
+    const url = `${baseUrl}/projects/${projectID}/images/${imageID}/boundingboxes`;
+
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Failed to fetch bounding boxes for image ${imageID}: ${res.status} ${res.statusText} - ${text}`);
+    }
+
+    const raw = await res.json();
+    const arr: unknown[] = Array.isArray(raw) ? raw : Array.isArray((raw as { items?: unknown[] })?.items) ? (raw as { items: unknown[] }).items : [];
+    const normalized: BoundingBoxAnnotation[] = arr
+      .map((it) => {
+        const item = it as Record<string, unknown>;
+        const id = (item.boundingBoxID ?? item.id) as string | undefined;
+        const labelID = (item.boundingBoxLabelID ?? '') as string | undefined;
+        const label = getBoundingBoxLabelName(labelID) ?? (item.boundingBoxLabel as string) ?? (item.label as string) ?? '';
+        const box = item.box as { x?: unknown; y?: unknown; width?: unknown; height?: unknown } | undefined;
+        const x = typeof box?.x === 'number' ? (box.x as number) : undefined;
+        const y = typeof box?.y === 'number' ? (box.y as number) : undefined;
+        const w = typeof box?.width === 'number' ? (box.width as number) : undefined;
+        const h = typeof box?.height === 'number' ? (box.height as number) : undefined;
+        if (x == null || y == null || w == null || h == null) return null;
+        const points = [
+          { x: x, y: y },
+          { x: x + w, y: y },
+          { x: x + w, y: y + h },
+          { x: x, y: y + h },
+        ];
+        const bb: BoundingBoxAnnotation = {
+          id,
+          label,
+          labelID,
+          points,
+          projectID,
+          imageID,
+          addToDatabase() {
+            /* no-op for loaded objects */
+          },
+        };
+        return bb;
+      })
+      .filter((v): v is BoundingBoxAnnotation => Boolean(v));
+    return normalized;
+  },
 };
 
 export function createBoundingBox(label: string, points: Array<{ x: number; y: number }>): BoundingBoxAnnotation {

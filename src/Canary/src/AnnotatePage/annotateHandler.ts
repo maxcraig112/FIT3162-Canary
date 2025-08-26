@@ -253,9 +253,13 @@ export const annotateHandler = {
           const kind: 'kp' | 'bb' = mapped?.kind ?? (hasPolygon ? 'bb' : 'kp');
           const textObj = children.find((o) => (o as unknown as { type?: string }).type === 'text') as fabric.Text | undefined;
           const currentLabel = textObj?.text ?? '';
-          pendingEdit = { group, kind };
-          labelRequestSubs.forEach((cb) => cb({ kind, x: p.x, y: p.y, mode: 'edit', currentLabel }));
-          return;
+          // Only allow editing when the active tool matches the annotation kind
+          const toolMatches = (currentTool === 'kp' && kind === 'kp') || (currentTool === 'bb' && kind === 'bb');
+          if (toolMatches) {
+            pendingEdit = { group, kind };
+            labelRequestSubs.forEach((cb) => cb({ kind, x: p.x, y: p.y, mode: 'edit', currentLabel }));
+            return;
+          }
         }
       }
       if (currentTool === 'kp') {
@@ -346,7 +350,21 @@ export const annotateHandler = {
       }
     }
 
-  // TODO: optionally load bounding boxes to display if backend has any
+    // Load bounding boxes for this image if not already cached
+    if (currentImageKey && (!annotationStore.has(currentImageKey) || (annotationStore.get(currentImageKey)?.bbs.length ?? 0) === 0)) {
+      try {
+        const bbs = await boundingBoxHandler.getAllBoundingBoxes(projectID, currentImageID ?? undefined);
+        const s = annotationStore.get(currentImageKey) ?? { kps: [], bbs: [] };
+        for (const bb of bbs) {
+          bb.projectID = bb.projectID ?? projectID;
+          bb.imageID = bb.imageID ?? currentImageID ?? undefined;
+          s.bbs.push(bb);
+        }
+        annotationStore.set(currentImageKey, s);
+      } catch (e) {
+        console.error('[BB] Failed to fetch existing bounding boxes:', e);
+      }
+    }
 
     // Try in-memory cache first
     const img = await getFabricImage(imageURL);
