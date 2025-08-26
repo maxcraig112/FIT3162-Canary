@@ -41,7 +41,7 @@ func (s *BoundingBoxLabelStore) GetBoundingBoxLabelsByProjectID(ctx context.Cont
 	queryParams := []fs.QueryParameter{
 		{Path: "projectID", Op: "==", Value: projectID},
 	}
-	docs, err := s.genericStore.ReadCollection(ctx, queryParams)
+ 	docs, err := s.genericStore.ReadCollection(ctx, queryParams)
 	if err != nil {
 		return nil, err
 	}

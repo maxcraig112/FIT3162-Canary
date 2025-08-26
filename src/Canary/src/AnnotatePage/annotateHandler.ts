@@ -6,6 +6,7 @@ import { fabricBBColour } from './constants';
 import type { KeypointAnnotation, BoundingBoxAnnotation } from './constants';
 import { keypointHandler } from './keypointHandler.ts';
 import { boundingBoxHandler, polygonCentroid } from './boundingBoxHandler.ts';
+import { loadProjectLabels } from './labelLoader.ts';
 import { loadImageURL, nextImage, prevImage, setCurrentImageNumber, getCurrentImageNumber, getTotalImageCount, getFabricImage } from './imageStateHandler.ts';
 
 // Fabric image instances come from imageStateHandler now
@@ -131,7 +132,7 @@ export const annotateHandler = {
             void keypointHandler.renameKeyPoint(meta.ann as KeypointAnnotation, label);
           } else {
             console.log('[BB] Renamed:', { label, group });
-            void boundingBoxHandler.renameBoundingBox(meta.ann as BoundingBoxAnnotation, label, projectID);
+            void boundingBoxHandler.renameBoundingBox(meta.ann as BoundingBoxAnnotation, label);
           }
         }
         canvasRef.requestRenderAll();
@@ -252,9 +253,13 @@ export const annotateHandler = {
           const kind: 'kp' | 'bb' = mapped?.kind ?? (hasPolygon ? 'bb' : 'kp');
           const textObj = children.find((o) => (o as unknown as { type?: string }).type === 'text') as fabric.Text | undefined;
           const currentLabel = textObj?.text ?? '';
-          pendingEdit = { group, kind };
-          labelRequestSubs.forEach((cb) => cb({ kind, x: p.x, y: p.y, mode: 'edit', currentLabel }));
-          return;
+          // Only allow editing when the active tool matches the annotation kind
+          const toolMatches = (currentTool === 'kp' && kind === 'kp') || (currentTool === 'bb' && kind === 'bb');
+          if (toolMatches) {
+            pendingEdit = { group, kind };
+            labelRequestSubs.forEach((cb) => cb({ kind, x: p.x, y: p.y, mode: 'edit', currentLabel }));
+            return;
+          }
         }
       }
       if (currentTool === 'kp') {
@@ -322,6 +327,9 @@ export const annotateHandler = {
     currentImageKey = imageURL;
     currentImageID = imageID ?? null;
 
+    // Ensure labels are loaded for this project before rendering annotations
+    await loadProjectLabels(projectID);
+
     // Clear existing annotation groups before drawing the new image
     clearAnnotationGroups();
 
@@ -339,6 +347,22 @@ export const annotateHandler = {
         annotationStore.set(currentImageKey, s);
       } catch (e) {
         console.error('[KP] Failed to fetch existing keypoints:', e);
+      }
+    }
+
+    // Load bounding boxes for this image if not already cached
+    if (currentImageKey && (!annotationStore.has(currentImageKey) || (annotationStore.get(currentImageKey)?.bbs.length ?? 0) === 0)) {
+      try {
+        const bbs = await boundingBoxHandler.getAllBoundingBoxes(projectID, currentImageID ?? undefined);
+        const s = annotationStore.get(currentImageKey) ?? { kps: [], bbs: [] };
+        for (const bb of bbs) {
+          bb.projectID = bb.projectID ?? projectID;
+          bb.imageID = bb.imageID ?? currentImageID ?? undefined;
+          s.bbs.push(bb);
+        }
+        annotationStore.set(currentImageKey, s);
+      } catch (e) {
+        console.error('[BB] Failed to fetch existing bounding boxes:', e);
       }
     }
 

@@ -51,7 +51,7 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ title, inputValue, onI
         <ListItem key={it} sx={{ pr: 1 }}>
           <ListItemText primary={it} primaryTypographyProps={{ color: '#000' }} />
           <Box sx={{ ml: 'auto' }}>
-            <IconButton edge="end" aria-label={`delete ${it}`} onClick={() => onDelete(it)}>
+            <IconButton edge="end" aria-label={`delete ${it}`} onClick={() => onDelete(it)} sx={{ color: '#000' }}>
               <DeleteOutlineIcon />
             </IconButton>
           </Box>
@@ -62,9 +62,9 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ title, inputValue, onI
   </Paper>
 ));
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function SettingsTab({ project: _project }: { project: Project | null }) {
-  const { keypointLabels, bboxLabels, keypointInput, bboxInput, setKeypointInput, setBboxInput, addKeypoint, addBbox, deleteKeypoint, deleteBbox } = useSettingsTab();
+  const projectID = _project?.projectID;
+  const { keypointLabels, bboxLabels, keypointInput, bboxInput, setKeypointInput, setBboxInput, addKeypoint, addBbox, deleteKeypoint, deleteBbox } = useSettingsTab(projectID);
 
   return (
     <Box

@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, AppBar, Toolbar, Typography, ToggleButtonGroup, ToggleButton, Paper, IconButton, TextField, Button } from '@mui/material';
+import { Box, AppBar, Toolbar, Typography, ToggleButtonGroup, ToggleButton, Paper, IconButton, Button, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { MyLocation, SelectAll, NotInterested, KeyboardArrowLeft, KeyboardArrowRight } from '@mui/icons-material';
 import { annotateHandler } from './annotateHandler';
 import { useSearchParams } from 'react-router-dom';
+import { getBoundingBoxLabelNames, getKeypointLabelNames } from './labelRegistry';
+import { loadProjectLabels } from './labelLoader';
 import { useAuthGuard } from '../utils/authUtil';
 
 const AnnotatePage: React.FC = () => {
@@ -21,7 +23,8 @@ const AnnotatePage: React.FC = () => {
     mode?: 'create' | 'edit';
   }>({ open: false, kind: null, x: 0, y: 0, mode: 'create' });
   const [labelValue, setLabelValue] = useState('');
-  const textInputRef = useRef<HTMLInputElement | null>(null);
+  const [kpOptions, setKpOptions] = useState<string[]>([]);
+  const [bbOptions, setBbOptions] = useState<string[]>([]);
 
   const boxRef = useRef<HTMLDivElement | null>(null);
 
@@ -67,10 +70,25 @@ const AnnotatePage: React.FC = () => {
     else annotateHandler.setTool(null);
   }, [selectedTool]);
 
+  // Load labels when projectID changes
+  useEffect(() => {
+    const projectID = searchParams.get('projectID') || undefined;
+    (async () => {
+      await loadProjectLabels(projectID || undefined);
+      setKpOptions(getKeypointLabelNames());
+      setBbOptions(getBoundingBoxLabelNames());
+    })();
+  }, [searchParams]);
+
   // Subscribe to label requests from handler
   useEffect(() => {
     const unsub = annotateHandler.subscribeLabelRequests((req) => {
-      setLabelValue(req.currentLabel ?? '');
+      // if we already have a value, keep it; otherwise default to first option of relevant list
+      const opts = req.kind === 'kp' ? getKeypointLabelNames() : getBoundingBoxLabelNames();
+      setKpOptions(getKeypointLabelNames());
+      setBbOptions(getBoundingBoxLabelNames());
+      const initial = req.currentLabel && opts.includes(req.currentLabel) ? req.currentLabel : opts[0] || '';
+      setLabelValue(initial);
       setLabelPrompt({
         open: true,
         kind: req.kind === 'kp' ? 'kp' : 'bb',
@@ -84,16 +102,11 @@ const AnnotatePage: React.FC = () => {
     };
   }, []);
 
-  // Global Backspace/Delete handling when modal is open but input isn't focused
+  // Global Backspace/Delete handling when modal is open
   useEffect(() => {
     if (!labelPrompt.open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Backspace' && e.key !== 'Delete') return;
-      const active = document.activeElement as Element | null;
-      if (active && textInputRef.current && active === textInputRef.current) {
-        // Let the input handle text deletion
-        return;
-      }
       // Only delete existing annotation labels during edit mode
       if (labelPrompt.mode === 'edit') {
         e.preventDefault();
@@ -171,48 +184,29 @@ const AnnotatePage: React.FC = () => {
                 gap: 1,
               }}
             >
-              <TextField
-                size="small"
-                autoFocus
-                placeholder={labelPrompt.kind === 'kp' ? 'Keypoint label' : 'Box label'}
-                value={labelValue}
-                inputRef={textInputRef}
-                sx={{ width: 220, minWidth: 220, flexShrink: 0 }}
-                onChange={(e) => setLabelValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    if (labelValue.trim()) {
-                      const projectID = searchParams.get('projectID') || undefined;
-                      annotateHandler.confirmLabel(labelValue.trim(), projectID);
-                    } else {
-                      annotateHandler.cancelLabel();
-                    }
-                    setLabelPrompt({
-                      open: false,
-                      kind: null,
-                      x: 0,
-                      y: 0,
-                      mode: 'create',
-                    });
-                  } else if (e.key === 'Escape') {
-                    annotateHandler.cancelLabel();
-                    setLabelPrompt({
-                      open: false,
-                      kind: null,
-                      x: 0,
-                      y: 0,
-                      mode: 'create',
-                    });
-                  }
-                }}
-              />
+              <FormControl size="small" sx={{ minWidth: 220 }}>
+                <InputLabel id="label-select">{labelPrompt.kind === 'kp' ? 'Keypoint label' : 'Box label'}</InputLabel>
+                <Select
+                  labelId="label-select"
+                  label={labelPrompt.kind === 'kp' ? 'Keypoint label' : 'Box label'}
+                  autoFocus
+                  value={labelValue}
+                  onChange={(e) => setLabelValue(e.target.value as string)}
+                >
+                  {(labelPrompt.kind === 'kp' ? kpOptions : bbOptions).map((opt) => (
+                    <MenuItem key={opt} value={opt}>
+                      {opt}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
               <Button
                 variant="contained"
                 size="small"
                 onClick={() => {
-                  if (labelValue.trim()) {
+                  if (labelValue) {
                     const projectID = searchParams.get('projectID') || undefined;
-                    annotateHandler.confirmLabel(labelValue.trim(), projectID);
+                    annotateHandler.confirmLabel(labelValue, projectID);
                   } else {
                     annotateHandler.cancelLabel();
                   }
@@ -252,61 +246,47 @@ const AnnotatePage: React.FC = () => {
       <Paper
         elevation={2}
         sx={{
-          width: '80px',
+          width: '120px',
           p: 1,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
           gap: 2,
         }}
       >
-        <ToggleButtonGroup orientation="vertical" value={selectedTool} exclusive onChange={handleToolChange} aria-label="tool selection">
-          <ToggleButton value="kp" aria-label="keypoint">
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-              }}
-            >
-              <MyLocation />
-              <Typography variant="caption">KP</Typography>
+        <ToggleButtonGroup orientation="vertical" value={selectedTool} exclusive onChange={handleToolChange} aria-label="tool selection" sx={{ alignItems: 'center', gap: 2 }}>
+          <ToggleButton value="kp" aria-label="keypoint" sx={{ width: 100, height: 100, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <MyLocation fontSize="large" />
+              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                KP
+              </Typography>
             </Box>
           </ToggleButton>
-          <ToggleButton value="bb" aria-label="bounding-box">
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-              }}
-            >
-              <SelectAll />
-              <Typography variant="caption">BB</Typography>
+          <ToggleButton value="bb" aria-label="bounding-box" sx={{ width: 100, height: 100, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <SelectAll fontSize="large" />
+              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                BB
+              </Typography>
             </Box>
           </ToggleButton>
-          <ToggleButton value="kp-null" aria-label="null-keypoint">
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-              }}
-            >
-              <NotInterested />
-              <Typography variant="caption">KP</Typography>
+          <ToggleButton value="kp-null" aria-label="null-keypoint" sx={{ width: 100, height: 100, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <NotInterested fontSize="large" />
+              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                KP
+              </Typography>
             </Box>
           </ToggleButton>
-          <ToggleButton value="bb-null" aria-label="null-bounding-box">
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-              }}
-            >
-              <NotInterested />
-              <Typography variant="caption">BB</Typography>
+          <ToggleButton value="bb-null" aria-label="null-bounding-box" sx={{ width: 100, height: 100, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <NotInterested fontSize="large" />
+              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                BB
+              </Typography>
             </Box>
           </ToggleButton>
         </ToggleButtonGroup>
