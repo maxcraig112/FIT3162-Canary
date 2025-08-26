@@ -113,6 +113,7 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 		},
 	}
 	cocoJSON["images"] = []map[string]interface{}{}
+
 	cocoJSON["annotations"] = []map[string]interface{}{}
 
 	current_annotation_idx := 0
@@ -140,6 +141,7 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 			return
 		}
 
+		// update coco json with image and image bbox
 		cocoJSON["images"] = append(cocoJSON["images"].([]map[string]interface{}), map[string]interface{}{
 			"id":            i,
 			"license":       1,
@@ -158,6 +160,18 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 		}
 
 		for _, bbox := range bbox {
+			// get keypoints from bounding box
+			keypoints_export := []float64{}
+			keypoints, err := h.KeypointStore.GetKeypointsByBoundingBoxID(h.Ctx, bbox.BoundingBoxID)
+			if err != nil {
+				http.Error(w, "Error getting keypoints", http.StatusInternalServerError)
+				log.Error().Err(err).Str("projectID", projectID).Str("imageID", img.ImageID).Str("boundingBoxID", bbox.BoundingBoxID).Msg("Failed to get keypoints")
+				return
+			}
+			for _, k := range keypoints {
+				keypoints_export = append(keypoints_export, k.Position.X, k.Position.Y, 2)
+			}
+
 			cocoJSON["annotations"] = append(cocoJSON["annotations"].([]map[string]interface{}), map[string]interface{}{
 				"id":           current_annotation_idx,
 				"image_id":     i,
@@ -165,12 +179,14 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 				"bbox":         []float64{bbox.Box.X, bbox.Box.Y, bbox.Box.Width, bbox.Box.Height},
 				"area":         bbox.Box.Width * bbox.Box.Height,
 				"segmentation": [][]float64{},
+				"keypoints":    keypoints_export,
 				"iscrowd":      0,
 			})
 			current_annotation_idx++
 		}
 	}
-	// After processing all images + annotations
+
+	// save json to zip
 	cocoBytes, err := json.MarshalIndent(cocoJSON, "", "  ")
 	if err != nil {
 		http.Error(w, "Error marshaling COCO JSON", http.StatusInternalServerError)
@@ -178,7 +194,6 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	// Create a new file in the zip
 	fw, err := zipWriter.Create("images/train/_annotations.coco.json")
 	if err != nil {
 		http.Error(w, "Error creating coco JSON in zip", http.StatusInternalServerError)
@@ -186,7 +201,6 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	// Write the JSON bytes to the file
 	_, err = fw.Write(cocoBytes)
 	if err != nil {
 		http.Error(w, "Error writing coco JSON to zip", http.StatusInternalServerError)
