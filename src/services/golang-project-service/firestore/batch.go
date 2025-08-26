@@ -25,11 +25,16 @@ type Batch struct {
 	ProjectID              string `firestore:"projectID,omitempty" json:"projectID"`
 	NumberOfTotalFiles     int    `firestore:"numberOfTotalFiles,omitempty" json:"numberOfTotalFiles"`
 	NumberOfAnnotatedFiles int    `firestore:"numberOfAnnotatedFiles,omitempty" json:"numberOfAnnotatedFiles"`
+	IsComplete             bool   `firestore:"isComplete,omitempty" json:"isComplete"`
 }
 
 type CreateBatchRequest struct {
 	ProjectID string `json:"projectID"`
 	BatchName string `json:"batchName"`
+}
+
+type UpdateIsCompleteRequest struct {
+	IsComplete bool `json:"isComplete"`
 }
 
 type RenameBatchRequest struct {
@@ -75,6 +80,7 @@ func (s *BatchStore) CreateBatch(ctx context.Context, createBatchReq CreateBatch
 		"lastUpdated":            time.Now(),
 		"numberOfTotalFiles":     0,
 		"numberOfAnnotatedFiles": 0,
+		"isComplete":             false,
 	}
 
 	return s.genericStore.CreateDoc(ctx, batchData)
@@ -85,6 +91,14 @@ func (s *BatchStore) RenameBatch(ctx context.Context, batchID string, renameBatc
 	updateParams := []firestore.Update{
 		{Path: "batchName", Value: renameBatchReq.NewBatchName},
 		{Path: "lastUpdated", Value: time.Now()},
+	}
+
+	return s.genericStore.UpdateDoc(ctx, batchID, updateParams)
+}
+
+func (s *BatchStore) UpdateIsComplete(ctx context.Context, batchID string, isCompleteReq UpdateIsCompleteRequest) error {
+	updateParams := []firestore.Update{
+		{Path: "IsComplete", Value: isCompleteReq.IsComplete},
 	}
 
 	return s.genericStore.UpdateDoc(ctx, batchID, updateParams)

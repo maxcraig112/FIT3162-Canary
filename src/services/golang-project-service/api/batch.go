@@ -45,6 +45,8 @@ func RegisterBatchRoutes(r *mux.Router, h *handler.Handler) {
 		{"PATCH", "/batch/{batchID}/numberofTotalFiles", bh.UpdateNumberOfTotalFilesHandler},
 		// Increment numberOfAnnotatedFiles
 		{"PATCH", "/batch/{batchID}/numberofAnnotatedFiles", bh.UpdateNumberOfAnnotatedFilesHandler},
+
+		{"PATCH", "/batch/{batchID}/complete", bh.UpdateIsCompleteHandler},
 	}
 
 	for _, rt := range routes {
@@ -279,5 +281,33 @@ func (h *BatchHandler) UpdateNumberOfAnnotatedFilesHandler(w http.ResponseWriter
 		"batchID":                batchID,
 		"numberOfAnnotatedFiles": newVal,
 		"message":                "Updated numberOfAnnotatedFiles",
+	})
+}
+
+func (h *BatchHandler) UpdateIsCompleteHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	batchID := vars["batchID"]
+
+	var req firestore.UpdateIsCompleteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		log.Error().Err(err).Str("batchID", batchID).Msg("Invalid update is complete request")
+		return
+	}
+
+	err := h.BatchStore.UpdateIsComplete(h.Ctx, batchID, req)
+	if err != nil {
+		http.Error(w, "Error updating is complete", http.StatusInternalServerError)
+		log.Error().Err(err).Str("batchID", batchID).Msg("Error updating is complete")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	log.Info().Str("batchID", batchID).Bool("isComplete", req.IsComplete).Msg("Updated isComplete successfully")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"batchID":    batchID,
+		"isComplete": req.IsComplete,
+		"message":    "Updated isComplete",
 	})
 }
