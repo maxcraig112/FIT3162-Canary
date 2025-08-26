@@ -18,7 +18,7 @@ export interface Project {
   projectID: string;
   projectName: string;
   userID: string;
-  numberOfFiles: number;
+  numberOfBatches: number;
   lastUpdated: string;
   settings?: unknown;
 }

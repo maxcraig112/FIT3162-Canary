@@ -101,8 +101,8 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
                 </IconButton>
 
                 {/* header counts */}
-                <Typography variant="subtitle2" sx={{ position: 'absolute', top: 12, left: 16 }}>
-                  {b.numberOfAnnotatedFiles}/{b.numberOfTotalFiles}
+                <Typography variant="subtitle1" sx={{ position: 'absolute', top: 12, left: 16 }}>
+                  {b.numberOfTotalFiles} {b.numberOfTotalFiles === 1 ? "image" : "images"}
                 </Typography>
 
                 {/* centered bold name */}

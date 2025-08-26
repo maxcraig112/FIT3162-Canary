@@ -68,6 +68,13 @@ func (s *ImageStore) GetImagesByBatchID(ctx context.Context, batchID string) ([]
 	return images, nil
 }
 
+func (s *ImageStore) GetTotalImageCountByBatchID(ctx context.Context, batchID string) (int64, error) {
+	queryParams := []fs.QueryParameter{
+		{Path: "batchID", Op: "==", Value: batchID},
+	}
+	return s.genericStore.GetAggregationWithQuery(ctx, queryParams, fs.Count)
+}
+
 func (s *ImageStore) CreateImageMetadata(ctx context.Context, batchID string, imageInfo map[string]string) error {
 	var batch []interface{}
 	for imageName, imageURL := range imageInfo {

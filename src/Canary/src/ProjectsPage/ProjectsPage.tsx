@@ -12,7 +12,7 @@ export interface Project {
   projectID: string;
   projectName: string;
   userID: string;
-  numberOfFiles: number;
+  numberOfBatches: number;
   lastUpdated: string;
   settings?: unknown;
 }
@@ -254,7 +254,7 @@ const ProjectsPage: React.FC = () => {
                 </Typography>
                 <Box sx={{ position: 'absolute', bottom: 16, left: 0, right: 0 }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 'medium', fontSize: '1.2rem' }}>
-                    {project.numberOfFiles} files
+                    {project.numberOfBatches} {project.numberOfBatches === 1 ? "batch" : "batches"}
                   </Typography>
                 </Box>
               </Paper>
