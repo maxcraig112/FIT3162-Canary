@@ -21,6 +21,7 @@ type Project struct {
 	NumberOfFiles int             `firestore:"numberOfFiles,omitempty" json:"numberOfFiles"`
 	LastUpdated   time.Time       `firestore:"lastUpdated,omitempty" json:"lastUpdated"`
 	Settings      ProjectSettings `firestore:"settings,omitempty" json:"settings"`
+	DatasetID     string          `firestore:"datasets,omitempty" json:"datasetID"`
 }
 
 type ProjectSettings struct {
@@ -35,6 +36,7 @@ type TagLabels struct {
 type CreateProjectRequest struct {
 	UserID      string `json:"userID"`
 	ProjectName string `json:"projectName"`
+	DatasetID   string `json:"datasetID"`
 }
 
 type RenameProjectRequest struct {
@@ -97,6 +99,7 @@ func (s *ProjectStore) CreateProject(ctx context.Context, createProjectReq Creat
 	project := Project{
 		ProjectName:   createProjectReq.ProjectName,
 		UserID:        createProjectReq.UserID,
+		DatasetID:     createProjectReq.DatasetID,
 		NumberOfFiles: 0,
 		LastUpdated:   time.Now(),
 	}
@@ -163,4 +166,17 @@ func (s *ProjectStore) UpdateProjectSettings(ctx context.Context, projectID stri
 	}
 
 	return &p.Settings, nil
+}
+
+func (s *ProjectStore) UpdateProjectDataset(ctx context.Context, projectID string, datasetID string) error {
+	updateParams := []firestore.Update{
+		{Path: "datasetID", Value: datasetID},
+	}
+
+	err := s.genericStore.UpdateDoc(ctx, projectID, updateParams)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

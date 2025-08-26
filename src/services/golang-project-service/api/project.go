@@ -90,17 +90,35 @@ func (h *ProjectHandler) LoadProjectsHandler(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *ProjectHandler) CreateProjectHandler(w http.ResponseWriter, r *http.Request) {
-	var req firestore.CreateProjectRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	var createProjectreq firestore.CreateProjectRequest
+	if err := json.NewDecoder(r.Body).Decode(&createProjectreq); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		log.Error().Err(err).Msg("Invalid create project request")
 		return
 	}
 
-	projectID, err := h.ProjectStore.CreateProject(h.Ctx, req)
+	projectID, err := h.ProjectStore.CreateProject(h.Ctx, createProjectreq)
 	if err != nil {
 		http.Error(w, "Error creating project", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Error creating project")
+		return
+	}
+
+	var createBatchReq firestore.CreateBatchRequest
+	createBatchReq.ProjectID = projectID
+	createBatchReq.BatchName = fmt.Sprintf("%s dataset", projectID)
+
+	batchID, err := h.BatchStore.CreateBatch(h.Ctx, createBatchReq)
+	if err != nil {
+		http.Error(w, "Error creating batch", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Error creating dataset batch")
+		return
+	}
+
+	err = h.ProjectStore.UpdateProjectDataset(h.Ctx, projectID, batchID)
+	if err != nil {
+		http.Error(w, "Error updating project dataset", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Error updating project dataset")
 		return
 	}
 
