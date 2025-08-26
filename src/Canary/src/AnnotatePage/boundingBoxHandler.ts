@@ -1,7 +1,8 @@
 import * as fabric from 'fabric';
 import { fabricBBPolygonProps, fabricBBProps, fabricGroupProps, fabricBBMarkerProps } from './constants';
 import type { BoundingBoxAnnotation } from './constants';
-// import { getAuthTokenFromCookie } from "../utils/cookieUtils";
+import { getAuthTokenFromCookie } from '../utils/cookieUtils';
+import { getBoundingBoxLabelIdByName, getBoundingBoxLabelName } from './labelRegistry';
 
 export function polygonCentroid(pts: Array<{ x: number; y: number }>) {
   let area = 0,
@@ -23,26 +24,58 @@ export function polygonCentroid(pts: Array<{ x: number; y: number }>) {
 export const boundingBoxHandler = {
   // Render a persisted bounding box as a group
   renderAnnotation(ann: BoundingBoxAnnotation): { group: fabric.Group } {
-    const poly = new fabric.Polygon(ann.points, fabricBBPolygonProps);
+  const poly = new fabric.Polygon(ann.points, fabricBBPolygonProps);
     const c = polygonCentroid(ann.points);
-    const text = new fabric.FabricText(ann.label, fabricBBProps({ x: c.x, y: c.y }));
+  const labelText = ann.label || getBoundingBoxLabelName(ann.labelID) || '';
+  const text = new fabric.FabricText(labelText, fabricBBProps({ x: c.x, y: c.y }));
     const group = new fabric.Group([poly, text], fabricGroupProps);
     return { group };
   },
   // Dummy API: rename an existing bounding box label (no-op for now)
-  async renameBoundingBox(ann: BoundingBoxAnnotation, newLabel: string, projectID?: string): Promise<void> {
-    // TODO: implement backend PATCH when API is available
-    void ann;
-    void newLabel;
-    void projectID;
-    return;
+  async renameBoundingBox(ann: BoundingBoxAnnotation, newLabel: string): Promise<void> {
+    if (!ann.projectID || !ann.id) return;
+    const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
+    const token = getAuthTokenFromCookie();
+    const url = `${baseUrl}/projects/${ann.projectID}/boundingboxes/${ann.id}`;
+    const xs = ann.points.map((p) => p.x);
+    const ys = ann.points.map((p) => p.y);
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+    const maxX = Math.max(...xs);
+    const maxY = Math.max(...ys);
+    const body = {
+      box: { x: minX, y: minY, width: maxX - minX, height: maxY - minY },
+      boundingBoxLabelID: getBoundingBoxLabelIdByName(newLabel) ?? newLabel,
+    };
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      console.error(`Failed to rename bounding box ${ann.id}: ${res.status} ${res.statusText} - ${text}`);
+    }
   },
   // Dummy API: delete an existing bounding box (no-op for now)
-  async deleteBoundingBox(ann: BoundingBoxAnnotation, projectID?: string): Promise<void> {
-    // TODO: implement backend DELETE when API is available
-    void ann;
-    void projectID;
-    return;
+  async deleteBoundingBox(ann: BoundingBoxAnnotation): Promise<void> {
+    if (!ann.projectID || !ann.id) return;
+    const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
+    const token = getAuthTokenFromCookie();
+    const url = `${baseUrl}/projects/${ann.projectID}/boundingboxes/${ann.id}`;
+    const res = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      console.error(`Failed to delete bounding box ${ann.id}: ${res.status} ${res.statusText} - ${text}`);
+    }
   },
   // Create a temporary point marker during rectangle creation
   createPointMarker(x: number, y: number): fabric.Circle {
@@ -87,12 +120,38 @@ export const boundingBoxHandler = {
     const group = new fabric.Group([polygon, text], fabricGroupProps);
     const annotation: BoundingBoxAnnotation = {
       label,
+      labelID: getBoundingBoxLabelIdByName(label) ?? label,
       points,
+      projectID,
+      imageID,
       async addToDatabase() {
-        // TODO: implement persistence using projectID
-        // Likely endpoint (tbd): POST /projects/{projectID}/images/{imageID}/boxes
-        void projectID;
-        void imageID;
+        const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
+        const token = getAuthTokenFromCookie();
+        if (!projectID || !imageID) return;
+        const xs = points.map((p) => p.x);
+        const ys = points.map((p) => p.y);
+        const minX = Math.min(...xs);
+        const minY = Math.min(...ys);
+        const maxX = Math.max(...xs);
+        const maxY = Math.max(...ys);
+        const body = {
+          box: { x: minX, y: minY, width: maxX - minX, height: maxY - minY },
+          boundingBoxLabelID: getBoundingBoxLabelIdByName(label) ?? label,
+        };
+        const url = `${baseUrl}/projects/${projectID}/images/${imageID}/boundingboxes`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const t = await res.text();
+          throw new Error(`Failed to create bounding box: ${res.status} ${res.statusText} - ${t}`);
+        }
+        // Firestore create returns text; ignore ID for now unless API changes to JSON
       },
     };
     void annotation.addToDatabase();

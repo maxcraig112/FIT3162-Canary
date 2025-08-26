@@ -6,6 +6,7 @@ import { fabricBBColour } from './constants';
 import type { KeypointAnnotation, BoundingBoxAnnotation } from './constants';
 import { keypointHandler } from './keypointHandler.ts';
 import { boundingBoxHandler, polygonCentroid } from './boundingBoxHandler.ts';
+import { loadProjectLabels } from './labelLoader.ts';
 import { loadImageURL, nextImage, prevImage, setCurrentImageNumber, getCurrentImageNumber, getTotalImageCount, getFabricImage } from './imageStateHandler.ts';
 
 // Fabric image instances come from imageStateHandler now
@@ -131,7 +132,7 @@ export const annotateHandler = {
             void keypointHandler.renameKeyPoint(meta.ann as KeypointAnnotation, label);
           } else {
             console.log('[BB] Renamed:', { label, group });
-            void boundingBoxHandler.renameBoundingBox(meta.ann as BoundingBoxAnnotation, label, projectID);
+            void boundingBoxHandler.renameBoundingBox(meta.ann as BoundingBoxAnnotation, label);
           }
         }
         canvasRef.requestRenderAll();
@@ -322,10 +323,13 @@ export const annotateHandler = {
     currentImageKey = imageURL;
     currentImageID = imageID ?? null;
 
+  // Ensure labels are loaded for this project before rendering annotations
+  await loadProjectLabels(projectID);
+
     // Clear existing annotation groups before drawing the new image
     clearAnnotationGroups();
 
-    // On first load for this image, fetch existing keypoints from backend
+  // On first load for this image, fetch existing keypoints from backend
     if (currentImageKey && (!annotationStore.has(currentImageKey) || (annotationStore.get(currentImageKey)?.kps.length ?? 0) === 0)) {
       try {
         const kps = await keypointHandler.getAllKeyPoints(projectID, currentImageID ?? undefined);
@@ -341,6 +345,8 @@ export const annotateHandler = {
         console.error('[KP] Failed to fetch existing keypoints:', e);
       }
     }
+
+  // TODO: optionally load bounding boxes to display if backend has any
 
     // Try in-memory cache first
     const img = await getFabricImage(imageURL);

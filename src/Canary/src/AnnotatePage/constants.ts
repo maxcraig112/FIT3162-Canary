@@ -6,6 +6,8 @@ export interface KeypointAnnotation {
   imageID?: string;
   id?: string;
   label: string;
+  // unique ID of the selected label (for backend requests)
+  labelID?: string;
   // single point kept as array for shape consistency
   points: Array<{ x: number; y: number }>;
 }
@@ -15,6 +17,8 @@ export interface BoundingBoxAnnotation {
   imageID?: string;
   id?: string;
   label: string;
+  // unique ID of the selected label (for backend requests)
+  labelID?: string;
   // rectangle represented as 4 points clockwise, starting top-left
   points: Array<{ x: number; y: number }>;
   addToDatabase(): Promise<void> | void;
