@@ -29,12 +29,13 @@ type Buckets struct {
 
 func InitialiseStores(h *handler.Handler) Stores {
 	return Stores{
-		ProjectStore:       firestore.NewProjectStore(h.Clients.Firestore),
-		BatchStore:         firestore.NewBatchStore(h.Clients.Firestore),
-		ImageStore:         firestore.NewImageStore(h.Clients.Firestore),
-		KeypointStore:      firestore.NewKeypointStore(h.Clients.Firestore),
-		KeypointLabelStore: firestore.NewKeypointLabelStore(h.Clients.Firestore),
-		BoundingBoxStore:   firestore.NewBoundingBoxStore(h.Clients.Firestore),
+		ProjectStore:          firestore.NewProjectStore(h.Clients.Firestore),
+		BatchStore:            firestore.NewBatchStore(h.Clients.Firestore),
+		ImageStore:            firestore.NewImageStore(h.Clients.Firestore),
+		KeypointStore:         firestore.NewKeypointStore(h.Clients.Firestore),
+		KeypointLabelStore:    firestore.NewKeypointLabelStore(h.Clients.Firestore),
+		BoundingBoxStore:      firestore.NewBoundingBoxStore(h.Clients.Firestore),
+		BoundingBoxLabelStore: firestore.NewBoundingBoxLabelStore(h.Clients.Firestore),
 	}
 }
 
