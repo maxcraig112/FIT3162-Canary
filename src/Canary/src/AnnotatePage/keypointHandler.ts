@@ -2,6 +2,7 @@ import * as fabric from 'fabric';
 import { fabricGroupProps, fabricKPMarkerProps, fabricKPProps } from './constants';
 import type { KeypointAnnotation } from './constants';
 import { getAuthTokenFromCookie } from '../utils/cookieUtils';
+import { getKeypointLabelIdByName, getKeypointLabelName } from './labelRegistry';
 
 export const keypointHandler = {
   // Render a persisted keypoint annotation as a Fabric group
@@ -10,7 +11,9 @@ export const keypointHandler = {
     const src = ann as KeypointAnnotation & { position?: { x: number; y: number } };
     const p = (Array.isArray(src.points) && src.points.length > 0 ? src.points[0] : src.position) ?? { x: 0, y: 0 };
     const marker = new fabric.Circle(fabricKPMarkerProps({ x: p.x, y: p.y }));
-    const text = new fabric.FabricText(ann.label, fabricKPProps({ x: p.x, y: p.y }));
+  // If only have ID, try to resolve name; else fallback to provided label
+  const labelText = ann.label || getKeypointLabelName(ann.labelID) || '';
+  const text = new fabric.FabricText(labelText, fabricKPProps({ x: p.x, y: p.y }));
     const group = new fabric.Group([marker, text], fabricGroupProps);
     return { group };
   },
@@ -21,7 +24,8 @@ export const keypointHandler = {
 
   // Adds a KeyPoints to the database
   async createdKeyPoint(label: string, x: number, y: number, projectID?: string, imageID?: string): Promise<KeypointAnnotation> {
-    const kp: KeypointAnnotation = { label, points: [{ x, y }] };
+    const labelID = getKeypointLabelIdByName(label) ?? label; // allow raw ID
+    const kp: KeypointAnnotation = { label, labelID, points: [{ x, y }] };
 
     kp.projectID = projectID;
     kp.imageID = imageID;
@@ -32,7 +36,7 @@ export const keypointHandler = {
 
     const requestBody = {
       position: { x, y },
-      keypointLabelID: label,
+      keypointLabelID: labelID,
     };
 
     const res = await fetch(url, {
@@ -73,7 +77,7 @@ export const keypointHandler = {
     const p = ann.points[0] ?? { x: 0, y: 0 };
     const body = {
       position: { x: p.x, y: p.y },
-      keypointLabelID: newLabel, // TODO: map text -> label ID
+      keypointLabelID: getKeypointLabelIdByName(newLabel) ?? newLabel,
     };
     const res = await fetch(url, {
       method: 'PATCH',
@@ -113,7 +117,7 @@ export const keypointHandler = {
     const text = new fabric.FabricText(label, fabricKPProps({ x, y }));
     marker.set({ ...fabricKPMarkerProps({ x, y }) });
     const group = new fabric.Group([marker, text], fabricGroupProps);
-    const annotation = await keypointHandler.createdKeyPoint(label, x, y, projectID, imageID);
+  const annotation = await keypointHandler.createdKeyPoint(label, x, y, projectID, imageID);
     return { group, annotation };
   },
 
@@ -140,7 +144,8 @@ export const keypointHandler = {
       .map((it) => {
         const item = it as Record<string, unknown>;
         const id = (item.keypointID ?? item.id) as string | undefined;
-        const label = (item.keypointLabelID ?? item.keypointLabel ?? item.label ?? '') as string;
+        const labelID = (item.keypointLabelID ?? '') as string | undefined;
+        const label = getKeypointLabelName(labelID) ?? (item.keypointLabel as string) ?? (item.label as string) ?? '';
         const pos = item.position as { x?: unknown; y?: unknown } | undefined;
         const x = typeof pos?.x === 'number' ? (pos.x as number) : undefined;
         const y = typeof pos?.y === 'number' ? (pos.y as number) : undefined;
@@ -148,6 +153,7 @@ export const keypointHandler = {
         const kp: KeypointAnnotation = {
           id,
           label,
+          labelID,
           points: [{ x, y }],
           projectID,
           imageID,
