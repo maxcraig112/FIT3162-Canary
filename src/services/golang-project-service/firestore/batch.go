@@ -98,7 +98,7 @@ func (s *BatchStore) RenameBatch(ctx context.Context, batchID string, renameBatc
 
 func (s *BatchStore) UpdateIsComplete(ctx context.Context, batchID string, isCompleteReq UpdateIsCompleteRequest) error {
 	updateParams := []firestore.Update{
-		{Path: "IsComplete", Value: isCompleteReq.IsComplete},
+		{Path: "isComplete", Value: isCompleteReq.IsComplete},
 	}
 
 	return s.genericStore.UpdateDoc(ctx, batchID, updateParams)

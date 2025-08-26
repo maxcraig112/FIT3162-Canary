@@ -3,6 +3,7 @@ package bucket
 import (
 	"context"
 	"fmt"
+	"io"
 	"pkg/gcp/bucket"
 )
 
@@ -29,4 +30,12 @@ func (b *ImageBucket) DeleteImage(ctx context.Context, batchID string, imageName
 
 func (b *ImageBucket) DeleteImagesByBatchID(ctx context.Context, batchID string) error {
 	return b.genericBucket.DeleteObjectsByPrefix(ctx, batchID)
+}
+
+func (b *ImageBucket) DownloadImage(ctx context.Context, imageName string) ([]byte, error) {
+	return b.genericBucket.GetObject(ctx, imageName)
+}
+
+func (b *ImageBucket) StreamImage(ctx context.Context, imageName string) (io.ReadCloser, error) {
+	return b.genericBucket.StreamObject(ctx, imageName)
 }
