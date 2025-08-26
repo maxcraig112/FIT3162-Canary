@@ -87,7 +87,7 @@ function normalizeBatch(raw: unknown): Batch {
   };
 }
 
-export function useDatasetTab(projectID?: string) {
+export function useBatchesTab(projectID?: string) {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
