@@ -246,61 +246,39 @@ const AnnotatePage: React.FC = () => {
       <Paper
         elevation={2}
         sx={{
-          width: '80px',
+          width: '120px',
           p: 1,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
           gap: 2,
         }}
       >
-        <ToggleButtonGroup orientation="vertical" value={selectedTool} exclusive onChange={handleToolChange} aria-label="tool selection">
-          <ToggleButton value="kp" aria-label="keypoint">
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-              }}
-            >
-              <MyLocation />
-              <Typography variant="caption">KP</Typography>
+        <ToggleButtonGroup orientation="vertical" value={selectedTool} exclusive onChange={handleToolChange} aria-label="tool selection" sx={{ alignItems: 'center', gap: 2 }}>
+          <ToggleButton value="kp" aria-label="keypoint" sx={{ width: 100, height: 100, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <MyLocation fontSize="large" />
+              <Typography variant="body2" sx={{ mt: 0.5 }}>KP</Typography>
             </Box>
           </ToggleButton>
-          <ToggleButton value="bb" aria-label="bounding-box">
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-              }}
-            >
-              <SelectAll />
-              <Typography variant="caption">BB</Typography>
+          <ToggleButton value="bb" aria-label="bounding-box" sx={{ width: 100, height: 100, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <SelectAll fontSize="large" />
+              <Typography variant="body2" sx={{ mt: 0.5 }}>BB</Typography>
             </Box>
           </ToggleButton>
-          <ToggleButton value="kp-null" aria-label="null-keypoint">
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-              }}
-            >
-              <NotInterested />
-              <Typography variant="caption">KP</Typography>
+          <ToggleButton value="kp-null" aria-label="null-keypoint" sx={{ width: 100, height: 100, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <NotInterested fontSize="large" />
+              <Typography variant="body2" sx={{ mt: 0.5 }}>KP</Typography>
             </Box>
           </ToggleButton>
-          <ToggleButton value="bb-null" aria-label="null-bounding-box">
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-              }}
-            >
-              <NotInterested />
-              <Typography variant="caption">BB</Typography>
+          <ToggleButton value="bb-null" aria-label="null-bounding-box" sx={{ width: 100, height: 100, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <NotInterested fontSize="large" />
+              <Typography variant="body2" sx={{ mt: 0.5 }}>BB</Typography>
             </Box>
           </ToggleButton>
         </ToggleButtonGroup>
