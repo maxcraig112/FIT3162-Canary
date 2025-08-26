@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"pkg/handler"
 	"project-service/firestore"
@@ -43,6 +44,9 @@ func RegisterExportRoutes(r *mux.Router, h *handler.Handler) {
 }
 
 func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO everything image is in training set
+	// TODO resize image?
+
 	vars := mux.Vars(r)
 	projectID := vars["projectID"]
 
@@ -105,6 +109,8 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 			"name": "Attribution-NonCommercial-ShareAlike License",
 		},
 	}
+	// TODO: fix categories (maybe match bounding box labels)
+	// that will need a bit of reshuffling in keypoint label code
 	cocoJSON["categories"] = []map[string]interface{}{
 		{
 			"id":            0,
@@ -118,11 +124,10 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 
 	current_annotation_idx := 0
 
-	log.Info().Int("numImages", len(images)).Str("projectID", projectID).Msg("Found images")
 	for i, img := range images {
-		log.Info().Str("imageID", img.ImageID).Str("batchID", img.BatchID).Str("filename", img.ImageName).Str("image URL", img.ImageURL).Msg("Found image")
 
-		imageBytes, err := h.Buckets.ImageBucket.DownloadImage(h.Ctx, img.ImageName)
+		// imageBytes, err := h.Buckets.ImageBucket.DownloadImage(h.Ctx, img.ImageName)
+		rc, err := h.Buckets.ImageBucket.StreamImage(h.Ctx, img.ImageName)
 		if err != nil {
 			http.Error(w, "Error downloading image", http.StatusInternalServerError)
 			log.Error().Err(err).Str("projectID", projectID).Str("batchID", img.BatchID).Str("filename", img.ImageName).Msg("Failed to download image")
@@ -134,7 +139,8 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 			log.Error().Err(err).Str("filename", img.ImageName).Msg("Failed to add to zip")
 			return
 		}
-		_, err = fw.Write(imageBytes)
+		// _, err = fw.Write(imageBytes)
+		_, err = io.Copy(fw, rc)
 		if err != nil {
 			http.Error(w, "Error writing image to zip", http.StatusInternalServerError)
 			log.Error().Err(err).Str("filename", img.ImageName).Msg("Failed to write to zip")
@@ -145,7 +151,7 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 		cocoJSON["images"] = append(cocoJSON["images"].([]map[string]interface{}), map[string]interface{}{
 			"id":            i,
 			"license":       1,
-			"file_name":     fmt.Sprintf("%d.jpg", i+1),
+			"file_name":     fmt.Sprintf("images/train/%d.jpg", i+1),
 			"date_captured": time.Now().Format(time.RFC3339Nano),
 			"extra": map[string]interface{}{
 				"name": img.ImageName,
@@ -158,7 +164,8 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 			log.Error().Err(err).Str("projectID", projectID).Str("imageID", img.ImageID).Msg("Failed to get bounding boxes")
 			return
 		}
-
+		// TODO: Bounding box label coordinate convertion
+		// TODO: Keypoint label coordinate convertion
 		for _, bbox := range bbox {
 			// get keypoints from bounding box
 			keypoints_export := []float64{}
@@ -186,7 +193,7 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 		}
 	}
 
-	// save json to zip
+	// save coco json to zip
 	cocoBytes, err := json.MarshalIndent(cocoJSON, "", "  ")
 	if err != nil {
 		http.Error(w, "Error marshaling COCO JSON", http.StatusInternalServerError)
@@ -194,7 +201,7 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	fw, err := zipWriter.Create("images/train/_annotations.coco.json")
+	fw, err := zipWriter.Create("annotations/instances_train.json")
 	if err != nil {
 		http.Error(w, "Error creating coco JSON in zip", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to create annotations.json in zip")
@@ -207,5 +214,7 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 		log.Error().Err(err).Msg("Failed to write annotations.json in zip")
 		return
 	}
+
+	log.Info().Str("projectID", projectID).Msg("Successfully exported project to zip")
 
 }
