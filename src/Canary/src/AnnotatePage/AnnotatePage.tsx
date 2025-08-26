@@ -260,25 +260,33 @@ const AnnotatePage: React.FC = () => {
           <ToggleButton value="kp" aria-label="keypoint" sx={{ width: 100, height: 100, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <MyLocation fontSize="large" />
-              <Typography variant="body2" sx={{ mt: 0.5 }}>KP</Typography>
+              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                KP
+              </Typography>
             </Box>
           </ToggleButton>
           <ToggleButton value="bb" aria-label="bounding-box" sx={{ width: 100, height: 100, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <SelectAll fontSize="large" />
-              <Typography variant="body2" sx={{ mt: 0.5 }}>BB</Typography>
+              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                BB
+              </Typography>
             </Box>
           </ToggleButton>
           <ToggleButton value="kp-null" aria-label="null-keypoint" sx={{ width: 100, height: 100, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <NotInterested fontSize="large" />
-              <Typography variant="body2" sx={{ mt: 0.5 }}>KP</Typography>
+              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                KP
+              </Typography>
             </Box>
           </ToggleButton>
           <ToggleButton value="bb-null" aria-label="null-bounding-box" sx={{ width: 100, height: 100, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <NotInterested fontSize="large" />
-              <Typography variant="body2" sx={{ mt: 0.5 }}>BB</Typography>
+              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                BB
+              </Typography>
             </Box>
           </ToggleButton>
         </ToggleButtonGroup>

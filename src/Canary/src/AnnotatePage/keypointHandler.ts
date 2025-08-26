@@ -11,9 +11,9 @@ export const keypointHandler = {
     const src = ann as KeypointAnnotation & { position?: { x: number; y: number } };
     const p = (Array.isArray(src.points) && src.points.length > 0 ? src.points[0] : src.position) ?? { x: 0, y: 0 };
     const marker = new fabric.Circle(fabricKPMarkerProps({ x: p.x, y: p.y }));
-  // If only have ID, try to resolve name; else fallback to provided label
-  const labelText = ann.label || getKeypointLabelName(ann.labelID) || '';
-  const text = new fabric.FabricText(labelText, fabricKPProps({ x: p.x, y: p.y }));
+    // If only have ID, try to resolve name; else fallback to provided label
+    const labelText = ann.label || getKeypointLabelName(ann.labelID) || '';
+    const text = new fabric.FabricText(labelText, fabricKPProps({ x: p.x, y: p.y }));
     const group = new fabric.Group([marker, text], fabricGroupProps);
     return { group };
   },
@@ -117,7 +117,7 @@ export const keypointHandler = {
     const text = new fabric.FabricText(label, fabricKPProps({ x, y }));
     marker.set({ ...fabricKPMarkerProps({ x, y }) });
     const group = new fabric.Group([marker, text], fabricGroupProps);
-  const annotation = await keypointHandler.createdKeyPoint(label, x, y, projectID, imageID);
+    const annotation = await keypointHandler.createdKeyPoint(label, x, y, projectID, imageID);
     return { group, annotation };
   },
 

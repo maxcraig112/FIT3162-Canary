@@ -18,10 +18,7 @@ export async function loadProjectLabels(projectID?: string) {
 
   const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
-  const [kpRes, bbRes] = await Promise.all([
-    fetch(`${baseUrl}/projects/${projectID}/keypointlabels`, { headers }),
-    fetch(`${baseUrl}/projects/${projectID}/boundingboxlabels`, { headers }),
-  ]);
+  const [kpRes, bbRes] = await Promise.all([fetch(`${baseUrl}/projects/${projectID}/keypointlabels`, { headers }), fetch(`${baseUrl}/projects/${projectID}/boundingboxlabels`, { headers })]);
 
   if (kpRes.ok) {
     try {

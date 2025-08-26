@@ -327,13 +327,13 @@ export const annotateHandler = {
     currentImageKey = imageURL;
     currentImageID = imageID ?? null;
 
-  // Ensure labels are loaded for this project before rendering annotations
-  await loadProjectLabels(projectID);
+    // Ensure labels are loaded for this project before rendering annotations
+    await loadProjectLabels(projectID);
 
     // Clear existing annotation groups before drawing the new image
     clearAnnotationGroups();
 
-  // On first load for this image, fetch existing keypoints from backend
+    // On first load for this image, fetch existing keypoints from backend
     if (currentImageKey && (!annotationStore.has(currentImageKey) || (annotationStore.get(currentImageKey)?.kps.length ?? 0) === 0)) {
       try {
         const kps = await keypointHandler.getAllKeyPoints(projectID, currentImageID ?? undefined);

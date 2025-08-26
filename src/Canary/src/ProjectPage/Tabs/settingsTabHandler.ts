@@ -123,53 +123,59 @@ export function useSettingsTab(projectID?: string) {
     })();
   }, [bboxInput, canUseApi, projectID, loadBoundingBoxLabels]);
 
-  const deleteKeypoint = useCallback((val: string) => {
-    const doLocal = () => setKeypointLabels((prev) => prev.filter((x) => x !== val));
-    if (!canUseApi) {
-      doLocal();
-      return;
-    }
-    const id = kpMap[val];
-    if (!projectID || !id) {
-      doLocal();
-      return;
-    }
-    (async () => {
-      try {
-        const url = `${projectServiceUrl()}/projects/${projectID}/keypointlabel/${id}`;
-        await CallAPI<string>(url, { method: 'DELETE', parseJson: false });
-        await loadKeypointLabels();
-      } catch {
+  const deleteKeypoint = useCallback(
+    (val: string) => {
+      const doLocal = () => setKeypointLabels((prev) => prev.filter((x) => x !== val));
+      if (!canUseApi) {
         doLocal();
+        return;
       }
-    })();
-  }, [canUseApi, kpMap, projectID, loadKeypointLabels]);
+      const id = kpMap[val];
+      if (!projectID || !id) {
+        doLocal();
+        return;
+      }
+      (async () => {
+        try {
+          const url = `${projectServiceUrl()}/projects/${projectID}/keypointlabel/${id}`;
+          await CallAPI<string>(url, { method: 'DELETE', parseJson: false });
+          await loadKeypointLabels();
+        } catch {
+          doLocal();
+        }
+      })();
+    },
+    [canUseApi, kpMap, projectID, loadKeypointLabels],
+  );
 
-  const deleteBbox = useCallback((val: string) => {
-    const doLocal = () => setBboxLabels((prev) => prev.filter((x) => x !== val));
-    if (!canUseApi) {
-      doLocal();
-      return;
-    }
-    const id = bbMap[val];
-    if (!projectID || !id) {
-      doLocal();
-      return;
-    }
-    (async () => {
-      try {
-        const url = `${projectServiceUrl()}/projects/${projectID}/boundingboxlabel/${id}`;
-        await CallAPI<string>(url, { method: 'DELETE', parseJson: false });
-        await loadBoundingBoxLabels();
-      } catch {
+  const deleteBbox = useCallback(
+    (val: string) => {
+      const doLocal = () => setBboxLabels((prev) => prev.filter((x) => x !== val));
+      if (!canUseApi) {
         doLocal();
+        return;
       }
-    })();
-  }, [canUseApi, bbMap, projectID, loadBoundingBoxLabels]);
+      const id = bbMap[val];
+      if (!projectID || !id) {
+        doLocal();
+        return;
+      }
+      (async () => {
+        try {
+          const url = `${projectServiceUrl()}/projects/${projectID}/boundingboxlabel/${id}`;
+          await CallAPI<string>(url, { method: 'DELETE', parseJson: false });
+          await loadBoundingBoxLabels();
+        } catch {
+          doLocal();
+        }
+      })();
+    },
+    [canUseApi, bbMap, projectID, loadBoundingBoxLabels],
+  );
 
   return {
-  keypointLabels,
-  bboxLabels,
+    keypointLabels,
+    bboxLabels,
     keypointInput,
     bboxInput,
     setKeypointInput,

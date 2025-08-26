@@ -24,10 +24,10 @@ export function polygonCentroid(pts: Array<{ x: number; y: number }>) {
 export const boundingBoxHandler = {
   // Render a persisted bounding box as a group
   renderAnnotation(ann: BoundingBoxAnnotation): { group: fabric.Group } {
-  const poly = new fabric.Polygon(ann.points, fabricBBPolygonProps);
+    const poly = new fabric.Polygon(ann.points, fabricBBPolygonProps);
     const c = polygonCentroid(ann.points);
-  const labelText = ann.label || getBoundingBoxLabelName(ann.labelID) || '';
-  const text = new fabric.FabricText(labelText, fabricBBProps({ x: c.x, y: c.y }));
+    const labelText = ann.label || getBoundingBoxLabelName(ann.labelID) || '';
+    const text = new fabric.FabricText(labelText, fabricBBProps({ x: c.x, y: c.y }));
     const group = new fabric.Group([poly, text], fabricGroupProps);
     return { group };
   },
