@@ -101,7 +101,11 @@ func (s *BatchStore) DeleteAllBatches(ctx context.Context, projectID string) err
 	queryParams := []fs.QueryParameter{
 		{Path: "projectID", Op: "==", Value: projectID},
 	}
-	return s.genericStore.DeleteDocsByQuery(ctx, queryParams)
+	err := s.genericStore.DeleteDocsByQuery(ctx, queryParams)
+	if err != nil && err != fs.ErrNotFound {
+		return err
+	}
+	return nil
 }
 
 func (s *BatchStore) GetBatch(ctx context.Context, batchID string) (*Batch, error) {

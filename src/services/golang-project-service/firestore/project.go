@@ -23,12 +23,13 @@ type Project struct {
 }
 
 type ProjectSettings struct {
-	TagLabels TagLabels `firestore:"tagLabels,omitempty" json:"tagLabels"`
+	Session Session `firestore:"session,omitempty" json:"session"`
 }
 
-type TagLabels struct {
-	Keypoints     []string `firestore:"keyPoints,omitempty" json:"keyPoints"`
-	BoundingBoxes []string `firestore:"boundingBoxes,omitempty" json:"boundingBoxes"`
+type Session struct {
+	Enabled  bool   `firestore:"enabled,omitempty" json:"enabled"`
+	Name     string `firestore:"name,omitempty" json:"name"`
+	Password string `firestore:"password,omitempty" json:"password"`
 }
 
 type CreateProjectRequest struct {
@@ -116,10 +117,21 @@ func (s *ProjectStore) DeleteProject(ctx context.Context, projectID string) erro
 	return s.genericStore.DeleteDoc(ctx, projectID)
 }
 
-func (s *ProjectStore) UpdateProjectSettings(ctx context.Context, projectID string, req ProjectSettings) (*ProjectSettings, error) {
-	updateParams := []firestore.Update{
-		{Path: "settings.tagLabels.keyPoints", Value: req.TagLabels.Keypoints},
-		{Path: "settings.tagLabels.boundingBoxes", Value: req.TagLabels.BoundingBoxes},
+func (s *ProjectStore) UpdateProject(ctx context.Context, projectID string, req Project) (*Project, error) {
+	updateParams := []firestore.Update{}
+
+	if req.ProjectName != "" {
+		updateParams = append(updateParams, firestore.Update{Path: "projectName", Value: req.ProjectName})
+	}
+	if req.Settings != (ProjectSettings{}) { // check if not empty
+		updateParams = append(updateParams, firestore.Update{Path: "settings", Value: req.Settings})
+	}
+
+	// Always update lastUpdated
+	updateParams = append(updateParams, firestore.Update{Path: "lastUpdated", Value: time.Now()})
+
+	if len(updateParams) == 0 {
+		return s.GetProject(ctx, projectID)
 	}
 
 	err := s.genericStore.UpdateDoc(ctx, projectID, updateParams)
@@ -127,16 +139,5 @@ func (s *ProjectStore) UpdateProjectSettings(ctx context.Context, projectID stri
 		return nil, err
 	}
 
-	docSnap, err := s.genericStore.GetDoc(ctx, projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	var p Project
-	err = docSnap.DataTo(&p)
-	if err != nil {
-		return nil, err
-	}
-
-	return &p.Settings, nil
+	return s.GetProject(ctx, projectID)
 }
