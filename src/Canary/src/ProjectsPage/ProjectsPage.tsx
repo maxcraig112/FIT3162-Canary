@@ -147,8 +147,8 @@ const ProjectsPage: React.FC = () => {
           >
             <option value="projectName-asc">Name (A-Z)</option>
             <option value="projectName-desc">Name (Z-A)</option>
-            <option value="numberOfFiles-asc">Files (Low to High)</option>
-            <option value="numberOfFiles-desc">Files (High to Low)</option>
+            <option value="numberOfBatches-asc">Batches (Low to High)</option>
+            <option value="numberOfBatches-desc">Batches (High to Low)</option>
             <option value="lastUpdated-desc">Last Updated (Newest)</option>
             <option value="lastUpdated-asc">Last Updated (Oldest)</option>
           </TextField>
