@@ -35,12 +35,10 @@ func RegisterProjectRoutes(r *mux.Router, h *handler.Handler) {
 		{"GET", "/projects/{projectID}", ph.LoadProjectsHandler},
 		// Create a project
 		{"POST", "/projects", ph.CreateProjectHandler},
-		// Update the name of the project
-		{"PUT", "/projects/{projectID}", ph.RenameProjectHandler},
 		// Delete a project
 		{"DELETE", "/projects/{projectID}", ph.DeleteProjectHandler},
-		// Update project settings
-		{"PATCH", "/projects/{projectID}/settings", ph.UpdateSettingsHandler},
+		// Update project
+		{"PATCH", "/projects/{projectID}", ph.UpdateProjectHandler},
 	}
 
 	for _, rt := range routes {
@@ -132,34 +130,6 @@ func (h *ProjectHandler) CreateProjectHandler(w http.ResponseWriter, r *http.Req
 	})
 }
 
-func (h *ProjectHandler) RenameProjectHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	projectID := vars["projectID"]
-
-	var req firestore.RenameProjectRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
-		log.Error().Err(err).Str("projectID", projectID).Msg("Invalid rename project request")
-		return
-	}
-
-	err := h.ProjectStore.RenameProject(h.Ctx, projectID, req)
-	if err != nil {
-		http.Error(w, "Error renaming project", http.StatusInternalServerError)
-		log.Error().Err(err).Str("projectID", projectID).Msg("Error renaming project")
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	log.Info().Str("projectID", projectID).Str("newName", req.NewProjectName).Msg("Project renamed successfully")
-	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"projectID": projectID,
-		"newName":   req.NewProjectName,
-		"message":   "Project renamed",
-	})
-}
-
 func (h *ProjectHandler) DeleteProjectHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	projectID := vars["projectID"]
@@ -237,18 +207,18 @@ func (h *ProjectHandler) DeleteProjectHandler(w http.ResponseWriter, r *http.Req
 	})
 }
 
-func (h *ProjectHandler) UpdateSettingsHandler(w http.ResponseWriter, r *http.Request) {
+func (h *ProjectHandler) UpdateProjectHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	projectID := vars["projectID"]
 
-	var req firestore.ProjectSettings
+	var req firestore.Project
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		log.Error().Err(err).Str("projectID", projectID).Msg("Invalid update settings request")
 		return
 	}
 
-	settings, err := h.ProjectStore.UpdateProjectSettings(h.Ctx, projectID, req)
+	project, err := h.ProjectStore.UpdateProject(h.Ctx, projectID, req)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error updating project %s settings", projectID), http.StatusInternalServerError)
 		log.Error().Err(err).Str("projectID", projectID).Msg("Error updating project settings")
@@ -258,5 +228,5 @@ func (h *ProjectHandler) UpdateSettingsHandler(w http.ResponseWriter, r *http.Re
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("projectID", projectID).Msg("Updated project settings successfully")
-	json.NewEncoder(w).Encode(settings)
+	json.NewEncoder(w).Encode(project)
 }

@@ -5,9 +5,8 @@
 | GET    | /projects                           | Returns all projects owned by a user as JSON. | None                                                                      |
 | GET    | /projects/{projectID}               | Returns a specific owned by a user as JSON.   | None                                                                      |
 | POST   | /projects                           | Creates a new project.                        | { "userID": "string", "projectName": "string" }                           |
-| PUT    | /projects/{projectID}               | Renames a project.                            | { "newProjectName": "string" }                                            |
 | DELETE | /projects/{projectID}               | Deletes a project.                            | None                                                                      |
-| PATCH   | /projects/{projectID}/settings      | Updates project settings.                     | { "tagLabels": { "keyPoints": ["string"], "boundingBoxes": ["string"] } } |
+| PATCH   | /projects/{projectID}      | Updates project settings or name.                     | Project |
 
 # Batch Requests
 

@@ -17,7 +17,13 @@ type BoundingBoxLabelDTO = {
   projectID?: string;
 };
 
-export function useSettingsTab(projectID?: string) {
+type ProjectSettingsDTO = { session?: { enabled?: boolean; name?: string; password?: string } };
+
+export function useSettingsTab(projectID?: string, initialSettings?: ProjectSettingsDTO | null) {
+  // Session settings state
+  const [sessionEnabled, setSessionEnabled] = useState<boolean>(false);
+  const [sessionName, setSessionName] = useState<string>('');
+  const [sessionPassword, setSessionPassword] = useState<string>('');
   const [keypointLabels, setKeypointLabels] = useState<string[]>([]);
   const [bboxLabels, setBboxLabels] = useState<string[]>([]);
   const [keypointInput, setKeypointInput] = useState('');
@@ -26,6 +32,9 @@ export function useSettingsTab(projectID?: string) {
   // Maps from label -> id to support delete actions from UI list of strings
   const [kpMap, setKpMap] = useState<Record<string, string>>({});
   const [bbMap, setBbMap] = useState<Record<string, string>>({});
+
+  // Save feedback state
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
   const canUseApi = !!projectID;
 
@@ -75,6 +84,16 @@ export function useSettingsTab(projectID?: string) {
     reloadAll();
   }, [reloadAll]);
 
+  // Initialise session state from provided project settings
+  useEffect(() => {
+    const s = initialSettings?.session;
+    if (s) {
+      setSessionEnabled(Boolean(s.enabled));
+      setSessionName(s.name ?? '');
+      setSessionPassword(s.password ?? '');
+    }
+  }, [initialSettings]);
+
   const addKeypoint = useCallback(() => {
     const v = keypointInput.trim();
     if (!v) return;
@@ -122,6 +141,26 @@ export function useSettingsTab(projectID?: string) {
       }
     })();
   }, [bboxInput, canUseApi, projectID, loadBoundingBoxLabels]);
+
+  const saveSessionSettings = useCallback(async (): Promise<void> => {
+    if (!projectID) return;
+    const url = `${projectServiceUrl()}/projects/${projectID}`;
+    await CallAPI(url, {
+      method: 'PATCH',
+      json: {
+        settings: {
+          session: {
+            enabled: sessionEnabled,
+            name: sessionName,
+            password: sessionPassword,
+          },
+        },
+      },
+    });
+    setSaveSuccess('Session settings saved');
+  }, [projectID, sessionEnabled, sessionName, sessionPassword]);
+
+  const clearSaveSuccess = useCallback(() => setSaveSuccess(null), []);
 
   const deleteKeypoint = useCallback(
     (val: string) => {
@@ -174,12 +213,22 @@ export function useSettingsTab(projectID?: string) {
   );
 
   return {
+  // sessions
+  sessionEnabled,
+  sessionName,
+  sessionPassword,
+  setSessionEnabled,
+  setSessionName,
+  setSessionPassword,
     keypointLabels,
     bboxLabels,
     keypointInput,
     bboxInput,
     setKeypointInput,
     setBboxInput,
+  saveSessionSettings,
+  saveSuccess,
+  clearSaveSuccess,
     addKeypoint,
     addBbox,
     deleteKeypoint,
