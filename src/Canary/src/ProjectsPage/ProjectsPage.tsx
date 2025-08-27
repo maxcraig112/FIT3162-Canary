@@ -254,7 +254,7 @@ const ProjectsPage: React.FC = () => {
                 </Typography>
                 <Box sx={{ position: 'absolute', bottom: 16, left: 0, right: 0 }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 'medium', fontSize: '1.2rem' }}>
-                    {project.numberOfBatches} {project.numberOfBatches === 1 ? "batch" : "batches"}
+                    {project.numberOfBatches} {project.numberOfBatches === 1 ? 'batch' : 'batches'}
                   </Typography>
                 </Box>
               </Paper>
