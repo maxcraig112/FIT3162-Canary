@@ -6,7 +6,6 @@ export interface Batch {
   batchName: string;
   projectID: string;
   numberOfTotalFiles: number;
-  numberOfAnnotatedFiles: number;
 }
 
 function projectServiceUrl() {
@@ -41,21 +40,6 @@ export async function deleteBatch(batchID: string): Promise<void> {
 
 // --- Helpers ---
 
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === 'object' && v !== null;
-}
-
-function firstDefined<T = unknown>(obj: unknown, keys: string[], fallback?: T): T | undefined {
-  if (!isRecord(obj)) return fallback;
-  for (const k of keys) {
-    if (Object.prototype.hasOwnProperty.call(obj, k)) {
-      const val = obj[k];
-      if (val !== undefined && val !== null) return val as T;
-    }
-  }
-  return fallback;
-}
-
 function toNumber(v: unknown, def = 0): number {
   if (typeof v === 'number') return v;
   if (typeof v === 'string') {
@@ -70,20 +54,13 @@ function toStringMaybe(v: unknown, def = ''): string {
 }
 
 function normalizeBatch(raw: unknown): Batch {
-  const batchID = toStringMaybe(firstDefined(raw, ['batchID', 'batchId', 'id', 'batch_id']) ?? '');
-  const batchName = toStringMaybe(firstDefined(raw, ['batchName', 'name', 'batch_name']) ?? '');
-  const projectID = toStringMaybe(firstDefined(raw, ['projectID', 'projectId', 'project_id']) ?? '');
-
-  const numberOfTotalFiles = toNumber(firstDefined(raw, ['numberOfTotalFiles', 'number_of_total_files', 'totalFiles', 'total_files', 'numberOfFiles']), 0);
-
-  const numberOfAnnotatedFiles = toNumber(firstDefined(raw, ['numberOfAnnotatedFiles', 'number_of_annotated_files', 'annotatedFiles', 'annotated_files', 'numberOfAnnotated']), 0);
-
+  // This function extracts and normalizes the fields for a Batch object from raw API data.
+  const obj = raw as Record<string, unknown>;
   return {
-    batchID,
-    batchName,
-    projectID,
-    numberOfTotalFiles,
-    numberOfAnnotatedFiles,
+    batchID: toStringMaybe(obj['batchID']),
+    batchName: toStringMaybe(obj['batchName']),
+    projectID: toStringMaybe(obj['projectID']),
+    numberOfTotalFiles: toNumber(obj['numberOfTotalFiles']),
   };
 }
 
