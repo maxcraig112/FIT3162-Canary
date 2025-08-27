@@ -213,22 +213,22 @@ export function useSettingsTab(projectID?: string, initialSettings?: ProjectSett
   );
 
   return {
-  // sessions
-  sessionEnabled,
-  sessionName,
-  sessionPassword,
-  setSessionEnabled,
-  setSessionName,
-  setSessionPassword,
+    // sessions
+    sessionEnabled,
+    sessionName,
+    sessionPassword,
+    setSessionEnabled,
+    setSessionName,
+    setSessionPassword,
     keypointLabels,
     bboxLabels,
     keypointInput,
     bboxInput,
     setKeypointInput,
     setBboxInput,
-  saveSessionSettings,
-  saveSuccess,
-  clearSaveSuccess,
+    saveSessionSettings,
+    saveSuccess,
+    clearSaveSuccess,
     addKeypoint,
     addBbox,
     deleteKeypoint,
