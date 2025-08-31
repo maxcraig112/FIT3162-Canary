@@ -8,11 +8,21 @@ import (
 	"net/http"
 	"pkg/handler"
 	"project-service/firestore"
+	"slices"
 	"time"
 
+	coco "github.com/aidezone/golang-coco"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
 )
+
+type CorrectKeypointDetection struct {
+	Info        coco.Information    `json:"info,omitempty"`
+	Images      []coco.Image        `json:"images,omitempty"`
+	Annotations []coco.KPAnnotation `json:"annotations,omitempty"`
+	Licenses    []coco.License      `json:"licenses,omitempty"`
+	Categories  []coco.KPCategories `json:"categories,omitempty"`
+}
 
 type ExportHandler struct {
 	*handler.Handler
@@ -50,6 +60,13 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 	vars := mux.Vars(r)
 	projectID := vars["projectID"]
 
+	project, err := h.ProjectStore.GetProject(h.Ctx, projectID)
+	if err != nil {
+		http.Error(w, "Error getting project", http.StatusInternalServerError)
+		log.Error().Err(err).Str("projectID", projectID).Msg("Failed to get project by ID")
+		return
+	}
+
 	batches, err := h.BatchStore.GetBatchesByProjectID(h.Ctx, projectID)
 	if err != nil {
 		http.Error(w, "Error getting batches", http.StatusInternalServerError)
@@ -80,66 +97,71 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 		images = append(images, imgs...)
 	}
 
-	w.Header().Set("Content-Type", "application/zip")
-	w.Header().Set("Content-Disposition", "attachment; filename=keypoints.zip")
-
-	zipWriter := zip.NewWriter(w)
-	defer zipWriter.Close()
-
-	var cocoJSON map[string]interface{}
-	if err := json.Unmarshal([]byte(`{}`), &cocoJSON); err != nil {
-		http.Error(w, "Error creating coco json", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to create coco json")
+	keypointLabels, err := h.KeypointLabelStore.GetKeypointLabelsByProjectID(h.Ctx, projectID)
+	if err != nil {
+		http.Error(w, "Error getting keypoint labels", http.StatusInternalServerError)
+		log.Error().Err(err).Str("projectID", projectID).Msg("Failed to get keypoint labels by projectID")
 		return
 	}
 
-	currentTime := time.Now()
-	cocoJSON["info"] = map[string]interface{}{
-		"year":         currentTime.Format("2006"),
-		"version":      "1.0",
-		"description":  fmt.Sprintf("Exported keypoints from project %s", projectID),
-		"contributor":  "",
-		"url":          "",
-		"date_created": currentTime.Format("2006/01/02"),
+	kpLabelNames := make([]string, len(keypointLabels))
+	kpLabelIDs := make([]string, len(keypointLabels))
+	for i, kp := range keypointLabels {
+		kpLabelNames[i] = kp.KeypointLabel
+		kpLabelIDs[i] = kp.KeypointLabelID
 	}
-	cocoJSON["licenses"] = []map[string]interface{}{
-		{
-			"url":  "http://creativecommons.org/licenses/by-nc-sa/2.0/",
-			"id":   1,
-			"name": "Attribution-NonCommercial-ShareAlike License",
-		},
-	}
-	// TODO: fix categories (maybe match bounding box labels)
-	// that will need a bit of reshuffling in keypoint label code
-	cocoJSON["categories"] = []map[string]interface{}{
-		{
-			"id":            0,
-			"name":          "a",
-			"supercategory": "none",
-		},
-	}
-	cocoJSON["images"] = []map[string]interface{}{}
 
-	cocoJSON["annotations"] = []map[string]interface{}{}
+	// start creating coco format
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", "attachment; filename=keypoints.zip")
+	zipWriter := zip.NewWriter(w)
+	defer zipWriter.Close()
 
-	current_annotation_idx := 0
+	now := time.Now()
+	cocoDS := CorrectKeypointDetection{
+		Info: coco.Information{
+			Year:        now.Year(),
+			Version:     "1.0",
+			Description: fmt.Sprintf("Exported keypoints from project %s", projectID),
+			DateCreated: now.Format("2006-01-02"),
+		},
+		Licenses: []coco.License{
+			{
+				ID:   1,
+				Name: "Attribution-NonCommercial-ShareAlike License",
+				URL:  "http://creativecommons.org/licenses/by-nc-sa/2.0/ ",
+			},
+		},
+		Categories: []coco.KPCategories{
+			{
+				ID:            1,
+				Name:          project.ProjectName, // keep as project name?
+				Supercategory: "none",
+				Keypoints:     kpLabelNames,
+				Skeleton:      []coco.Edge{},
+			},
+		},
+		Images:      []coco.Image{},
+		Annotations: []coco.KPAnnotation{},
+	}
+
+	current_annotation_idx := 1
 
 	for i, img := range images {
-
-		// imageBytes, err := h.Buckets.ImageBucket.DownloadImage(h.Ctx, img.ImageName)
+		// write image to zip
 		rc, err := h.Buckets.ImageBucket.StreamImage(h.Ctx, img.ImageName)
 		if err != nil {
 			http.Error(w, "Error downloading image", http.StatusInternalServerError)
 			log.Error().Err(err).Str("projectID", projectID).Str("batchID", img.BatchID).Str("filename", img.ImageName).Msg("Failed to download image")
 			return
 		}
-		fw, err := zipWriter.Create(fmt.Sprintf("images/train/%d.jpg", i+1))
+		img_path := fmt.Sprintf("images/train/%d.jpg", i+1)
+		fw, err := zipWriter.Create(img_path)
 		if err != nil {
 			http.Error(w, "Error creating zip entry", http.StatusInternalServerError)
 			log.Error().Err(err).Str("filename", img.ImageName).Msg("Failed to add to zip")
 			return
 		}
-		// _, err = fw.Write(imageBytes)
 		_, err = io.Copy(fw, rc)
 		if err != nil {
 			http.Error(w, "Error writing image to zip", http.StatusInternalServerError)
@@ -147,15 +169,11 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 			return
 		}
 
-		// update coco json with image and image bbox
-		cocoJSON["images"] = append(cocoJSON["images"].([]map[string]interface{}), map[string]interface{}{
-			"id":            i,
-			"license":       1,
-			"file_name":     fmt.Sprintf("images/train/%d.jpg", i+1),
-			"date_captured": time.Now().Format(time.RFC3339Nano),
-			"extra": map[string]interface{}{
-				"name": img.ImageName,
-			},
+		cocoDS.Images = append(cocoDS.Images, coco.Image{
+			ID:           i + 1,
+			FileName:     img_path,
+			License:      1,
+			DateCaptured: now.Format(time.RFC3339),
 		})
 
 		bbox, err := h.BoundingBoxStore.GetBoundingBoxesByImageID(h.Ctx, img.ImageID)
@@ -164,37 +182,45 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 			log.Error().Err(err).Str("projectID", projectID).Str("imageID", img.ImageID).Msg("Failed to get bounding boxes")
 			return
 		}
-		// TODO: Bounding box label coordinate convertion
-		// TODO: Keypoint label coordinate convertion
+		// TODO: bbox coordinate convertion
+		// TODO: keypoint coordinate convertion
 		for _, bbox := range bbox {
-			// get keypoints from bounding box
-			keypoints_export := []float64{}
 			keypoints, err := h.KeypointStore.GetKeypointsByBoundingBoxID(h.Ctx, bbox.BoundingBoxID)
 			if err != nil {
 				http.Error(w, "Error getting keypoints", http.StatusInternalServerError)
 				log.Error().Err(err).Str("projectID", projectID).Str("imageID", img.ImageID).Str("boundingBoxID", bbox.BoundingBoxID).Msg("Failed to get keypoints")
 				return
 			}
+			kp := make([]float32, len(kpLabelIDs)*3)
 			for _, k := range keypoints {
-				keypoints_export = append(keypoints_export, k.Position.X, k.Position.Y, 2)
+				idx := slices.IndexFunc(kpLabelIDs, func(s string) bool { return s == k.KeypointLabelID })
+				if idx == -1 {
+					http.Error(w, "Error keypoint label ID not found", http.StatusInternalServerError)
+					log.Error().Str("projectID", projectID).Str("imageID", img.ImageID).Str("boundingBoxID", bbox.BoundingBoxID).Str("keypointLabelID", k.KeypointLabelID).Msg("Failed to get keypoint label ID index")
+					return
+				}
+				kp[idx*3] = float32(k.Position.X)
+				kp[idx*3+1] = float32(k.Position.Y)
+				kp[idx*3+2] = 2
 			}
 
-			cocoJSON["annotations"] = append(cocoJSON["annotations"].([]map[string]interface{}), map[string]interface{}{
-				"id":           current_annotation_idx,
-				"image_id":     i,
-				"category_id":  0,
-				"bbox":         []float64{bbox.Box.X, bbox.Box.Y, bbox.Box.Width, bbox.Box.Height},
-				"area":         bbox.Box.Width * bbox.Box.Height,
-				"segmentation": [][]float64{},
-				"keypoints":    keypoints_export,
-				"iscrowd":      0,
+			cocoDS.Annotations = append(cocoDS.Annotations, coco.KPAnnotation{
+				ID:           current_annotation_idx,
+				ImageID:      i + 1,
+				CategoryID:   1,
+				Bbox:         [4]float32{float32(bbox.Box.X), float32(bbox.Box.Y), float32(bbox.Box.Width), float32(bbox.Box.Height)},
+				Area:         float32(bbox.Box.Width * bbox.Box.Height),
+				Segmentation: nil,
+				Keypoints:    kp,
+				NumKeypoints: len(keypoints),
+				Iscrowd:      0,
 			})
 			current_annotation_idx++
 		}
 	}
 
 	// save coco json to zip
-	cocoBytes, err := json.MarshalIndent(cocoJSON, "", "  ")
+	cocoBytes, err := json.MarshalIndent(cocoDS, "", "  ")
 	if err != nil {
 		http.Error(w, "Error marshaling COCO JSON", http.StatusInternalServerError)
 		log.Error().Err(err).Str("projectID", projectID).Msg("Failed to marshal coco JSON")
@@ -215,6 +241,6 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	log.Info().Str("projectID", projectID).Msg("Successfully exported project to zip")
+	log.Info().Str("projectID", projectID).Msg("Successfully exported project datset to COCO format")
 
 }
