@@ -2,6 +2,7 @@ package firestore
 
 import (
 	"context"
+	"pkg/gcp/bucket"
 	fs "pkg/gcp/firestore"
 	"time"
 )
@@ -14,10 +15,13 @@ const (
 )
 
 type Image struct {
-	ImageID   string `firestore:"imageID,omitempty" json:"imageID"`
-	ImageURL  string `firestore:"imageURL" json:"imageURL"`
-	ImageName string `firestore:"imageName" json:"imageName"`
-	BatchID   string `firestore:"batchID" json:"batchID"`
+	ImageID     string    `firestore:"imageID,omitempty" json:"imageID"`
+	ImageName   string    `firestore:"imageName" json:"imageName"`
+	ImageURL    string    `firestore:"imageURL" json:"imageURL"`
+	Height      int64     `firestore:"height" json:"height"`
+	Width       int64     `firestore:"width" json:"width"`
+	BatchID     string    `firestore:"batchID" json:"batchID"`
+	LastUpdated time.Time `firestore:"lastUpdated" json:"lastUpdated"`
 }
 
 type ImageStore struct {
@@ -75,19 +79,32 @@ func (s *ImageStore) GetTotalImageCountByBatchID(ctx context.Context, batchID st
 	return s.genericStore.GetAggregationWithQuery(ctx, queryParams, fs.Count)
 }
 
-func (s *ImageStore) CreateImageMetadata(ctx context.Context, batchID string, imageInfo map[string]string) error {
-	var batch []interface{}
-	for imageName, imageURL := range imageInfo {
-		batch = append(batch, map[string]interface{}{
-			"imageURL":    imageURL,
-			"imageName":   imageName,
-			"batchID":     batchID,
-			"lastUpdated": time.Now(),
+func (s *ImageStore) CreateImageMetadata(ctx context.Context, batchID string, imageInfo bucket.ObjectMap) ([]Image, error) {
+	imageBatch := []Image{}
+	for imageName, imageData := range imageInfo {
+		imageBatch = append(imageBatch, Image{
+			ImageURL:    imageData.URL,
+			ImageName:   imageName,
+			Height:      imageData.Height,
+			Width:       imageData.Width,
+			BatchID:     batchID,
+			LastUpdated: time.Now(),
 		})
 	}
 
-	_, err := s.genericStore.CreateDocsBatch(ctx, batch)
-	return err
+	imageInterfaces := make([]interface{}, len(imageBatch))
+	for i, img := range imageBatch {
+		imageInterfaces[i] = img
+	}
+
+	ids, err := s.genericStore.CreateDocsBatch(ctx, imageInterfaces)
+	if err != nil {
+		return nil, err
+	}
+	for i := range imageBatch {
+		imageBatch[i].ImageID = ids[i]
+	}
+	return imageBatch, nil
 }
 
 func (s *ImageStore) DeleteImagesByBatchID(ctx context.Context, batchID string) error {
