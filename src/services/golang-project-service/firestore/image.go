@@ -79,7 +79,7 @@ func (s *ImageStore) GetTotalImageCountByBatchID(ctx context.Context, batchID st
 	return s.genericStore.GetAggregationWithQuery(ctx, queryParams, fs.Count)
 }
 
-func (s *ImageStore) CreateImageMetadata(ctx context.Context, batchID string, imageInfo bucket.ObjectMap) error {
+func (s *ImageStore) CreateImageMetadata(ctx context.Context, batchID string, imageInfo bucket.ObjectMap) ([]Image, error) {
 	imageBatch := []Image{}
 	for imageName, imageData := range imageInfo {
 		imageBatch = append(imageBatch, Image{
@@ -92,14 +92,19 @@ func (s *ImageStore) CreateImageMetadata(ctx context.Context, batchID string, im
 		})
 	}
 
-	// Convert []Image to []interface{}
 	imageInterfaces := make([]interface{}, len(imageBatch))
 	for i, img := range imageBatch {
 		imageInterfaces[i] = img
 	}
 
-	_, err := s.genericStore.CreateDocsBatch(ctx, imageInterfaces)
-	return err
+	ids, err := s.genericStore.CreateDocsBatch(ctx, imageInterfaces)
+	if err != nil {
+		return nil, err
+	}
+	for i := range imageBatch {
+		imageBatch[i].ImageID = ids[i]
+	}
+	return imageBatch, nil
 }
 
 func (s *ImageStore) DeleteImagesByBatchID(ctx context.Context, batchID string) error {
