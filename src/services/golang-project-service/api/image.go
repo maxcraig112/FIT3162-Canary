@@ -390,7 +390,7 @@ func generateVideoData(batchID string, form *multipart.Form) (bucket.ObjectMap, 
 func GenerateUUID() string {
 	const chars = "0123456789abcdef"
 	b := make([]byte, 8)
-	rand.Read(b)
+	_, _ = rand.Read(b)
 	for i := range b {
 		b[i] = chars[b[i]%16]
 	}

@@ -53,7 +53,7 @@ func Run() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize clients")
 	}
-	defer clients.CloseClients()
+	defer func() { _ = clients.CloseClients() }()
 
 	projectID := os.Getenv("GCP_PROJECT_ID")
 	secretName := os.Getenv("JWT_SECRET_NAME")
@@ -61,14 +61,16 @@ func Run() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve JWT Secret")
 	}
-	os.Setenv("JWT_SECRET", secret)
+	_ = os.Setenv("JWT_SECRET", secret)
 
 	r := mux.NewRouter()
 
 	authMw := jwt.AuthMiddleware(clients)
 
 	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("OK"))
+		if _, err := w.Write([]byte("OK")); err != nil {
+			log.Error().Err(err).Msg("Error writing health check response")
+		}
 	}).Methods("GET")
 
 	h := handler.NewHandler(ctx, clients, authMw)

@@ -6,6 +6,7 @@ export interface Batch {
   batchName: string;
   projectID: string;
   numberOfTotalFiles: number;
+  lastUpdated?: string; // optional timestamp if backend provides
 }
 
 function projectServiceUrl() {
@@ -61,6 +62,7 @@ function normalizeBatch(raw: unknown): Batch {
     batchName: toStringMaybe(obj['batchName']),
     projectID: toStringMaybe(obj['projectID']),
     numberOfTotalFiles: toNumber(obj['numberOfTotalFiles']),
+    lastUpdated: toStringMaybe(obj['lastUpdated'], ''),
   };
 }
 

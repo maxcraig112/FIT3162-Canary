@@ -79,32 +79,64 @@ const ProjectsPage: React.FC = () => {
         bgcolor: '#f5f5f5',
       }}
     >
-      <AppBar position="static" color="default" elevation={3}>
+      <AppBar
+        position="static"
+        elevation={0}
+        sx={{
+          background: 'linear-gradient(135deg,#2c3a47 0%, #1f2732 55%, #192029 100%)',
+          color: '#f1f5f9',
+          boxShadow: '0 4px 14px rgba(0,0,0,0.4)',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          position: 'relative',
+          '&:before': {
+            content: '""',
+            position: 'absolute',
+            inset: 0,
+            background: 'radial-gradient(circle at 25% 20%, rgba(255,255,255,0.09), transparent 60%)',
+            pointerEvents: 'none',
+            mixBlendMode: 'overlay',
+          },
+        }}
+      >
         <Toolbar
           sx={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            minHeight: 78,
-            px: 3,
+            minHeight: { xs: 92, md: 104 },
+            px: { xs: 2.5, md: 6 },
+            gap: 4,
           }}
         >
           <Button
             startIcon={<ExitToAppIcon sx={{ fontSize: 32 }} />}
             onClick={handleBackToAllProjects}
             sx={{
-              color: '#000000',
+              color: '#f1f5f9',
               display: 'flex',
               alignItems: 'center',
-              minWidth: 56,
+              minWidth: 80,
               minHeight: 56,
               p: 1,
+              borderRadius: 3,
+              justifyContent: 'center',
+              backgroundColor: 'rgba(255,255,255,0.04)',
+              '&:hover': { backgroundColor: 'rgba(255,255,255,0.10)' },
             }}
           ></Button>
-          <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+          <Typography
+            variant="h3"
+            sx={{
+              fontWeight: 800,
+              letterSpacing: 0.5,
+              textShadow: '0 2px 6px rgba(0,0,0,0.45)',
+              lineHeight: 1,
+              fontSize: { xs: '2.1rem', md: '2.6rem' },
+            }}
+          >
             Projects
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1, mx: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1, mx: 4, gap: 2, maxWidth: '100%' }}>
             <TextField
               variant="outlined"
               placeholder="Search projects..."
@@ -112,154 +144,270 @@ const ProjectsPage: React.FC = () => {
               onChange={(e) => setSearch(e.target.value)}
               size="small"
               fullWidth
-              sx={{ mr: 2 }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  color: '#f1f5f9',
+                  fontWeight: 500,
+                  background: 'rgba(255,255,255,0.06)',
+                  borderRadius: 2.5,
+                  '& fieldset': { borderColor: 'rgba(255,255,255,0.25)' },
+                  '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.4)' },
+                  '&.Mui-focused fieldset': { borderColor: '#ffffff' },
+                  height: 52,
+                },
+                '& input::placeholder': { color: '#e2e8f0', opacity: 0.7 },
+              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <IconButton>
+                    <IconButton sx={{ color: '#e2e8f0' }}>
                       <SearchIcon />
                     </IconButton>
                   </InputAdornment>
                 ),
               }}
             />
+            <TextField
+              select
+              label="Sort By"
+              value={`${sortKey}-${sortDirection}`}
+              onChange={(e) => {
+                projectHandler.handleSortChange(e.target.value, setSortKey, setSortDirection);
+              }}
+              size="small"
+              variant="outlined"
+              sx={{
+                minWidth: { xs: 160, sm: 200 },
+                '& .MuiOutlinedInput-root': {
+                  color: '#f1f5f9',
+                  background: 'rgba(255,255,255,0.06)',
+                  borderRadius: 2.5,
+                  '& fieldset': { borderColor: 'rgba(255,255,255,0.25)' },
+                  '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.4)' },
+                  '&.Mui-focused fieldset': { borderColor: '#ffffff' },
+                  height: 52,
+                },
+                '& select': { paddingTop: '14px', paddingBottom: '14px' },
+                '& .MuiSelect-icon': { color: '#f1f5f9' },
+                '& .MuiInputLabel-root': { color: '#e2e8f0' },
+                '& .MuiInputLabel-root.Mui-focused': { color: '#ffffff' },
+              }}
+              SelectProps={{ native: true }}
+            >
+              <option value="projectName-asc">Name (A-Z)</option>
+              <option value="projectName-desc">Name (Z-A)</option>
+              <option value="numberOfBatches-asc">Batches (Low to High)</option>
+              <option value="numberOfBatches-desc">Batches (High to Low)</option>
+              <option value="lastUpdated-desc">Last Updated (Newest)</option>
+              <option value="lastUpdated-asc">Last Updated (Oldest)</option>
+            </TextField>
           </Box>
-          <Button variant="contained" color="primary" sx={{ fontWeight: 'bold' }} onClick={handleNewProject}>
+          <Button
+            variant="contained"
+            color="primary"
+            sx={{
+              fontWeight: 600,
+              letterSpacing: 0.5,
+              boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+              textTransform: 'none',
+              px: 4,
+              py: 1.5,
+              borderRadius: 3.5,
+              backgroundColor: '#0ea5b6',
+              '&:hover': {
+                backgroundColor: '#0d93a2',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.4)',
+              },
+            }}
+            onClick={handleNewProject}
+          >
             New Project
           </Button>
         </Toolbar>
       </AppBar>
-      <Box sx={{ px: '10%', py: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-          <TextField
-            select
-            label="Sort By"
-            value={`${sortKey}-${sortDirection}`}
-            onChange={(e) => {
-              projectHandler.handleSortChange(e.target.value, setSortKey, setSortDirection);
-            }}
-            size="small"
-            variant="outlined"
-            sx={{ minWidth: 200 }}
-            SelectProps={{
-              native: true,
-            }}
-          >
-            <option value="projectName-asc">Name (A-Z)</option>
-            <option value="projectName-desc">Name (Z-A)</option>
-            <option value="numberOfBatches-asc">Batches (Low to High)</option>
-            <option value="numberOfBatches-desc">Batches (High to Low)</option>
-            <option value="lastUpdated-desc">Last Updated (Newest)</option>
-            <option value="lastUpdated-asc">Last Updated (Oldest)</option>
-          </TextField>
-        </Box>
+      <Box sx={{ px: '10%', pt: { xs: 8, md: 12 }, pb: 3 }}>
         <Box
           sx={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-            columnGap: '5%',
-            rowGap: '35%',
+            columnGap: '4%',
+            rowGap: 6,
+            alignItems: 'start',
           }}
         >
-          {filteredProjects.map((project) => (
-            <Box key={project.projectID} sx={{ minHeight: '10vh' }}>
-              <Paper
-                sx={{
-                  p: 3,
-                  textAlign: 'center',
-                  position: 'relative',
-                  minHeight: 180,
-                  cursor: 'pointer',
-                  height: '100%',
-                  boxShadow: 8,
-                  transition: 'box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out',
-                  '&:hover': {
-                    boxShadow: 16,
-                    transform: 'translateY(-2px)',
-                  },
-                }}
-                onClick={() => handleProjectClick(project.projectID)}
-              >
-                <IconButton
+          {filteredProjects.map((project) => {
+            const formattedUpdated = (() => {
+              const d = new Date(project.lastUpdated);
+              if (isNaN(d.getTime())) return project.lastUpdated;
+              return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+            })();
+            return (
+              <Box key={project.projectID} sx={{ minHeight: '10vh' }}>
+                <Paper
                   sx={{
-                    position: 'absolute',
-                    top: 8,
-                    right: 8,
-                    fontSize: 32,
-                    color: (theme) => theme.palette.grey[700],
-                    zIndex: 2,
-                  }}
-                  size="large"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMenuAnchorEl(e.currentTarget);
-                    setMenuProjectId(project.projectID);
-                  }}
-                >
-                  <MoreVertIcon sx={{ fontSize: 32 }} />
-                </IconButton>
-                <Menu
-                  anchorEl={menuAnchorEl}
-                  open={menuProjectId === project.projectID}
-                  onClose={() => {
-                    setMenuAnchorEl(null);
-                    setMenuProjectId(null);
-                  }}
-                  anchorOrigin={{
-                    vertical: 'bottom',
-                    horizontal: 'right',
-                  }}
-                  transformOrigin={{
-                    vertical: 'top',
-                    horizontal: 'right',
-                  }}
-                  slotProps={{
-                    paper: {
-                      sx: {
-                        bgcolor: '#fff',
-                        color: '#000',
-                        border: '1px solid #e0e0e0',
-                        boxShadow: 8,
-                      },
+                    p: 3,
+                    textAlign: 'center',
+                    position: 'relative',
+                    height: 240,
+                    cursor: 'pointer',
+                    boxShadow: '0 10px 28px rgba(0,0,0,0.35), 0 4px 12px -2px rgba(0,0,0,0.25)',
+                    transition: 'box-shadow 0.35s ease, transform 0.35s ease',
+                    borderRadius: 10,
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    pt: 2,
+                    pb: 7, // reserve space for bottom batch text
+                    background: 'linear-gradient(135deg,#2c3a47 0%, #1f2732 55%, #192029 100%)',
+                    color: '#f1f5f9',
+                    overflow: 'hidden',
+                    '&:before': {
+                      content: '""',
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'radial-gradient(circle at 30% 20%, rgba(255,255,255,0.08), transparent 60%)',
+                      pointerEvents: 'none',
+                      mixBlendMode: 'overlay',
+                    },
+                    '&:after': {
+                      content: '""',
+                      position: 'absolute',
+                      inset: 0,
+                      boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.06)',
+                      borderRadius: 10,
+                      pointerEvents: 'none',
+                    },
+                    '&:hover': {
+                      boxShadow: '0 16px 42px rgba(0,0,0,0.55), 0 6px 18px -2px rgba(0,0,0,0.35)',
+                      transform: 'translateY(-4px)',
                     },
                   }}
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={() => handleProjectClick(project.projectID)}
                 >
-                  <MenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setRenameProjectId(project.projectID);
-                      setRenameValue(project.projectName);
-                      setRenameModalOpen(true);
-                      setMenuAnchorEl(null);
-                      setMenuProjectId(null);
+                  <Box
+                    sx={{
+                      flexGrow: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '100%',
+                      px: 1,
                     }}
                   >
-                    Rename
-                  </MenuItem>
-                  <MenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeleteProjectId(project.projectID);
-                      setDeleteDialogOpen(true);
-                      setMenuAnchorEl(null);
-                      setMenuProjectId(null);
-                    }}
-                  >
-                    Delete
-                  </MenuItem>
-                </Menu>
-                <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 2, fontSize: '1.6rem' }}>
-                  {project.projectName}
-                </Typography>
-                <Box sx={{ position: 'absolute', bottom: 16, left: 0, right: 0 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 'medium', fontSize: '1.2rem' }}>
-                    {project.numberOfBatches} {project.numberOfBatches === 1 ? 'batch' : 'batches'}
-                  </Typography>
-                </Box>
-              </Paper>
-            </Box>
-          ))}
+                    <IconButton
+                      sx={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        fontSize: 32,
+                        color: (theme) => theme.palette.grey[700],
+                        zIndex: 2,
+                      }}
+                      size="large"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuAnchorEl(e.currentTarget);
+                        setMenuProjectId(project.projectID);
+                      }}
+                    >
+                      <MoreVertIcon sx={{ fontSize: 32 }} />
+                    </IconButton>
+                    <Menu
+                      anchorEl={menuAnchorEl}
+                      open={menuProjectId === project.projectID}
+                      onClose={() => {
+                        setMenuAnchorEl(null);
+                        setMenuProjectId(null);
+                      }}
+                      anchorOrigin={{
+                        vertical: 'bottom',
+                        horizontal: 'right',
+                      }}
+                      transformOrigin={{
+                        vertical: 'top',
+                        horizontal: 'right',
+                      }}
+                      slotProps={{
+                        paper: {
+                          sx: {
+                            bgcolor: '#fff',
+                            color: '#000',
+                            border: '1px solid #e0e0e0',
+                            boxShadow: 8,
+                          },
+                        },
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <MenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRenameProjectId(project.projectID);
+                          setRenameValue(project.projectName);
+                          setRenameModalOpen(true);
+                          setMenuAnchorEl(null);
+                          setMenuProjectId(null);
+                        }}
+                      >
+                        Rename
+                      </MenuItem>
+                      <MenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteProjectId(project.projectID);
+                          setDeleteDialogOpen(true);
+                          setMenuAnchorEl(null);
+                          setMenuProjectId(null);
+                        }}
+                      >
+                        Delete
+                      </MenuItem>
+                    </Menu>
+                    <Typography
+                      sx={{
+                        fontWeight: 800,
+                        fontSize: '2.0rem',
+                        letterSpacing: 0.5,
+                        lineHeight: 1.05,
+                        textShadow: '0 2px 4px rgba(0,0,0,0.45)',
+                        px: 1,
+                        maxWidth: '100%',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                      title={project.projectName}
+                    >
+                      {project.projectName}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        mt: 1,
+                        color: '#cbd5e1',
+                        fontSize: '1.05rem',
+                        fontWeight: 500,
+                        letterSpacing: 0.25,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        maxWidth: '100%',
+                      }}
+                      title={`Updated ${formattedUpdated}`}
+                    >
+                      Updated {formattedUpdated}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ position: 'absolute', bottom: 16, left: 0, right: 0 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 500, fontSize: '1.05rem', color: '#e2e8f0', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>
+                      {project.numberOfBatches} {project.numberOfBatches === 1 ? 'batch' : 'batches'}
+                    </Typography>
+                  </Box>
+                </Paper>
+              </Box>
+            );
+          })}
         </Box>
       </Box>
 
