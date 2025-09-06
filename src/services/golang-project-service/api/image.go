@@ -203,7 +203,7 @@ func generateImageData(batchID string, form *multipart.Form) (bucket.ObjectMap, 
 		if err != nil {
 			return nil, ErrOpeningFile(fileHeader.Filename)
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 
 		uuid := GenerateUUID()
 		// Construct object key, e.g. batchID/filename.png
@@ -327,7 +327,7 @@ func generateVideoData(batchID string, form *multipart.Form) (bucket.ObjectMap, 
 func GenerateUUID() string {
 	const chars = "0123456789abcdef"
 	b := make([]byte, 8)
-	rand.Read(b)
+	_, _ = rand.Read(b)
 	for i := range b {
 		b[i] = chars[b[i]%16]
 	}

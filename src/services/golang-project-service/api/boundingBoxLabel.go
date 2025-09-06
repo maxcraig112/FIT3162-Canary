@@ -148,5 +148,7 @@ func (h *BoundingBoxLabelHandler) LoadBoundingBoxLabelsHandler(w http.ResponseWr
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("projectID", projectID).Msg("Loaded bounding box labels successfully")
-	json.NewEncoder(w).Encode(boundingBoxLabels)
+	if err := json.NewEncoder(w).Encode(boundingBoxLabels); err != nil {
+		log.Error().Err(err).Str("projectID", projectID).Msg("Error writing bounding box labels response")
+	}
 }

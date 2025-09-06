@@ -32,3 +32,13 @@ variable "client_sa_name" {
   description = "The Service Account email for the Cloud Run clients."
   type        = string
 }
+
+variable "bucket_name" {
+  description = "The name of the GCS bucket to monitor."
+  type        = string
+}
+
+variable "notification_email_address" {
+  description = "The email address to receive GCS bucket size alerts."
+  type        = string
+}
