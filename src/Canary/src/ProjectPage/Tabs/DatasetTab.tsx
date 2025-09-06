@@ -154,10 +154,7 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
                     )}
                   </Box>
                   <Box sx={{ position: 'absolute', bottom: 16, left: 0, right: 0 }}>
-                    <Typography
-                      variant="subtitle2"
-                      sx={{ fontWeight: 600, fontSize: '0.95rem', color: '#222' }}
-                    >
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.95rem', color: '#222' }}>
                       {b.numberOfTotalFiles} {b.numberOfTotalFiles === 1 ? 'image' : 'images'}
                     </Typography>
                   </Box>
