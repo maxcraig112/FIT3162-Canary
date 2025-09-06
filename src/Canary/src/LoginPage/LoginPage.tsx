@@ -125,8 +125,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             width: '100%',
             bgcolor: '#ffffff',
             border: '1px solid #e5e8ec',
-            boxShadow:
-              '0 6px 14px rgba(0,0,0,0.10), 0 18px 42px -8px rgba(0,0,0,0.25), 0 28px 60px -12px rgba(0,0,0,0.30)',
+            boxShadow: '0 6px 14px rgba(0,0,0,0.10), 0 18px 42px -8px rgba(0,0,0,0.25), 0 28px 60px -12px rgba(0,0,0,0.30)',
             backdropFilter: 'blur(2px)',
           }}
         >
