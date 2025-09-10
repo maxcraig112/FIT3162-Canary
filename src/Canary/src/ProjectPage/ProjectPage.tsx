@@ -175,8 +175,8 @@ const ProjectPage: React.FC = () => {
                 }}
               >
                 <Tab icon={<CloudUploadOutlined />} iconPosition="start" label="Upload" />
-                <Tab icon={<GpsFixedOutlined />} iconPosition="start" label="Annotate" />
-                <Tab icon={<BarChartOutlined />} iconPosition="start" label="Dataset" />
+                <Tab icon={<GpsFixedOutlined />} iconPosition="start" label="Datasets" />
+                <Tab icon={<BarChartOutlined />} iconPosition="start" label="Batches" />
                 <Tab icon={<IosShareOutlined />} iconPosition="start" label="Export" />
               </Tabs>
             </Box>

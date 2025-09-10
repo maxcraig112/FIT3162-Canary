@@ -7,10 +7,16 @@ export interface Batch {
   projectID: string;
   numberOfTotalFiles: number;
   lastUpdated?: string; // optional timestamp if backend provides
+  previewURL?: string; // first image URL for blurred background
 }
 
 function projectServiceUrl() {
   return import.meta.env.VITE_PROJECT_SERVICE_URL as string;
+}
+
+function devRewriteURL(url: string): string {
+  // Route GCS through local proxy (vite/nginx) to avoid CORS during dev
+  return url.replace(/^https?:\/\/storage\.googleapis\.com/, '/gcs');
 }
 
 export async function fetchBatches(projectID: string): Promise<Batch[]> {
@@ -18,6 +24,21 @@ export async function fetchBatches(projectID: string): Promise<Batch[]> {
   const data = await CallAPI<unknown>(url);
   const arr = Array.isArray(data) ? data : [];
   return arr.map(normalizeBatch);
+}
+
+type ImageMeta = { imageID: string; imageURL: string };
+
+export async function fetchFirstImageURL(batchID: string): Promise<string | undefined> {
+  const url = `${projectServiceUrl()}/batch/${batchID}/images`;
+  try {
+    const data = await CallAPI<unknown>(url);
+  const arr = Array.isArray(data) ? (data as ImageMeta[]) : [];
+  const first = arr[0];
+  if (first?.imageURL) return devRewriteURL(String(first.imageURL));
+  } catch {
+    // ignore per-batch preview errors
+  }
+  return undefined;
 }
 
 export async function renameBatch(batchID: string, newBatchName: string): Promise<void> {
@@ -92,7 +113,14 @@ export function useDatasetTab(projectID?: string) {
     setError(null);
     try {
       const data = await fetchBatches(projectID);
-      setBatches(data || []);
+      // in parallel fetch first image URLs for blurred previews
+      const withPreviews = await Promise.all(
+        (data || []).map(async (b) => {
+          const preview = await fetchFirstImageURL(b.batchID);
+          return { ...b, previewURL: preview } as Batch;
+        }),
+      );
+      setBatches(withPreviews || []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load batches');
     } finally {

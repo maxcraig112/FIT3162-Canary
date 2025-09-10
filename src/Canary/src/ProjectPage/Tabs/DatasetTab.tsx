@@ -82,7 +82,7 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
                     alignItems: 'center',
                     pt: 2,
                     pb: 7, // space for bottom count
-                    bgcolor: '#ffffff',
+                    bgcolor: b.previewURL ? 'transparent' : '#ffffff',
                     color: '#000',
                     boxShadow: 8,
                     transition: 'box-shadow 0.25s ease, transform 0.25s ease',
@@ -90,9 +90,32 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
                       boxShadow: 16,
                       transform: 'translateY(-3px)',
                     },
+                    overflow: 'hidden', // clip blurred bg to card
                   }}
                   onClick={() => navigate(`/annotate?batchID=${encodeURIComponent(b.batchID)}&projectID=${encodeURIComponent(projectID ?? b.projectID)}`)}
                 >
+                  {/* blurred background preview */}
+                  {b.previewURL && (
+                    <Box
+                      aria-hidden
+                      sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        backgroundImage: `url(${b.previewURL})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        filter: 'blur(3px)',
+                        transform: 'scale(1.06)', // avoid edge transparency from blur
+                        zIndex: 1,
+                        opacity: 0.5,
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  )}
+                  {/* dim overlay to improve text contrast */}
+                  {b.previewURL && (
+                    <Box aria-hidden sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(255,255,255,0)', zIndex: 2, pointerEvents: 'none' }} />
+                  )}
                   <Box
                     sx={{
                       flexGrow: 1,
@@ -102,6 +125,8 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
                       justifyContent: 'center',
                       width: '100%',
                       px: 1,
+                      position: 'relative',
+                      zIndex: 3,
                     }}
                   >
                     <IconButton
@@ -153,7 +178,7 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
                       </Typography>
                     )}
                   </Box>
-                  <Box sx={{ position: 'absolute', bottom: 16, left: 0, right: 0 }}>
+                  <Box sx={{ position: 'absolute', bottom: 16, left: 0, right: 0, zIndex: 3 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.95rem', color: '#222' }}>
                       {b.numberOfTotalFiles} {b.numberOfTotalFiles === 1 ? 'image' : 'images'}
                     </Typography>
