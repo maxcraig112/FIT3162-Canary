@@ -20,11 +20,7 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
     if (m?.[1]) return m[1];
 
     const ct = (res.headers.get('content-type') || '').toLowerCase();
-    const ext =
-      ct.includes('application/zip') ? '.zip' :
-      ct.includes('application/json') ? '.json' :
-      ct.includes('text/xml') ? '.xml' :
-      '.bin';
+    const ext = ct.includes('application/zip') ? '.zip' : ct.includes('application/json') ? '.json' : ct.includes('text/xml') ? '.xml' : '.bin';
     return `${fallbackBase}${ext}`;
   }
 
@@ -90,10 +86,7 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
       }}
     >
       <Stack spacing={3} sx={{ width: '100%', maxWidth: 520, alignItems: 'center' }}>
-        <Typography
-          variant="h5"
-          sx={{ mt: -2, mb: 6, fontWeight: 600, color: '#111', textAlign: 'center' }}
-        >
+        <Typography variant="h5" sx={{ mt: -2, mb: 6, fontWeight: 600, color: '#111', textAlign: 'center' }}>
           Export all finished annotations
         </Typography>
 
@@ -103,13 +96,7 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
             value={format}
             onChange={(e) => setFormat(e.target.value as ExportFormat | '')}
             displayEmpty
-            renderValue={(selected) =>
-              selected ? (
-                String(selected).toUpperCase()
-              ) : (
-                <Typography sx={{ color: '#777' }}>Select format…</Typography>
-              )
-            }
+            renderValue={(selected) => (selected ? String(selected).toUpperCase() : <Typography sx={{ color: '#777' }}>Select format…</Typography>)}
             IconComponent={ExpandMoreIcon}
             sx={{
               '& .MuiSelect-select': {
