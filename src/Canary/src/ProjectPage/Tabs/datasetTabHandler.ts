@@ -125,9 +125,7 @@ export function useDatasetTab(projectID?: string) {
       const needRetry = (withPreviews || []).filter((b) => !b.previewURL && b.numberOfTotalFiles > 0);
       if (needRetry.length) {
         setTimeout(async () => {
-          const updates = await Promise.all(
-            needRetry.map(async (b) => ({ id: b.batchID, url: await fetchFirstImageURL(b.batchID, 2, 600) })),
-          );
+          const updates = await Promise.all(needRetry.map(async (b) => ({ id: b.batchID, url: await fetchFirstImageURL(b.batchID, 2, 600) })));
           setBatches((prev) =>
             prev.map((b) => {
               const u = updates.find((x) => x.id === b.batchID);

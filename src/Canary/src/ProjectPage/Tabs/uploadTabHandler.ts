@@ -36,7 +36,10 @@ export function useUploadTab(project: Project | null) {
     const dot = trimmed.lastIndexOf('.');
     let base = dot > 0 ? trimmed.slice(0, dot) : trimmed;
     let ext = dot > 0 ? trimmed.slice(dot + 1) : '';
-    base = base.replace(/[^A-Za-z0-9-_]/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
+    base = base
+      .replace(/[^A-Za-z0-9-_]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
     if (!base) base = 'image';
     ext = ext.replace(/[^A-Za-z0-9]/g, '');
     return ext ? `${base}.${ext.toLowerCase()}` : base;
@@ -88,7 +91,7 @@ export function useUploadTab(project: Project | null) {
         setUploading(false);
       }
     },
-  [batchName, createBatch, project?.projectID, sanitizeFileName],
+    [batchName, createBatch, project?.projectID, sanitizeFileName],
   );
 
   const handleFilesSelected = useCallback(
