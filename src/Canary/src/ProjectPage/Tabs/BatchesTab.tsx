@@ -3,10 +3,10 @@ import { Box, Paper, IconButton, Menu, MenuItem, Typography, Dialog, DialogTitle
 // Using Box + CSS grid for precise gaps and alignment
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import type { Project } from '../ProjectPage';
-import { useDatasetTab } from './datasetTabHandler';
+import { useBatchesTab } from './batchesTabHandler';
 import { useParams, useNavigate } from 'react-router-dom';
 
-export const DatasetTab: React.FC<{ project: Project | null }> = () => {
+export const BatchesTab: React.FC<{ project: Project | null }> = () => {
   const { projectID } = useParams<{ projectID: string }>();
   const navigate = useNavigate();
   const {
@@ -33,12 +33,12 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
     deleting,
     closeRename,
     closeDelete,
-  } = useDatasetTab(projectID);
+  } = useBatchesTab(projectID);
 
   // Log batches whenever they change so you can inspect the data
   React.useEffect(() => {
     if (batches) {
-      console.log('[DatasetTab] Batches state:', batches);
+      console.log('[BatchesTab] Batches state:', batches);
     }
   }, [batches]);
 

@@ -3,7 +3,7 @@ import { Box, Button, Typography, Paper, Tabs, Tab, Divider } from '@mui/materia
 import AppThemeProvider from '../assets/AppThemeProvider';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { fetchProjectByID } from './projectHandlers';
-import { DatasetTab } from './Tabs/DatasetTab';
+import { BatchesTab } from './Tabs/BatchesTab';
 import { ExportTab } from './Tabs/ExportTab';
 import { SettingsTab } from './Tabs/SettingsTab';
 import { UploadTab } from './Tabs/UploadTab';
@@ -242,8 +242,8 @@ const ProjectPage: React.FC = () => {
                 {!loading && !error && (
                   <>
                     {selectedTab === 0 && <UploadTab project={projectData} />}
-                    {selectedTab === 1 && <AnnotateTab project={projectData} />}
-                    {selectedTab === 2 && <DatasetTab project={projectData} />}
+                    {selectedTab === 1 && <DatasetTab project={projectData} />}
+                    {selectedTab === 2 && <BatchesTab project={projectData} />}
                     {selectedTab === 3 && <ExportTab project={projectData} />}
                     {settingsTab && <SettingsTab project={projectData} />}
                   </>
@@ -258,6 +258,6 @@ const ProjectPage: React.FC = () => {
 };
 
 // Tab content (untyped now, since ProjectDetails removed)
-const AnnotateTab: React.FC<{ project: Project | null }> = ({ project }) => <Typography sx={{ color: '#000' }}>Annotate assets for {project?.projectName}</Typography>;
+const DatasetTab: React.FC<{ project: Project | null }> = ({ project }) => <Typography sx={{ color: '#000' }}>Annotate assets for {project?.projectName}</Typography>;
 
 export default ProjectPage;
