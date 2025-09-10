@@ -32,9 +32,9 @@ export async function fetchFirstImageURL(batchID: string): Promise<string | unde
   const url = `${projectServiceUrl()}/batch/${batchID}/images`;
   try {
     const data = await CallAPI<unknown>(url);
-  const arr = Array.isArray(data) ? (data as ImageMeta[]) : [];
-  const first = arr[0];
-  if (first?.imageURL) return devRewriteURL(String(first.imageURL));
+    const arr = Array.isArray(data) ? (data as ImageMeta[]) : [];
+    const first = arr[0];
+    if (first?.imageURL) return devRewriteURL(String(first.imageURL));
   } catch {
     // ignore per-batch preview errors
   }
