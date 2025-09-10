@@ -1,28 +1,13 @@
-// Rename a project
+// Rename a project (uses golang-project-service PATCH /projects/{projectID})
 export async function renameProject(projectID: string, newProjectName: string): Promise<string> {
-  const token = getAuthTokenFromCookie();
   const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
   const url = `${baseUrl}/projects/${projectID}`;
-  const body = JSON.stringify({ newProjectName });
-  const res = await fetch(url, {
-    method: 'PUT',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body,
+  // API returns updated Project object
+  const data = await CallAPI<{ projectID?: string; projectName?: string }>(url, {
+    method: 'PATCH',
+    json: { projectName: newProjectName },
   });
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(`Failed to rename project: ${res.status} ${res.statusText} - ${errorText}`);
-  }
-  const responseText = await res.text();
-  try {
-    const data = JSON.parse(responseText);
-    return data.message || 'Project renamed successfully';
-  } catch {
-    return responseText || 'Project renamed successfully';
-  }
+  return data?.projectName ? `Renamed to ${data.projectName}` : 'Project renamed successfully';
 }
 
 // Delete a project

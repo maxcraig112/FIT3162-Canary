@@ -18,7 +18,7 @@ export interface Project {
   projectID: string;
   projectName: string;
   userID: string;
-  numberOfFiles: number;
+  numberOfBatches: number;
   lastUpdated: string;
   settings?: unknown;
 }
@@ -97,9 +97,10 @@ const ProjectPage: React.FC = () => {
             alignItems: 'center',
             justifyContent: 'space-between',
             width: '100%',
-            backgroundColor: '#f5f5f5',
-            padding: '10px 20px',
-            boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+            background: 'linear-gradient(135deg,#f5f7fa 0%, #e7ecf2 100%)',
+            padding: '12px 24px',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.10)',
+            borderBottom: '1px solid #d9e0e6',
           }}
         >
           <Button
@@ -140,9 +141,9 @@ const ProjectPage: React.FC = () => {
             sx={{
               width: 260,
               flexShrink: 0,
-              backgroundColor: '#ffffff', // sidebar white
+              background: 'linear-gradient(180deg,#ffffff 0%, #f0f4f8 100%)',
               padding: '20px',
-              boxShadow: '2px 0 5px rgba(0, 0, 0, 0.1)',
+              boxShadow: '2px 0 6px rgba(0, 0, 0, 0.08)',
               display: 'flex',
               flexDirection: 'column',
               borderRight: (t) => `1px solid ${t.palette.divider}`,
@@ -174,7 +175,7 @@ const ProjectPage: React.FC = () => {
                 }}
               >
                 <Tab icon={<CloudUploadOutlined />} iconPosition="start" label="Upload" />
-                <Tab icon={<GpsFixedOutlined />} iconPosition="start" label="Dataset" />
+                <Tab icon={<GpsFixedOutlined />} iconPosition="start" label="Datasets" />
                 <Tab icon={<BarChartOutlined />} iconPosition="start" label="Batches" />
                 <Tab icon={<IosShareOutlined />} iconPosition="start" label="Export" />
               </Tabs>

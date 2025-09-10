@@ -6,7 +6,8 @@ export interface Batch {
   batchName: string;
   projectID: string;
   numberOfTotalFiles: number;
-  numberOfAnnotatedFiles: number;
+  lastUpdated?: string; // optional timestamp if backend provides
+  previewURL?: string; // first image URL for blurred background
 }
 
 function projectServiceUrl() {
@@ -18,6 +19,26 @@ export async function fetchBatches(projectID: string): Promise<Batch[]> {
   const data = await CallAPI<unknown>(url);
   const arr = Array.isArray(data) ? data : [];
   return arr.map(normalizeBatch);
+}
+
+type ImageMeta = { imageID: string; imageURL: string };
+
+export async function fetchFirstImageURL(batchID: string, tries = 3, delayMs = 500): Promise<string | undefined> {
+  const url = `${projectServiceUrl()}/batch/${batchID}/images`;
+  for (let attempt = 0; attempt < tries; attempt++) {
+    try {
+      const data = await CallAPI<unknown>(url);
+      const arr = Array.isArray(data) ? (data as ImageMeta[]) : [];
+      const first = arr[0];
+      if (first?.imageURL) return String(first.imageURL);
+    } catch {
+      // ignore per-attempt error
+    }
+    if (attempt < tries - 1) {
+      await new Promise((r) => setTimeout(r, delayMs * (attempt + 1)));
+    }
+  }
+  return undefined;
 }
 
 export async function renameBatch(batchID: string, newBatchName: string): Promise<void> {
@@ -41,21 +62,6 @@ export async function deleteBatch(batchID: string): Promise<void> {
 
 // --- Helpers ---
 
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === 'object' && v !== null;
-}
-
-function firstDefined<T = unknown>(obj: unknown, keys: string[], fallback?: T): T | undefined {
-  if (!isRecord(obj)) return fallback;
-  for (const k of keys) {
-    if (Object.prototype.hasOwnProperty.call(obj, k)) {
-      const val = obj[k];
-      if (val !== undefined && val !== null) return val as T;
-    }
-  }
-  return fallback;
-}
-
 function toNumber(v: unknown, def = 0): number {
   if (typeof v === 'number') return v;
   if (typeof v === 'string') {
@@ -70,20 +76,14 @@ function toStringMaybe(v: unknown, def = ''): string {
 }
 
 function normalizeBatch(raw: unknown): Batch {
-  const batchID = toStringMaybe(firstDefined(raw, ['batchID', 'batchId', 'id', 'batch_id']) ?? '');
-  const batchName = toStringMaybe(firstDefined(raw, ['batchName', 'name', 'batch_name']) ?? '');
-  const projectID = toStringMaybe(firstDefined(raw, ['projectID', 'projectId', 'project_id']) ?? '');
-
-  const numberOfTotalFiles = toNumber(firstDefined(raw, ['numberOfTotalFiles', 'number_of_total_files', 'totalFiles', 'total_files', 'numberOfFiles']), 0);
-
-  const numberOfAnnotatedFiles = toNumber(firstDefined(raw, ['numberOfAnnotatedFiles', 'number_of_annotated_files', 'annotatedFiles', 'annotated_files', 'numberOfAnnotated']), 0);
-
+  // This function extracts and normalizes the fields for a Batch object from raw API data.
+  const obj = raw as Record<string, unknown>;
   return {
-    batchID,
-    batchName,
-    projectID,
-    numberOfTotalFiles,
-    numberOfAnnotatedFiles,
+    batchID: toStringMaybe(obj['batchID']),
+    batchName: toStringMaybe(obj['batchName']),
+    projectID: toStringMaybe(obj['projectID']),
+    numberOfTotalFiles: toNumber(obj['numberOfTotalFiles']),
+    lastUpdated: toStringMaybe(obj['lastUpdated'], ''),
   };
 }
 
@@ -113,7 +113,27 @@ export function useBatchesTab(projectID?: string) {
     setError(null);
     try {
       const data = await fetchBatches(projectID);
-      setBatches(data || []);
+      // in parallel fetch first image URLs for blurred previews
+      const withPreviews = await Promise.all(
+        (data || []).map(async (b) => {
+          const preview = await fetchFirstImageURL(b.batchID);
+          return { ...b, previewURL: preview } as Batch;
+        }),
+      );
+      setBatches(withPreviews || []);
+      // If some batches report files but no preview yet (metadata race), retry once after a short delay
+      const needRetry = (withPreviews || []).filter((b) => !b.previewURL && b.numberOfTotalFiles > 0);
+      if (needRetry.length) {
+        setTimeout(async () => {
+          const updates = await Promise.all(needRetry.map(async (b) => ({ id: b.batchID, url: await fetchFirstImageURL(b.batchID, 2, 600) })));
+          setBatches((prev) =>
+            prev.map((b) => {
+              const u = updates.find((x) => x.id === b.batchID);
+              return u?.url ? { ...b, previewURL: u.url } : b;
+            }),
+          );
+        }, 1200);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load batches');
     } finally {

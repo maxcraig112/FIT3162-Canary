@@ -1,7 +1,7 @@
 # This contains all the infrastructure needed by the microservices
 
 resource "google_storage_bucket" "canary_project_images" {
-  name     = "canary-project-images"
+  name     = var.bucket_name
   location = var.region
   storage_class = "STANDARD"
   # Allow public object access via IAM (set to inherited instead of enforced)

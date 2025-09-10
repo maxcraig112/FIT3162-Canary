@@ -54,66 +54,137 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
           sx={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-            columnGap: '5%',
-            rowGap: '35%',
+            columnGap: '4%',
+            rowGap: 6,
+            alignItems: 'start',
           }}
         >
           {loading && batches.length === 0 && <Typography>Loading batches...</Typography>}
-          {batches.map((b) => (
-            <Box key={b.batchID} sx={{ minHeight: '10vh' }}>
-              <Paper
-                sx={{
-                  p: 4,
-                  textAlign: 'center',
-                  position: 'relative',
-                  minHeight: 220,
-                  cursor: 'pointer',
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 1,
-                  bgcolor: '#fff',
-                  color: 'black',
-                  boxShadow: 8,
-                  transition: 'box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out',
-                  '&:hover': {
-                    boxShadow: 16,
-                    transform: 'translateY(-2px)',
-                  },
-                }}
-                onClick={() => navigate(`/annotate?batchID=${encodeURIComponent(b.batchID)}&projectID=${encodeURIComponent(projectID ?? b.projectID)}`)}
-              >
-                {/* top-right menu trigger */}
-                <IconButton
+          {batches.map((b) => {
+            const formattedUpdated = (() => {
+              if (!b.lastUpdated) return '';
+              const d = new Date(b.lastUpdated);
+              if (isNaN(d.getTime())) return b.lastUpdated;
+              return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+            })();
+            return (
+              <Box key={b.batchID} sx={{ minHeight: '10vh' }}>
+                <Paper
                   sx={{
-                    position: 'absolute',
-                    top: 8,
-                    right: 8,
-                    zIndex: 2,
-                    color: (theme) => theme.palette.grey[700],
+                    p: 4,
+                    textAlign: 'center',
+                    position: 'relative',
+                    minHeight: 220,
+                    height: '100%',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    pt: 2,
+                    pb: 7, // space for bottom count
+                    bgcolor: b.previewURL ? 'transparent' : '#ffffff',
+                    color: '#000',
+                    boxShadow: 8,
+                    transition: 'box-shadow 0.25s ease, transform 0.25s ease',
+                    '&:hover': {
+                      boxShadow: 16,
+                      transform: 'translateY(-3px)',
+                    },
+                    overflow: 'hidden', // clip blurred bg to card
                   }}
-                  size="large"
-                  onClick={(e) => openMenu(e, b.batchID)}
+                  onClick={() => navigate(`/annotate?batchID=${encodeURIComponent(b.batchID)}&projectID=${encodeURIComponent(projectID ?? b.projectID)}`)}
                 >
-                  <MoreVertIcon sx={{ fontSize: 32 }} />
-                </IconButton>
-
-                {/* header counts */}
-                <Typography variant="subtitle2" sx={{ position: 'absolute', top: 12, left: 16 }}>
-                  {b.numberOfAnnotatedFiles}/{b.numberOfTotalFiles}
-                </Typography>
-
-                {/* centered bold name */}
-                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  {b.batchName}
-                </Typography>
-
-                {/* bottom date removed */}
-              </Paper>
-            </Box>
-          ))}
+                  {/* blurred background preview */}
+                  {b.previewURL && (
+                    <Box
+                      aria-hidden
+                      sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        backgroundImage: `url(${b.previewURL})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        filter: 'blur(3px)',
+                        transform: 'scale(1.06)', // avoid edge transparency from blur
+                        zIndex: 1,
+                        opacity: 0.5,
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  )}
+                  {/* dim overlay to improve text contrast */}
+                  {b.previewURL && <Box aria-hidden sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(255,255,255,0)', zIndex: 2, pointerEvents: 'none' }} />}
+                  <Box
+                    sx={{
+                      flexGrow: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '100%',
+                      px: 1,
+                      position: 'relative',
+                      zIndex: 3,
+                    }}
+                  >
+                    <IconButton
+                      sx={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        fontSize: 32,
+                        color: (theme) => theme.palette.grey[600],
+                        zIndex: 2,
+                      }}
+                      size="large"
+                      onClick={(e) => openMenu(e, b.batchID)}
+                    >
+                      <MoreVertIcon sx={{ fontSize: 32 }} />
+                    </IconButton>
+                    <Typography
+                      sx={{
+                        fontWeight: 800,
+                        fontSize: '1.75rem',
+                        letterSpacing: 0.4,
+                        lineHeight: 1.1,
+                        px: 1,
+                        maxWidth: '100%',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                      title={b.batchName}
+                    >
+                      {b.batchName}
+                    </Typography>
+                    {formattedUpdated && (
+                      <Typography
+                        sx={{
+                          mt: 1,
+                          color: '#555',
+                          fontSize: '0.95rem',
+                          fontWeight: 500,
+                          letterSpacing: 0.2,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          maxWidth: '100%',
+                        }}
+                        title={`Updated ${formattedUpdated}`}
+                      >
+                        Updated {formattedUpdated}
+                      </Typography>
+                    )}
+                  </Box>
+                  <Box sx={{ position: 'absolute', bottom: 16, left: 0, right: 0, zIndex: 3 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.95rem', color: '#222' }}>
+                      {b.numberOfTotalFiles} {b.numberOfTotalFiles === 1 ? 'image' : 'images'}
+                    </Typography>
+                  </Box>
+                </Paper>
+              </Box>
+            );
+          })}
         </Box>
       </Box>
 

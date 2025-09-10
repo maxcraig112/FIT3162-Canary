@@ -2,7 +2,6 @@ package firestore
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	fs "pkg/gcp/firestore"
@@ -20,11 +19,10 @@ const (
 )
 
 type Batch struct {
-	BatchID                string `firestore:"batchID,omitempty" json:"batchID"`
-	BatchName              string `firestore:"batchName,omitempty" json:"batchName"`
-	ProjectID              string `firestore:"projectID,omitempty" json:"projectID"`
-	NumberOfTotalFiles     int    `firestore:"numberOfTotalFiles,omitempty" json:"numberOfTotalFiles"`
-	NumberOfAnnotatedFiles int    `firestore:"numberOfAnnotatedFiles,omitempty" json:"numberOfAnnotatedFiles"`
+	BatchID            string `firestore:"batchID,omitempty" json:"batchID"`
+	BatchName          string `firestore:"batchName,omitempty" json:"batchName"`
+	ProjectID          string `firestore:"projectID,omitempty" json:"projectID"`
+	NumberOfTotalFiles int64  `firestore:"numberOfTotalFiles,omitempty" json:"numberOfTotalFiles"`
 }
 
 type CreateBatchRequest struct {
@@ -68,13 +66,18 @@ func (s *BatchStore) GetBatchesByProjectID(ctx context.Context, projectID string
 	return batches, nil
 }
 
+func (s *BatchStore) GetTotalBatchCountByProjectID(ctx context.Context, projectID string) (int64, error) {
+	queryParams := []fs.QueryParameter{
+		{Path: "projectID", Op: "==", Value: projectID},
+	}
+	return s.genericStore.GetAggregationWithQuery(ctx, queryParams, fs.Count)
+}
+
 func (s *BatchStore) CreateBatch(ctx context.Context, createBatchReq CreateBatchRequest) (string, error) {
 	batchData := map[string]interface{}{
-		"batchName":              createBatchReq.BatchName,
-		"projectID":              createBatchReq.ProjectID,
-		"lastUpdated":            time.Now(),
-		"numberOfTotalFiles":     0,
-		"numberOfAnnotatedFiles": 0,
+		"batchName":   createBatchReq.BatchName,
+		"projectID":   createBatchReq.ProjectID,
+		"lastUpdated": time.Now(),
 	}
 
 	return s.genericStore.CreateDoc(ctx, batchData)
@@ -98,7 +101,11 @@ func (s *BatchStore) DeleteAllBatches(ctx context.Context, projectID string) err
 	queryParams := []fs.QueryParameter{
 		{Path: "projectID", Op: "==", Value: projectID},
 	}
-	return s.genericStore.DeleteDocsByQuery(ctx, queryParams)
+	err := s.genericStore.DeleteDocsByQuery(ctx, queryParams)
+	if err != nil && err != fs.ErrNotFound {
+		return err
+	}
+	return nil
 }
 
 func (s *BatchStore) GetBatch(ctx context.Context, batchID string) (*Batch, error) {
@@ -127,48 +134,4 @@ func (s *BatchStore) ListBatchIDsByProjectID(ctx context.Context, projectID stri
 		ids = append(ids, b.BatchID)
 	}
 	return ids, nil
-}
-
-func (s *BatchStore) IncrementNumberOfTotalFiles(ctx context.Context, batchID string, req IncrementQuantityRequest) (int64, error) {
-	docSnap, err := s.genericStore.GetDoc(ctx, batchID)
-	if err != nil {
-		return 0, err
-	}
-	currentVal, err := docSnap.DataAt("numberOfTotalFiles")
-	if err != nil {
-		return 0, err
-	}
-	currentInt, ok := currentVal.(int64)
-	if !ok {
-		return 0, fmt.Errorf("invalid type for numberOfTotalFiles")
-	}
-
-	newVal := currentInt + int64(req.Quantity)
-	if newVal < 0 {
-		newVal = 0
-	}
-	err = s.genericStore.UpdateDoc(ctx, batchID, []firestore.Update{{Path: "numberOfTotalFiles", Value: newVal}})
-	return newVal, err
-}
-
-func (s *BatchStore) IncrementNumberOfAnnotatedFiles(ctx context.Context, batchID string, req IncrementQuantityRequest) (int64, error) {
-	docSnap, err := s.genericStore.GetDoc(ctx, batchID)
-	if err != nil {
-		return 0, err
-	}
-	currentVal, err := docSnap.DataAt("numberOfAnnotatedFiles")
-	if err != nil {
-		return 0, err
-	}
-	currentInt, ok := currentVal.(int64)
-	if !ok {
-		return 0, fmt.Errorf("invalid type for numberOfAnnotatedFiles")
-	}
-
-	newVal := currentInt + int64(req.Quantity)
-	if newVal < 0 {
-		newVal = 0
-	}
-	err = s.genericStore.UpdateDoc(ctx, batchID, []firestore.Update{{Path: "numberOfAnnotatedFiles", Value: newVal}})
-	return newVal, err
 }
