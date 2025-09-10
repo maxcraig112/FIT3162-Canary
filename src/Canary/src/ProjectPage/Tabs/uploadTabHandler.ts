@@ -30,6 +30,18 @@ export function useUploadTab(project: Project | null) {
     return { batchID, batchName: finalName };
   }, []);
 
+  // Allow only letters, numbers, '-' and '_' in the basename; preserve a clean extension if present
+  const sanitizeFileName = useCallback((name: string): string => {
+    const trimmed = (name || '').trim();
+    const dot = trimmed.lastIndexOf('.');
+    let base = dot > 0 ? trimmed.slice(0, dot) : trimmed;
+    let ext = dot > 0 ? trimmed.slice(dot + 1) : '';
+    base = base.replace(/[^A-Za-z0-9-_]/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
+    if (!base) base = 'image';
+    ext = ext.replace(/[^A-Za-z0-9]/g, '');
+    return ext ? `${base}.${ext.toLowerCase()}` : base;
+  }, []);
+
   const beginUpload = useCallback(
     async (files: FileList | File[]) => {
       const list = Array.from(files).filter((f) => /^(image|video)\//i.test(f.type || ''));
@@ -53,8 +65,12 @@ export function useUploadTab(project: Project | null) {
 
         const formData = new FormData();
         list.forEach((f) => {
-          if (/^image\//i.test(f.type)) formData.append('images', f, f.name);
-          else if (/^video\//i.test(f.type)) formData.append('videos', f, f.name);
+          const clean = sanitizeFileName(f.name);
+          if (/^image\//i.test(f.type)) {
+            formData.append('images', f, clean);
+          } else if (/^video\//i.test(f.type)) {
+            formData.append('videos', f, clean);
+          }
         });
 
         await CallAPI<string>(url, {
@@ -72,7 +88,7 @@ export function useUploadTab(project: Project | null) {
         setUploading(false);
       }
     },
-    [batchName, createBatch, project?.projectID],
+  [batchName, createBatch, project?.projectID, sanitizeFileName],
   );
 
   const handleFilesSelected = useCallback(

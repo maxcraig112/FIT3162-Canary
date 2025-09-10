@@ -14,11 +14,6 @@ function projectServiceUrl() {
   return import.meta.env.VITE_PROJECT_SERVICE_URL as string;
 }
 
-function devRewriteURL(url: string): string {
-  // Route GCS through local proxy (vite/nginx) to avoid CORS during dev
-  return url.replace(/^https?:\/\/storage\.googleapis\.com/, '/gcs');
-}
-
 export async function fetchBatches(projectID: string): Promise<Batch[]> {
   const url = `${projectServiceUrl()}/projects/${projectID}/batches`;
   const data = await CallAPI<unknown>(url);
@@ -28,15 +23,20 @@ export async function fetchBatches(projectID: string): Promise<Batch[]> {
 
 type ImageMeta = { imageID: string; imageURL: string };
 
-export async function fetchFirstImageURL(batchID: string): Promise<string | undefined> {
+export async function fetchFirstImageURL(batchID: string, tries = 3, delayMs = 500): Promise<string | undefined> {
   const url = `${projectServiceUrl()}/batch/${batchID}/images`;
-  try {
-    const data = await CallAPI<unknown>(url);
-  const arr = Array.isArray(data) ? (data as ImageMeta[]) : [];
-  const first = arr[0];
-  if (first?.imageURL) return devRewriteURL(String(first.imageURL));
-  } catch {
-    // ignore per-batch preview errors
+  for (let attempt = 0; attempt < tries; attempt++) {
+    try {
+      const data = await CallAPI<unknown>(url);
+      const arr = Array.isArray(data) ? (data as ImageMeta[]) : [];
+      const first = arr[0];
+      if (first?.imageURL) return String(first.imageURL);
+    } catch {
+      // ignore per-attempt error
+    }
+    if (attempt < tries - 1) {
+      await new Promise((r) => setTimeout(r, delayMs * (attempt + 1)));
+    }
   }
   return undefined;
 }
@@ -121,6 +121,21 @@ export function useDatasetTab(projectID?: string) {
         }),
       );
       setBatches(withPreviews || []);
+      // If some batches report files but no preview yet (metadata race), retry once after a short delay
+      const needRetry = (withPreviews || []).filter((b) => !b.previewURL && b.numberOfTotalFiles > 0);
+      if (needRetry.length) {
+        setTimeout(async () => {
+          const updates = await Promise.all(
+            needRetry.map(async (b) => ({ id: b.batchID, url: await fetchFirstImageURL(b.batchID, 2, 600) })),
+          );
+          setBatches((prev) =>
+            prev.map((b) => {
+              const u = updates.find((x) => x.id === b.batchID);
+              return u?.url ? { ...b, previewURL: u.url } : b;
+            }),
+          );
+        }, 1200);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load batches');
     } finally {
