@@ -113,9 +113,7 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
                     />
                   )}
                   {/* dim overlay to improve text contrast */}
-                  {b.previewURL && (
-                    <Box aria-hidden sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(255,255,255,0)', zIndex: 2, pointerEvents: 'none' }} />
-                  )}
+                  {b.previewURL && <Box aria-hidden sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(255,255,255,0)', zIndex: 2, pointerEvents: 'none' }} />}
                   <Box
                     sx={{
                       flexGrow: 1,
