@@ -95,7 +95,9 @@ func (h *UserHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusCreated)
 	log.Info().Str("email", req.Email).Msg("User registered successfully")
-	w.Write([]byte("User registered"))
+	if _, err = w.Write([]byte("User registered")); err != nil {
+		log.Error().Err(err).Str("email", req.Email).Msg("Error writing response for register")
+	}
 }
 
 func (h *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
@@ -125,7 +127,9 @@ func (h *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	log.Info().Str("email", req.Email).Msg("User logged in successfully")
-	json.NewEncoder(w).Encode(map[string]string{"token": token, "userID": userID})
+	if err := json.NewEncoder(w).Encode(map[string]string{"token": token, "userID": userID}); err != nil {
+		log.Error().Err(err).Str("email", req.Email).Msg("Error writing login response")
+	}
 }
 
 func (h *UserHandler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
@@ -145,7 +149,9 @@ func (h *UserHandler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("email", req.Email).Msg("User deleted successfully")
-	w.Write([]byte("User deleted"))
+	if _, err := w.Write([]byte("User deleted")); err != nil {
+		log.Error().Err(err).Str("email", req.Email).Msg("Error writing delete response")
+	}
 }
 
 func (h *UserHandler) AuthHandler(w http.ResponseWriter, r *http.Request) {
@@ -155,13 +161,17 @@ func (h *UserHandler) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	err := jwt.ValidateJWT(r, userID)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprintf(w, "Invalid token %s", err.Error())
+		if _, ferr := fmt.Fprintf(w, "Invalid token %s", err.Error()); ferr != nil {
+			log.Error().Err(ferr).Msg("Error writing invalid token response")
+		}
 		log.Error().Err(err).Msg("Invalid JWT token")
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 	log.Info().Msg("JWT token validated successfully")
-	w.Write([]byte("true"))
+	if _, err := w.Write([]byte("true")); err != nil {
+		log.Error().Err(err).Msg("Error writing auth true response")
+	}
 
 }
 
@@ -172,7 +182,9 @@ func (h *UserHandler) RefreshHandler(w http.ResponseWriter, r *http.Request) {
 	err := jwt.ValidateJWT(r, userID)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte("Invalid token"))
+		if _, err := w.Write([]byte("Invalid token")); err != nil {
+			log.Error().Err(err).Msg("Error writing invalid token response")
+		}
 		log.Error().Err(err).Msg("Invalid JWT token")
 		return
 	}
@@ -184,5 +196,7 @@ func (h *UserHandler) RefreshHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	log.Info().Str("userID", userID).Msg("User logged in successfully")
-	json.NewEncoder(w).Encode(map[string]string{"token": token})
+	if err := json.NewEncoder(w).Encode(map[string]string{"token": token}); err != nil {
+		log.Error().Err(err).Str("userID", userID).Msg("Error writing refresh token response")
+	}
 }

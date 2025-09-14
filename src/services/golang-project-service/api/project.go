@@ -35,14 +35,10 @@ func RegisterProjectRoutes(r *mux.Router, h *handler.Handler) {
 		{"GET", "/projects/{projectID}", ph.LoadProjectsHandler},
 		// Create a project
 		{"POST", "/projects", ph.CreateProjectHandler},
-		// Update the name of the project
-		{"PUT", "/projects/{projectID}", ph.RenameProjectHandler},
 		// Delete a project
 		{"DELETE", "/projects/{projectID}", ph.DeleteProjectHandler},
-		// Increment the number of files a project has
-		{"PATCH", "/projects/{projectID}/numberoffiles", ph.UpdateNumberOfFilesHandler},
-		// Update project settings
-		{"PATCH", "/projects/{projectID}/settings", ph.UpdateSettingsHandler},
+		// Update project
+		{"PATCH", "/projects/{projectID}", ph.UpdateProjectHandler},
 	}
 
 	for _, rt := range routes {
@@ -69,6 +65,17 @@ func (h *ProjectHandler) LoadProjectsHandler(w http.ResponseWriter, r *http.Requ
 			log.Error().Str("projectID", projectID).Err(err).Msg("Failed to get projects by Project ID")
 			return
 		}
+
+		for i, project := range projects {
+			count, err := h.BatchStore.GetTotalBatchCountByProjectID(h.Ctx, project.ProjectID)
+			if err != nil {
+				http.Error(w, "Error getting batch count", http.StatusInternalServerError)
+				log.Error().Err(err).Str("projectID", project.ProjectID).Msg("Failed to get batch count")
+				return
+			}
+			projects[i].NumberOfBatches = count
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		log.Info().Str("userID", userID).Msg("Successfully returned projects by User ID")
@@ -81,6 +88,15 @@ func (h *ProjectHandler) LoadProjectsHandler(w http.ResponseWriter, r *http.Requ
 			log.Error().Str("projectID", projectID).Err(err).Msg("Failed to get project by Project ID")
 			return
 		}
+
+		count, err := h.BatchStore.GetTotalBatchCountByProjectID(h.Ctx, project.ProjectID)
+		if err != nil {
+			http.Error(w, "Error getting batch count", http.StatusInternalServerError)
+			log.Error().Err(err).Str("projectID", project.ProjectID).Msg("Failed to get batch count")
+			return
+		}
+		project.NumberOfBatches = count
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		log.Info().Str("projectID", projectID).Msg("Successfully returned project with Project ID")
@@ -111,34 +127,6 @@ func (h *ProjectHandler) CreateProjectHandler(w http.ResponseWriter, r *http.Req
 		"projectID": projectID,
 		"message":   "Project created",
 		"created":   true,
-	})
-}
-
-func (h *ProjectHandler) RenameProjectHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	projectID := vars["projectID"]
-
-	var req firestore.RenameProjectRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
-		log.Error().Err(err).Str("projectID", projectID).Msg("Invalid rename project request")
-		return
-	}
-
-	err := h.ProjectStore.RenameProject(h.Ctx, projectID, req)
-	if err != nil {
-		http.Error(w, "Error renaming project", http.StatusInternalServerError)
-		log.Error().Err(err).Str("projectID", projectID).Msg("Error renaming project")
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	log.Info().Str("projectID", projectID).Str("newName", req.NewProjectName).Msg("Project renamed successfully")
-	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"projectID": projectID,
-		"newName":   req.NewProjectName,
-		"message":   "Project renamed",
 	})
 }
 
@@ -219,46 +207,18 @@ func (h *ProjectHandler) DeleteProjectHandler(w http.ResponseWriter, r *http.Req
 	})
 }
 
-func (h *ProjectHandler) UpdateNumberOfFilesHandler(w http.ResponseWriter, r *http.Request) {
+func (h *ProjectHandler) UpdateProjectHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	projectID := vars["projectID"]
 
-	var req firestore.IncrementQuantityRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
-		log.Error().Err(err).Str("projectID", projectID).Msg("Invalid update number of files request")
-		return
-	}
-
-	newVal, err := h.ProjectStore.IncrementNumberOfFiles(h.Ctx, projectID, req)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Error updating number of files for project %s", projectID), http.StatusInternalServerError)
-		log.Error().Err(err).Str("projectID", projectID).Msg("Error updating number of files")
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	log.Info().Str("projectID", projectID).Int64("newNumberOfFiles", newVal).Msg("Updated number of files successfully")
-	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"projectID":     projectID,
-		"numberOfFiles": newVal,
-		"message":       "Updated numberOfFiles",
-	})
-}
-
-func (h *ProjectHandler) UpdateSettingsHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	projectID := vars["projectID"]
-
-	var req firestore.ProjectSettings
+	var req firestore.Project
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		log.Error().Err(err).Str("projectID", projectID).Msg("Invalid update settings request")
 		return
 	}
 
-	settings, err := h.ProjectStore.UpdateProjectSettings(h.Ctx, projectID, req)
+	project, err := h.ProjectStore.UpdateProject(h.Ctx, projectID, req)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error updating project %s settings", projectID), http.StatusInternalServerError)
 		log.Error().Err(err).Str("projectID", projectID).Msg("Error updating project settings")
@@ -268,5 +228,5 @@ func (h *ProjectHandler) UpdateSettingsHandler(w http.ResponseWriter, r *http.Re
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("projectID", projectID).Msg("Updated project settings successfully")
-	json.NewEncoder(w).Encode(settings)
+	json.NewEncoder(w).Encode(project)
 }

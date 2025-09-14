@@ -6,6 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -13,6 +17,7 @@ import (
 	"path/filepath"
 	"pkg/gcp/bucket"
 	"pkg/handler"
+	fs "project-service/firestore"
 	"strings"
 	"time"
 
@@ -134,7 +139,7 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	var imageData map[string]string
+	var imageData bucket.ObjectMap
 	imgUpStart := time.Now()
 	if imageData, err = h.ImageBucket.CreateImages(ctx, batchID, imageObjects); err != nil {
 		http.Error(w, "Failed to upload images", http.StatusInternalServerError)
@@ -147,47 +152,77 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 		Dur("took", time.Since(imgUpStart)).
 		Msg("Uploaded images to bucket")
 
-	// Once the images have been uploaded, we now want to create the image metadata in firestore
 	imgMetaStart := time.Now()
-	if err := h.ImageStore.CreateImageMetadata(ctx, batchID, imageData); err != nil {
-		http.Error(w, "Failed to create image metadata", http.StatusInternalServerError)
-		log.Error().Err(err).Str("batchID", batchID).Msg("Failed to create image metadata in Firestore")
-		return
+	var createdImages []fs.Image
+	if len(imageData) > 0 {
+		imgs, err := h.ImageStore.CreateImageMetadata(ctx, batchID, imageData)
+		if err != nil {
+			http.Error(w, "Failed to create image metadata", http.StatusInternalServerError)
+			log.Error().Err(err).Str("batchID", batchID).Msg("Failed to create image metadata in Firestore")
+			return
+		}
+		createdImages = imgs
+		for _, im := range createdImages {
+			log.Info().Str("batchID", batchID).Str("imageID", im.ImageID).Str("fileName", im.ImageName).Msg("Created image metadata")
+		}
+		log.Info().
+			Str("batchID", batchID).
+			Int("count", len(createdImages)).
+			Dur("took", time.Since(imgMetaStart)).
+			Msg("Created image metadata in Firestore (batch)")
 	}
-	log.Info().
-		Str("batchID", batchID).
-		Int("count", len(imageData)).
-		Dur("took", time.Since(imgMetaStart)).
-		Msg("Created image metadata in Firestore")
 
-	var videoData map[string]string
+	var videoData bucket.ObjectMap
 	vidUpStart := time.Now()
 	if videoData, err = h.ImageBucket.CreateImages(ctx, batchID, videoFrameObjects); err != nil {
 		http.Error(w, "Failed to upload videos", http.StatusInternalServerError)
 		log.Error().Err(err).Str("batchID", batchID).Msg("Failed to upload videos to bucket")
 		return
 	}
-	log.Info().
-		Str("batchID", batchID).
-		Int("count", len(videoData)).
-		Dur("took", time.Since(vidUpStart)).
-		Msg("Uploaded video frames to bucket")
+	if len(videoData) > 0 {
+		log.Info().
+			Str("batchID", batchID).
+			Int("count", len(videoData)).
+			Dur("took", time.Since(vidUpStart)).
+			Msg("Uploaded video frames to bucket")
+	}
 
-	// Once the videos have been uploaded, we now want to create the video metadata in firestore
 	vidMetaStart := time.Now()
-	if err := h.ImageStore.CreateImageMetadata(ctx, batchID, videoData); err != nil {
-		http.Error(w, "Failed to create video metadata", http.StatusInternalServerError)
-		log.Error().Err(err).Str("batchID", batchID).Msg("Failed to create video metadata in Firestore")
+	var createdVideoFrames []fs.Image
+	if len(videoData) > 0 {
+		frames, err := h.ImageStore.CreateImageMetadata(ctx, batchID, videoData)
+		if err != nil {
+			http.Error(w, "Failed to create video metadata", http.StatusInternalServerError)
+			log.Error().Err(err).Str("batchID", batchID).Msg("Failed to create video metadata in Firestore")
+			return
+		}
+		createdVideoFrames = frames
+
+		for _, vf := range createdVideoFrames {
+			log.Info().Str("batchID", batchID).Str("videoFrameID", vf.ImageID).Str("frameFile", vf.ImageName).Msg("Created video frame metadata")
+		}
+		log.Info().
+			Str("batchID", batchID).
+			Int("count", len(createdVideoFrames)).
+			Dur("took", time.Since(vidMetaStart)).
+			Msg("Created video frame metadata in Firestore (batch)")
+	}
+	w.WriteHeader(http.StatusOK)
+
+	summaryParts := []string{}
+	if len(createdImages) > 0 {
+		summaryParts = append(summaryParts, fmt.Sprintf("%d images", len(createdImages)))
+	}
+	if len(createdVideoFrames) > 0 {
+		summaryParts = append(summaryParts, fmt.Sprintf("%d video frames", len(createdVideoFrames)))
+	}
+	if len(summaryParts) == 0 {
+		log.Warn().Str("batchID", batchID).Msg("Upload handler completed with no media persisted")
+		w.Write([]byte("No media uploaded"))
 		return
 	}
-	log.Info().
-		Str("batchID", batchID).
-		Int("count", len(videoData)).
-		Dur("took", time.Since(vidMetaStart)).
-		Msg("Created video metadata in Firestore")
-	w.WriteHeader(http.StatusOK)
-	log.Info().Str("batchID", batchID).Int("numImages", len(imageData)+len(videoData)).Msg("Images and videos uploaded and metadata created successfully")
-	w.Write([]byte("Images and videos uploaded successfully"))
+	log.Info().Str("batchID", batchID).Msg(fmt.Sprintf("Uploaded and stored metadata for %s", strings.Join(summaryParts, " and ")))
+	w.Write([]byte("Upload successful"))
 }
 
 func generateImageData(batchID string, form *multipart.Form) (bucket.ObjectMap, error) {
@@ -199,17 +234,31 @@ func generateImageData(batchID string, form *multipart.Form) (bucket.ObjectMap, 
 	objects := make(bucket.ObjectMap, len(files))
 
 	for _, fileHeader := range files {
-		file, err := fileHeader.Open()
+		f, err := fileHeader.Open()
 		if err != nil {
 			return nil, ErrOpeningFile(fileHeader.Filename)
 		}
-		defer file.Close()
+
+		data, err := io.ReadAll(f)
+		_ = f.Close()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read image %s: %w", fileHeader.Filename, err)
+		}
+
+		cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode image config for %s: %w", fileHeader.Filename, err)
+		}
+		width, height := cfg.Width, cfg.Height
+		log.Debug().Str("file", fileHeader.Filename).Str("format", format).Int("w", width).Int("h", height).Msg("decoded image dimensions")
 
 		uuid := GenerateUUID()
-		// Construct object key, e.g. batchID/filename.png
 		objectName := fmt.Sprintf("%s/%s_%s", batchID, fileHeader.Filename, uuid)
-		// Assign io.Reader to ObjectMap
-		objects[objectName] = file
+		objects[objectName] = bucket.ImageData{
+			Width:        int64(width),
+			Height:       int64(height),
+			ObjectReader: io.NopCloser(bytes.NewReader(data)),
+		}
 	}
 
 	return objects, nil
@@ -311,13 +360,27 @@ func generateVideoData(batchID string, form *multipart.Form) (bucket.ObjectMap, 
 			if err != nil {
 				return nil, cleanup, fmt.Errorf("failed to open frame file: %w", err)
 			}
-			// Keep these open for upload; close in cleanup
+
+			cfg, _, err := image.DecodeConfig(frameFile)
+			if err != nil {
+				frameFile.Close()
+				return nil, cleanup, fmt.Errorf("failed to decode frame config: %w", err)
+			}
+			width, height := cfg.Width, cfg.Height
+			_, err = frameFile.Seek(0, 0)
+			if err != nil {
+				frameFile.Close()
+				return nil, cleanup, fmt.Errorf("failed to reset frame file: %w", err)
+			}
+
 			closers = append(closers, frameFile)
-			frameName := fmt.Sprintf("%s/%s_/%s_frame_%04d.png", batchID, uuid, fileHeader.Filename, i+1)
-			objects[frameName] = frameFile
-		}
-		if err != nil {
-			return nil, cleanup, fmt.Errorf("failed to extract frames using ffmpeg-go: %w", err)
+			frameName := fmt.Sprintf("%s/%s/%s_frame_%04d_w%d_h%d.png",
+				batchID, uuid, fileHeader.Filename, i+1, width, height)
+			objects[frameName] = bucket.ImageData{
+				ObjectReader: frameFile,
+				Width:        int64(width),
+				Height:       int64(height),
+			}
 		}
 	}
 
@@ -327,7 +390,7 @@ func generateVideoData(batchID string, form *multipart.Form) (bucket.ObjectMap, 
 func GenerateUUID() string {
 	const chars = "0123456789abcdef"
 	b := make([]byte, 8)
-	rand.Read(b)
+	_, _ = rand.Read(b)
 	for i := range b {
 		b[i] = chars[b[i]%16]
 	}

@@ -64,7 +64,9 @@ func (h *BoundingBoxHandler) CreateBoundingBoxHandler(w http.ResponseWriter, r *
 
 	w.WriteHeader(http.StatusCreated)
 	log.Info().Str("boundingBoxID", id).Msg("Bounding box created successfully")
-	w.Write([]byte(fmt.Sprintf("Bounding box %s created", id)))
+	if _, err := w.Write([]byte(fmt.Sprintf("Bounding box %s created", id))); err != nil {
+		log.Error().Err(err).Str("boundingBoxID", id).Msg("Error writing create bounding box response")
+	}
 }
 
 func (h *BoundingBoxHandler) GetBoundingBoxesByImageHandler(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +83,9 @@ func (h *BoundingBoxHandler) GetBoundingBoxesByImageHandler(w http.ResponseWrite
 
 	w.Header().Set("Content-Type", "application/json")
 	log.Info().Str("imageID", imageID).Msg("Loaded bounding boxes successfully")
-	json.NewEncoder(w).Encode(boundingBoxes)
+	if err := json.NewEncoder(w).Encode(boundingBoxes); err != nil {
+		log.Error().Err(err).Str("imageID", imageID).Msg("Error writing bounding boxes response")
+	}
 }
 
 func (h *BoundingBoxHandler) GetBoundingBoxHandler(w http.ResponseWriter, r *http.Request) {
@@ -97,7 +101,9 @@ func (h *BoundingBoxHandler) GetBoundingBoxHandler(w http.ResponseWriter, r *htt
 
 	w.Header().Set("Content-Type", "application/json")
 	log.Info().Str("boundingBoxID", boundingBoxID).Msg("Loaded bounding box successfully")
-	json.NewEncoder(w).Encode(bb)
+	if err := json.NewEncoder(w).Encode(bb); err != nil {
+		log.Error().Err(err).Str("boundingBoxID", boundingBoxID).Msg("Error writing bounding box response")
+	}
 }
 
 func (h *BoundingBoxHandler) UpdateBoundingBoxPositionHandler(w http.ResponseWriter, r *http.Request) {
@@ -120,7 +126,9 @@ func (h *BoundingBoxHandler) UpdateBoundingBoxPositionHandler(w http.ResponseWri
 
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("boundingBoxID", boundingBoxID).Msg("Bounding box position updated successfully")
-	w.Write([]byte("Bounding box position updated"))
+	if _, err := w.Write([]byte("Bounding box position updated")); err != nil {
+		log.Error().Err(err).Str("boundingBoxID", boundingBoxID).Msg("Error writing update bounding box response")
+	}
 }
 
 func (h *BoundingBoxHandler) DeleteBoundingBoxHandler(w http.ResponseWriter, r *http.Request) {
@@ -135,5 +143,7 @@ func (h *BoundingBoxHandler) DeleteBoundingBoxHandler(w http.ResponseWriter, r *
 
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("boundingBoxID", boundingBoxID).Msg("Bounding box deleted successfully")
-	w.Write([]byte("Bounding box deleted"))
+	if _, err := w.Write([]byte("Bounding box deleted")); err != nil {
+		log.Error().Err(err).Str("boundingBoxID", boundingBoxID).Msg("Error writing delete bounding box response")
+	}
 }

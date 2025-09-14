@@ -15,7 +15,7 @@ func NewImageBucket(bk bucket.BucketClientInterface) *ImageBucket {
 	return &ImageBucket{genericBucket: bucket.NewGenericBucket(bk)}
 }
 
-func (b *ImageBucket) CreateImages(ctx context.Context, batchID string, objectMap bucket.ObjectMap) (map[string]string, error) {
+func (b *ImageBucket) CreateImages(ctx context.Context, batchID string, objectMap bucket.ObjectMap) (map[string]bucket.ImageData, error) {
 	objectData, err := b.genericBucket.CreateObjectsBatch(ctx, objectMap)
 	if err != nil {
 		return nil, err

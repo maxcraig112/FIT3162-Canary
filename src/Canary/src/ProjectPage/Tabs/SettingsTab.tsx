@@ -64,7 +64,27 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ title, inputValue, onI
 
 export function SettingsTab({ project: _project }: { project: Project | null }) {
   const projectID = _project?.projectID;
-  const { keypointLabels, bboxLabels, keypointInput, bboxInput, setKeypointInput, setBboxInput, addKeypoint, addBbox, deleteKeypoint, deleteBbox } = useSettingsTab(projectID);
+  const {
+    sessionEnabled,
+    sessionName,
+    sessionPassword,
+    setSessionEnabled,
+    setSessionName,
+    setSessionPassword,
+    saveSessionSettings,
+    saveSuccess,
+    clearSaveSuccess,
+    keypointLabels,
+    bboxLabels,
+    keypointInput,
+    bboxInput,
+    setKeypointInput,
+    setBboxInput,
+    addKeypoint,
+    addBbox,
+    deleteKeypoint,
+    deleteBbox,
+  } = useSettingsTab(projectID, (_project as unknown as { settings?: { session?: { enabled?: boolean; name?: string; password?: string } } } | null)?.settings ?? null);
 
   return (
     <Box
@@ -122,6 +142,8 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
             justifyContent: 'center',
             height: '100%',
           }}
+          component="form"
+          autoComplete="off"
         >
           {/* Enable Sessions button on its own row, centered */}
           <Box
@@ -132,7 +154,7 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
               mb: 2,
             }}
           >
-            <FormControlLabel control={<Checkbox defaultChecked />} label="Enable Sessions" />
+            <FormControlLabel control={<Checkbox checked={sessionEnabled} onChange={(e) => setSessionEnabled(e.target.checked)} />} label="Enable Sessions" />
           </Box>
           {/* Input fields centered in a row below */}
           <Box
@@ -146,12 +168,52 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
               mb: 2,
             }}
           >
-            <TextField label="Session Name" variant="outlined" color="primary" focused sx={{ minWidth: '48%' }} InputProps={{ style: { color: '#000' } }} />
-            <TextField label="Password" variant="outlined" color="primary" focused sx={{ minWidth: '48%' }} InputProps={{ style: { color: '#000' } }} />
+            <TextField
+              label="Session Name"
+              variant="outlined"
+              color="primary"
+              focused
+              autoComplete="off"
+              sx={{ minWidth: '48%' }}
+              value={sessionName}
+              onChange={(e) => setSessionName(e.target.value)}
+              InputProps={{ style: { color: '#000' } }}
+              inputProps={{ name: 'canary-session-name', autoComplete: 'off' }}
+            />
+            <TextField
+              label="Password"
+              variant="outlined"
+              color="primary"
+              focused
+              autoComplete="off"
+              sx={{ minWidth: '48%' }}
+              value={sessionPassword}
+              onChange={(e) => setSessionPassword(e.target.value)}
+              InputProps={{ style: { color: '#000' } }}
+              inputProps={{ name: 'canary-session-password', autoComplete: 'off' }}
+            />
           </Box>
-          <Button variant="contained" sx={{ width: '100%' }}>
+          <Button
+            variant="contained"
+            sx={{ width: '100%' }}
+            onClick={async () => {
+              try {
+                await saveSessionSettings();
+                // Auto clear after 2.5s
+                setTimeout(() => clearSaveSuccess(), 2500);
+              } catch (e) {
+                console.error('Failed to save settings', e);
+                alert(e instanceof Error ? e.message : 'Failed to save settings');
+              }
+            }}
+          >
             Save
           </Button>
+          {saveSuccess && (
+            <Typography variant="body2" sx={{ mt: 1, color: 'green' }}>
+              {saveSuccess}
+            </Typography>
+          )}
         </Box>
       </Box>
 

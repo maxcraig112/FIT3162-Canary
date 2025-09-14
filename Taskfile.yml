@@ -38,3 +38,35 @@ tasks:
     interactive: true
     cmds:
      - npm run dev
+
+  lintAuthService:
+    desc: Lint the Go authentication service with golangci-lint
+    dir: src/services/golang-auth-service
+    cmds:
+      - golangci-lint run
+
+  lintProjectService:
+    desc: Lint the Go project service with golangci-lint
+    dir: src/services/golang-project-service
+    cmds:
+      - golangci-lint run
+
+  lintWebsocketService:
+    desc: Lint the Go websocket service with golangci-lint
+    dir: src/services/golang-websocket-service
+    cmds:
+      - golangci-lint run
+
+  lintServiceRunner:
+    desc: Lint the Go service-runner with golangci-lint
+    dir: src/services/service-runner
+    cmds:
+      - golangci-lint run
+
+  lintAll:
+    desc: Lint all Go services with golangci-lint
+    cmds:
+      - task: lintAuthService
+      - task: lintProjectService
+      - task: lintWebsocketService
+      - task: lintServiceRunner

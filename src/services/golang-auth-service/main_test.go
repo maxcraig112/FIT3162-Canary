@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"testing"
 
-	"auth-service/run"
 	"auth-service/api"
 	authFirestore "auth-service/firestore"
+	"auth-service/run"
 	"pkg/gcp"
 	"pkg/handler"
 	"pkg/jwt"
@@ -43,7 +43,7 @@ func setupTestServer(ctx context.Context) (*gcp.Clients, *httptest.Server) {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to retrieve JWT Secret")
 	}
-	os.Setenv("JWT_SECRET", secret)
+	_ = os.Setenv("JWT_SECRET", secret)
 
 	r := mux.NewRouter()
 	authMw := jwt.AuthMiddleware(clients)
@@ -69,7 +69,7 @@ func TestRegisterAndLoginFlow(t *testing.T) {
 
 	// Always attempt to delete the user at the end, even if test fails
 	defer func() {
-		defer clients.Firestore.Close()
+		defer func() { _ = clients.Firestore.Close() }()
 		userStore := authFirestore.NewUserStore(clients.Firestore)
 		_ = userStore.DeleteUser(ctx, email, password)
 	}()

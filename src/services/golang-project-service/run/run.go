@@ -95,7 +95,7 @@ func Run() {
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to retrieve JWT Secret from GSM")
 		}
-		os.Setenv("JWT_SECRET", secret)
+		_ = os.Setenv("JWT_SECRET", secret)
 	}
 
 	r := mux.NewRouter()

@@ -9,9 +9,14 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-type ObjectReader io.Reader
-type ObjectMap map[string]ObjectReader
+type ObjectMap map[string]ImageData
 
+type ImageData struct {
+	Width        int64
+	Height       int64
+	URL          string
+	ObjectReader io.Reader
+}
 type GenericBucket struct {
 	bucket BucketClientInterface
 }
@@ -42,15 +47,19 @@ func (b *GenericBucket) CreateObject(ctx context.Context, objectName string, dat
 }
 
 // CreateObjectsBatch uploads multiple objects and returns their URLs.
-func (b *GenericBucket) CreateObjectsBatch(ctx context.Context, objects ObjectMap) (map[string]string, error) {
-	urls := make(map[string]string, len(objects))
+func (b *GenericBucket) CreateObjectsBatch(ctx context.Context, objects ObjectMap) (map[string]ImageData, error) {
+	urls := make(map[string]ImageData, len(objects))
 
-	for name, reader := range objects {
-		url, err := b.CreateObject(ctx, name, reader)
+	for name, imageData := range objects {
+		url, err := b.CreateObject(ctx, name, imageData.ObjectReader)
 		if err != nil {
 			return nil, fmt.Errorf("failed to upload %s: %w", name, err)
 		}
-		urls[name] = url
+		urls[name] = ImageData{
+			Width:  imageData.Width,
+			Height: imageData.Height,
+			URL:    url,
+		}
 	}
 
 	return urls, nil

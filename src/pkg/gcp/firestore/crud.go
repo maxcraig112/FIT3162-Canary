@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"cloud.google.com/go/firestore"
+	"cloud.google.com/go/firestore/apiv1/firestorepb"
 	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -14,6 +15,10 @@ type QueryParameter struct {
 	Op    string
 	Value interface{}
 }
+
+type Aggregation string
+
+var Count Aggregation = "count"
 
 type GenericStore struct {
 	client     FirestoreClientInterface
@@ -77,6 +82,34 @@ func (s *GenericStore) ReadCollection(ctx context.Context, query []QueryParamete
 	}
 
 	return docs, nil
+}
+
+func (s *GenericStore) GetAggregationWithQuery(ctx context.Context, query []QueryParameter, aggregation Aggregation) (int64, error) {
+	result := s.collection.Query
+
+	for _, q := range query {
+		result = result.Where(q.Path, q.Op, q.Value)
+	}
+
+	var aggregationQuery *firestore.AggregationQuery
+	switch aggregation {
+	case Count:
+		aggregationQuery = result.NewAggregationQuery().WithCount(string(aggregation))
+	default:
+		return 0, status.Errorf(codes.InvalidArgument, "unsupported aggregation: %s", aggregation)
+	}
+
+	aggResult, err := aggregationQuery.Get(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	count, ok := aggResult[string(aggregation)]
+	if !ok {
+		return 0, status.Errorf(codes.Internal, "aggregation result missing count value")
+	}
+	countValue := count.(*firestorepb.Value)
+	return countValue.GetIntegerValue(), nil
 }
 
 func (s *GenericStore) GetDoc(ctx context.Context, docID string) (*firestore.DocumentSnapshot, error) {
