@@ -175,6 +175,8 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 			FileName:     img_path,
 			License:      1,
 			DateCaptured: now.Format(time.RFC3339),
+			Width:        int(img.Width),
+			Height:       int(img.Height),
 		})
 
 		bbox, err := h.BoundingBoxStore.GetBoundingBoxesByImageID(h.Ctx, img.ImageID)
@@ -228,7 +230,7 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	fw, err := zipWriter.Create("annotations/instances_train.json")
+	fw, err := zipWriter.Create("annotations.json")
 	if err != nil {
 		http.Error(w, "Error creating coco JSON in zip", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to create annotations.json in zip")
@@ -373,6 +375,8 @@ func (h *ExportHandler) exportBoundingBoxCOCOHandler(w http.ResponseWriter, r *h
 			FileName:     img_path,
 			License:      1,
 			DateCaptured: now.Format(time.RFC3339),
+			Width:        int(img.Width),
+			Height:       int(img.Height),
 		})
 
 		bbox, err := h.BoundingBoxStore.GetBoundingBoxesByImageID(h.Ctx, img.ImageID)
@@ -417,7 +421,7 @@ func (h *ExportHandler) exportBoundingBoxCOCOHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	fw, err := zipWriter.Create("annotations/instances_train.json")
+	fw, err := zipWriter.Create("annotations.json")
 	if err != nil {
 		http.Error(w, "Error creating coco JSON in zip", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to create annotations.json in zip")
