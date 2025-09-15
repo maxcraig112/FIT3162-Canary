@@ -168,9 +168,32 @@ const AnnotatePage: React.FC = () => {
         </AppBar>
 
         {/* Canvas */}
-        <Box sx={{ flexGrow: 1, position: 'relative', p: 2 }} ref={boxRef}>
+        <Box
+          sx={{
+            flexGrow: 1,
+            position: 'relative',
+            p: 2,
+            height: '100%',
+            maxHeight: 'calc(100vh - 64px)', // subtract toolbar height if needed
+            maxWidth: '100vw',
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          ref={boxRef}
+        >
           {/* Width/height are set programmatically in useEffect to match container; rely on style for initial sizing */}
-          <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
+          <canvas
+            ref={canvasRef}
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'block',
+              maxWidth: '100%',
+              maxHeight: '100%',
+            }}
+          />
           {labelPrompt.open && (
             <Paper
               elevation={3}
@@ -246,13 +269,15 @@ const AnnotatePage: React.FC = () => {
       <Paper
         elevation={2}
         sx={{
-          width: '120px',
+          width: 120,
+          minWidth: 120,
+          maxWidth: 120,
+          flexShrink: 0,
           p: 1,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          height: '100%',
           gap: 2,
         }}
       >
