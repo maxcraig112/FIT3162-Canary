@@ -17,11 +17,11 @@ import (
 )
 
 type CorrectKeypointDetection struct {
-	Info        coco.Information    `json:"info,omitempty"`
-	Images      []coco.Image        `json:"images,omitempty"`
-	Annotations []coco.KPAnnotation `json:"annotations,omitempty"`
-	Licenses    []coco.License      `json:"licenses,omitempty"`
-	Categories  []coco.KPCategories `json:"categories,omitempty"`
+	Info        coco.Information    `json:"info"`
+	Images      []coco.Image        `json:"images"`
+	Annotations []coco.KPAnnotation `json:"annotations"`
+	Licenses    []coco.License      `json:"licenses"`
+	Categories  []coco.KPCategories `json:"categories"`
 }
 
 type ExportHandler struct {
