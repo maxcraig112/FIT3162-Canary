@@ -46,8 +46,18 @@ export async function fetchFirstImageURL(batchID: string, tries = 3, delayMs = 5
 export async function renameBatch(batchID: string, newBatchName: string): Promise<void> {
   const url = `${projectServiceUrl()}/batch/${batchID}`;
   await CallAPI<void>(url, {
-    method: 'PUT',
-    json: { newBatchName },
+    method: 'PATCH',
+    json: { batchName: newBatchName },
+    // Backend returns plain text, not JSON
+    parseJson: false,
+  });
+}
+
+export async function setBatchFinishState(batchID: string, isComplete: boolean): Promise<void> {
+  const url = `${projectServiceUrl()}/batch/${batchID}`;
+  await CallAPI<void>(url, {
+    method: 'PATCH',
+    json: { isComplete: isComplete },
     // Backend returns plain text, not JSON
     parseJson: false,
   });
@@ -160,10 +170,13 @@ export function useBatchesTab(projectID?: string) {
     setMenuBatchId(null);
   }, []);
 
-  // Finish action (no-op for now)
   const handleFinish = useCallback(() => {
     closeMenu();
-  }, [closeMenu]);
+    if (!selectedBatch) return;
+    setBatchFinishState(selectedBatch.batchID, true).then(() => {
+      load();
+    });
+  }, [closeMenu, selectedBatch, load]);
 
   // rename flow
   const openRename = useCallback(() => {

@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"pkg/handler"
 	"project-service/firestore"
@@ -41,12 +42,38 @@ func RegisterBatchRoutes(r *mux.Router, h *handler.Handler) {
 		{"GET", "/batch/{batchID}", bh.LoadBatchHandler},
 		// Delete all batches associated with a project
 		{"DELETE", "/projects/{projectID}/batches", bh.DeleteAllBatchesHandler},
+		// Update batch
+		{"PATCH", "/batch/{batchID}", bh.UpdateBatchHandler},
 	}
 
 	for _, rt := range routes {
 		wrapped := h.AuthMw(ValidateOwnershipMiddleware(http.HandlerFunc(rt.handlerFunc), bh.Stores))
 		r.Handle(rt.pattern, wrapped).Methods(rt.method)
 	}
+}
+
+func (h *BatchHandler) UpdateBatchHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	batchID := vars["batchID"]
+
+	var req firestore.Batch
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		log.Error().Err(err).Str("batchID", batchID).Msg("Invalid update batch request")
+		return
+	}
+
+	batch, err := h.BatchStore.UpdateBatch(h.Ctx, batchID, req)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error updating batch %s", batchID), http.StatusInternalServerError)
+		log.Error().Err(err).Str("batchID", batchID).Msg("Error updating batch")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	log.Info().Str("batchID", batchID).Msg("Updated batch successfully")
+	json.NewEncoder(w).Encode(batch)
 }
 
 func (h *BatchHandler) LoadBatchHandler(w http.ResponseWriter, r *http.Request) {
