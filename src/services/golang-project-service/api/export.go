@@ -139,8 +139,8 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 				Skeleton:      []coco.Edge{},
 			},
 		},
-		Images:      []coco.Image{},
-		Annotations: []coco.KPAnnotation{},
+		Images:      make([]coco.Image, 0),
+		Annotations: make([]coco.KPAnnotation, 0),
 	}
 
 	current_annotation_idx := 1
@@ -326,8 +326,8 @@ func (h *ExportHandler) exportBoundingBoxCOCOHandler(w http.ResponseWriter, r *h
 				Supercategory: "none",
 			},
 		},
-		Images:      []coco.Image{},
-		Annotations: []coco.ODAnnotation{},
+		Images:      make([]coco.Image, 0),
+		Annotations: make([]coco.ODAnnotation, 0),
 	}
 
 	for i, bbLabelNames := range bbLabelNames {
