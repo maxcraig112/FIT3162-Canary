@@ -5,7 +5,7 @@ import AppThemeProvider from '../assets/AppThemeProvider';
 import { CANARY_BUTTON_COLOR, CANARY_BUTTON_TEXT_COLOR } from '../assets/constants';
 import { useNavigate } from 'react-router-dom';
 
-import { handleProjectsPage, handleJoinSession, handleSettings } from './homeHandlers';
+import { handleProjectsPage } from './homeHandlers';
 import { clearCookie } from '../utils/cookieUtils';
 import canaryImg from '../images/canary.jpg';
 import { useAuthGuard } from '../utils/authUtil';
@@ -27,10 +27,6 @@ const HomePage: React.FC = () => {
     setJoinOpen(false);
     setSessionName('');
     setSessionPassword('');
-  }
-  function handleJoinSession() {
-    // TODO: Implement join session logic
-    setJoinOpen(false);
   }
 
   function handleLogoutAndRedirect() {
@@ -179,7 +175,6 @@ const HomePage: React.FC = () => {
             <Button
               variant="contained"
               sx={{ fontWeight: 700, fontSize: '1.2rem', borderRadius: 3, py: 1, backgroundColor: CANARY_BUTTON_COLOR, color: CANARY_BUTTON_TEXT_COLOR }}
-              onClick={handleJoinSession}
             >
               Join
             </Button>
