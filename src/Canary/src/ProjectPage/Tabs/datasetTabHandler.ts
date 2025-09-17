@@ -20,7 +20,7 @@ export async function fetchBatches(projectID: string): Promise<Batch[]> {
   const data = await CallAPI<unknown>(url);
   const arr = Array.isArray(data) ? data : [];
   const normalized = arr.map(normalizeBatch);
-  return normalized.filter((it) => !it.isComplete);
+  return normalized.filter((it) => it.isComplete);
 }
 
 type ImageMeta = { imageID: string; imageURL: string };
@@ -46,8 +46,8 @@ export async function fetchFirstImageURL(batchID: string, tries = 3, delayMs = 5
 export async function renameBatch(batchID: string, newBatchName: string): Promise<void> {
   const url = `${projectServiceUrl()}/batch/${batchID}`;
   await CallAPI<void>(url, {
-    method: 'PATCH',
-    json: { batchName: newBatchName },
+    method: 'PUT',
+    json: { newBatchName },
     // Backend returns plain text, not JSON
     parseJson: false,
   });
@@ -100,7 +100,7 @@ function normalizeBatch(raw: unknown): Batch {
   };
 }
 
-export function useBatchesTab(projectID?: string) {
+export function useDatasetTab(projectID?: string) {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -173,7 +173,7 @@ export function useBatchesTab(projectID?: string) {
   const handleFinish = useCallback(() => {
     closeMenu();
     if (!selectedBatch) return;
-    setBatchFinishState(selectedBatch.batchID, true).then(() => {
+    setBatchFinishState(selectedBatch.batchID, false).then(() => {
       load();
     });
   }, [closeMenu, selectedBatch, load]);

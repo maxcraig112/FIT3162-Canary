@@ -4,6 +4,7 @@ import AppThemeProvider from '../assets/AppThemeProvider';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { fetchProjectByID } from './projectHandlers';
 import { BatchesTab } from './Tabs/BatchesTab';
+import { DatasetTab } from './Tabs/DatasetTab';
 import { ExportTab } from './Tabs/ExportTab';
 import { SettingsTab } from './Tabs/SettingsTab';
 import { UploadTab } from './Tabs/UploadTab';
@@ -256,8 +257,5 @@ const ProjectPage: React.FC = () => {
     </AppThemeProvider>
   );
 };
-
-// Tab content (untyped now, since ProjectDetails removed)
-const DatasetTab: React.FC<{ project: Project | null }> = ({ project }) => <Typography sx={{ color: '#000' }}>Annotate assets for {project?.projectName}</Typography>;
 
 export default ProjectPage;

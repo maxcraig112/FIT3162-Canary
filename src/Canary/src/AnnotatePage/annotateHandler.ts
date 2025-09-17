@@ -47,6 +47,11 @@ let pendingBB: {
 // Editing selection state
 let pendingEdit: { group: fabric.Group; kind: 'kp' | 'bb' } | null = null;
 
+// Expose canvas for zoom handler
+export function getCanvas(): fabric.Canvas | null {
+  return canvasRef;
+}
+
 // Helpers to avoid 'any' casts
 function isGroup(obj: unknown): obj is fabric.Group {
   return Boolean(obj && (obj as { type?: string }).type === 'group');
