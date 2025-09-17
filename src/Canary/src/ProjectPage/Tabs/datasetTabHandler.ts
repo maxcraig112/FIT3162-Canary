@@ -20,7 +20,7 @@ export async function fetchBatches(projectID: string): Promise<Batch[]> {
   const data = await CallAPI<unknown>(url);
   const arr = Array.isArray(data) ? data : [];
   const normalized = arr.map(normalizeBatch);
-  return normalized.filter((it) => !it.isComplete)
+  return normalized.filter((it) => it.isComplete)
 }
 
 type ImageMeta = { imageID: string; imageURL: string };
@@ -90,7 +90,7 @@ function normalizeBatch(raw: unknown): Batch {
   };
 }
 
-export function useBatchesTab(projectID?: string) {
+export function useDatasetTab(projectID?: string) {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
