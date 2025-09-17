@@ -55,9 +55,6 @@ func RegisterExportRoutes(r *mux.Router, h *handler.Handler) {
 }
 
 func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO everything image is in training set
-	// TODO resize image?
-
 	vars := mux.Vars(r)
 	projectID := vars["projectID"]
 
@@ -185,8 +182,6 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 			log.Error().Err(err).Str("projectID", projectID).Str("imageID", img.ImageID).Msg("Failed to get bounding boxes")
 			return
 		}
-		// TODO: bbox coordinate convertion
-		// TODO: keypoint coordinate convertion
 		for _, bbox := range bbox {
 			keypoints, err := h.KeypointStore.GetKeypointsByBoundingBoxID(h.Ctx, bbox.BoundingBoxID)
 			if err != nil {
@@ -249,9 +244,6 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 }
 
 func (h *ExportHandler) exportBoundingBoxCOCOHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO everything image is in training set
-	// TODO resize image?
-
 	vars := mux.Vars(r)
 	projectID := vars["projectID"]
 
@@ -385,8 +377,6 @@ func (h *ExportHandler) exportBoundingBoxCOCOHandler(w http.ResponseWriter, r *h
 			log.Error().Err(err).Str("projectID", projectID).Str("imageID", img.ImageID).Msg("Failed to get bounding boxes")
 			return
 		}
-		// TODO: bbox coordinate convertion
-		// TODO: keypoint coordinate convertion
 		for _, bbox := range bbox {
 			idx := -1
 			for j, labelID := range bbLabelIDs {
