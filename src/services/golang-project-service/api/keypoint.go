@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	fs "pkg/gcp/firestore"
 	"pkg/handler"
 	"project-service/firestore"
 
@@ -71,6 +72,11 @@ func (h *KeypointHandler) CreateKeypointHandler(w http.ResponseWriter, r *http.R
 	req.ImageID = imageID
 
 	id, err := h.KeypointStore.CreateKeypoint(h.Ctx, req)
+	if err == fs.ErrAlreadyExists {
+		http.Error(w, "Keypoint already exists", http.StatusConflict)
+		log.Error().Err(err).Msg("Keypoint already exists")
+		return
+	}
 	if err != nil {
 		http.Error(w, "Error creating keypoint", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to create keypoint")

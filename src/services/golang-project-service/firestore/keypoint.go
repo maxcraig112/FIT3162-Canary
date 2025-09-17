@@ -33,10 +33,8 @@ type CreateKeypointRequest struct {
 }
 
 type UpdateKeypointPositionRequest struct {
-	KeypointID      string `json:"keypointID"`
-	Position        Point  `json:"position"`
-	KeypointLabelID string `json:"keypointLabelID"`
-	BoundingBoxID   string `json:"boundingBoxID"`
+	KeypointID string `json:"keypointID"`
+	Position   Point  `json:"position"`
 }
 
 // Store wrapper
@@ -52,6 +50,18 @@ func NewKeypointStore(client fs.FirestoreClientInterface) *KeypointStore {
 
 // CRUD operations
 func (s *KeypointStore) CreateKeypoint(ctx context.Context, req CreateKeypointRequest) (string, error) {
+	qp := []fs.QueryParameter{
+		{Path: "keypointLabelID", Op: "==", Value: req.KeypointLabelID},
+		{Path: "boundingBoxID", Op: "==", Value: req.BoundingBoxID},
+	}
+	docs, err := s.genericStore.ReadCollection(ctx, qp)
+	if err != nil {
+		return "", err
+	}
+	if len(docs) > 0 {
+		return "", fs.ErrAlreadyExists
+	}
+
 	kp := Keypoint{
 		ImageID:         req.ImageID,
 		Position:        req.Position,
@@ -125,8 +135,6 @@ func (s *KeypointStore) GetKeypoint(ctx context.Context, keypointID string) (*Ke
 func (s *KeypointStore) UpdateKeypointPosition(ctx context.Context, req UpdateKeypointPositionRequest) error {
 	updates := []firestore.Update{
 		{Path: "position", Value: req.Position},
-		{Path: "keypointLabelID", Value: req.KeypointLabelID},
-		{Path: "boundingBoxID", Value: req.BoundingBoxID},
 	}
 
 	return s.genericStore.UpdateDoc(ctx, req.KeypointID, updates)

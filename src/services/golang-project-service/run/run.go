@@ -38,6 +38,7 @@ func setupHandlers(ctx context.Context, r *mux.Router, clients *gcp.Clients) {
 	api.RegisterKeypointRoutes(r, h)
 	api.RegisterBoundingBoxLabelRoutes(r, h)
 	api.RegisterBoundingBoxRoutes(r, h)
+	api.RegisterExportRoutes(r, h)
 
 }
 

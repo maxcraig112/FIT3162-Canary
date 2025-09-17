@@ -1,5 +1,8 @@
 version: '3'
 
+env:
+  CGO_LDFLAGS: "-lm"
+
 tasks:
   runAllServices:
     desc: Run all Go services

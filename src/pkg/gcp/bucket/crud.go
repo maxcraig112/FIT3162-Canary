@@ -64,6 +64,7 @@ func (b *GenericBucket) CreateObjectsBatch(ctx context.Context, objects ObjectMa
 
 	return urls, nil
 }
+
 func (b *GenericBucket) DeleteObject(ctx context.Context, objectName string) error {
 	err := b.bucket.Object(objectName).Delete(ctx)
 	if err != nil {
@@ -87,4 +88,26 @@ func (b *GenericBucket) DeleteObjectsByPrefix(ctx context.Context, prefix string
 		}
 	}
 	return nil
+}
+
+func (b *GenericBucket) GetObject(ctx context.Context, objectName string) ([]byte, error) {
+	rc, err := b.bucket.Object(objectName).NewReader(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create reader for object %s: %w", objectName, err)
+	}
+	defer rc.Close()
+
+	data, err := io.ReadAll(rc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read object %s: %w", objectName, err)
+	}
+	return data, nil
+}
+
+func (b *GenericBucket) StreamObject(ctx context.Context, objectName string) (io.ReadCloser, error) {
+	rc, err := b.bucket.Object(objectName).NewReader(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create reader for object %s: %w", objectName, err)
+	}
+	return rc, nil
 }
