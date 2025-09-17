@@ -146,40 +146,22 @@ const HomePage: React.FC = () => {
             >
               Join Session
             </Button>
-        {/* Join Session Modal */}
-        <Modal open={joinOpen} onClose={handleCloseJoin} aria-labelledby="join-session-modal" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Paper elevation={12} sx={{ position: 'relative', p: 4, minWidth: 350, borderRadius: 4, display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <IconButton sx={{ position: 'absolute', top: 12, right: 12 }} onClick={handleCloseJoin}>
-              <CloseIcon />
-            </IconButton>
-            <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
-              Join Session
-            </Typography>
-            <TextField
-              label="Session Name"
-              variant="outlined"
-              value={sessionName}
-              onChange={e => setSessionName(e.target.value)}
-              fullWidth
-              autoComplete="off"
-            />
-            <TextField
-              label="Password"
-              variant="outlined"
-              type="password"
-              value={sessionPassword}
-              onChange={e => setSessionPassword(e.target.value)}
-              fullWidth
-              autoComplete="off"
-            />
-            <Button
-              variant="contained"
-              sx={{ fontWeight: 700, fontSize: '1.2rem', borderRadius: 3, py: 1, backgroundColor: CANARY_BUTTON_COLOR, color: CANARY_BUTTON_TEXT_COLOR }}
-            >
-              Join
-            </Button>
-          </Paper>
-        </Modal>
+            {/* Join Session Modal */}
+            <Modal open={joinOpen} onClose={handleCloseJoin} aria-labelledby="join-session-modal" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Paper elevation={12} sx={{ position: 'relative', p: 4, minWidth: 350, borderRadius: 4, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <IconButton sx={{ position: 'absolute', top: 12, right: 12 }} onClick={handleCloseJoin}>
+                  <CloseIcon />
+                </IconButton>
+                <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+                  Join Session
+                </Typography>
+                <TextField label="Session Name" variant="outlined" value={sessionName} onChange={(e) => setSessionName(e.target.value)} fullWidth autoComplete="off" />
+                <TextField label="Password" variant="outlined" type="password" value={sessionPassword} onChange={(e) => setSessionPassword(e.target.value)} fullWidth autoComplete="off" />
+                <Button variant="contained" sx={{ fontWeight: 700, fontSize: '1.2rem', borderRadius: 3, py: 1, backgroundColor: CANARY_BUTTON_COLOR, color: CANARY_BUTTON_TEXT_COLOR }}>
+                  Join
+                </Button>
+              </Paper>
+            </Modal>
           </Paper>
         </Box>
         {/* Logout button bottom right */}
