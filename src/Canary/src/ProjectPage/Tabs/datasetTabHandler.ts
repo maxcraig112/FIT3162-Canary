@@ -8,7 +8,7 @@ export interface Batch {
   numberOfTotalFiles: number;
   lastUpdated?: string; // optional timestamp if backend provides
   previewURL?: string; // first image URL for blurred background
-  isComplete?: boolean
+  isComplete?: boolean;
 }
 
 function projectServiceUrl() {
@@ -20,7 +20,7 @@ export async function fetchBatches(projectID: string): Promise<Batch[]> {
   const data = await CallAPI<unknown>(url);
   const arr = Array.isArray(data) ? data : [];
   const normalized = arr.map(normalizeBatch);
-  return normalized.filter((it) => it.isComplete)
+  return normalized.filter((it) => it.isComplete);
 }
 
 type ImageMeta = { imageID: string; imageURL: string };
