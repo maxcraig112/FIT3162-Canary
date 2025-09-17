@@ -11,6 +11,8 @@ import (
 	"slices"
 	"time"
 
+	"encoding/xml"
+
 	coco "github.com/aidezone/golang-coco"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
@@ -22,6 +24,48 @@ type CorrectKeypointDetection struct {
 	Annotations []coco.KPAnnotation `json:"annotations"`
 	Licenses    []coco.License      `json:"licenses"`
 	Categories  []coco.KPCategories `json:"categories"`
+}
+
+// PascalVOCAnnotation represents the root of a Pascal VOC XML file.
+type PascalVOCAnnotation struct {
+	XMLName   xml.Name       `xml:"annotation"`
+	Folder    string         `xml:"folder"`
+	Filename  string         `xml:"filename"`
+	Path      string         `xml:"path,omitempty"`
+	Source    Source         `xml:"source"`
+	Size      Size           `xml:"size"`
+	Segmented int            `xml:"segmented"`
+	Objects   []PascalObject `xml:"object"`
+}
+
+// Source holds dataset source info (often "Unknown" or "VOC2007").
+type Source struct {
+	Database string `xml:"database"`
+}
+
+// Size stores image dimensions.
+type Size struct {
+	Width  int `xml:"width"`
+	Height int `xml:"height"`
+	Depth  int `xml:"depth"`
+}
+
+// PascalObject represents one labeled object in the image.
+type PascalObject struct {
+	Name      string `xml:"name"`                // class label
+	Pose      string `xml:"pose,omitempty"`      // optional: Left, Right, Frontal, etc.
+	Truncated int    `xml:"truncated,omitempty"` // 1 if object cut by image border
+	Difficult int    `xml:"difficult,omitempty"` // 1 if hard to recognize
+	Occluded  int    `xml:"occluded,omitempty"`  // 1 if object is occluded
+	BndBox    BndBox `xml:"bndbox"`              // bounding box
+}
+
+// BndBox stores the bounding box coordinates.
+type BndBox struct {
+	XMin int `xml:"xmin"`
+	YMin int `xml:"ymin"`
+	XMax int `xml:"xmax"`
+	YMax int `xml:"ymax"`
 }
 
 type ExportHandler struct {
@@ -46,12 +90,39 @@ func RegisterExportRoutes(r *mux.Router, h *handler.Handler) {
 		// Get all images from a batch
 		{"GET", "/project/{projectID}/keypoints/export/coco", eh.exportKeypointCOCOHandler},
 		{"GET", "/project/{projectID}/boundingboxes/export/coco", eh.exportBoundingBoxCOCOHandler},
+		{"GET", "/project/{projectID}/boundingboxes/export/pascal_voc", eh.exportBoundingBoxPascalVOCHandler},
 	}
 
 	for _, rt := range routes {
 		wrapped := h.AuthMw(ValidateOwnershipMiddleware(http.HandlerFunc(rt.handlerFunc), eh.Stores))
 		r.Handle(rt.pattern, wrapped).Methods(rt.method)
 	}
+}
+
+func (h *ExportHandler) getCompletedBatches(projectID string) ([]*firestore.Batch, error) {
+	batches, err := h.BatchStore.GetBatchesByProjectID(h.Ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+	var completed []*firestore.Batch
+	for i := range batches {
+		if batches[i].IsComplete {
+			completed = append(completed, &batches[i])
+		}
+	}
+	return completed, nil
+}
+
+func (h *ExportHandler) getProjectImages(batches []*firestore.Batch) ([]firestore.Image, error) {
+	var images []firestore.Image
+	for _, b := range batches {
+		imgs, err := h.ImageStore.GetImagesByBatchID(h.Ctx, b.BatchID)
+		if err != nil {
+			return nil, err
+		}
+		images = append(images, imgs...)
+	}
+	return images, nil
 }
 
 func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http.Request) {
@@ -65,34 +136,17 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	batches, err := h.BatchStore.GetBatchesByProjectID(h.Ctx, projectID)
-	if err != nil {
-		http.Error(w, "Error getting batches", http.StatusInternalServerError)
-		log.Error().Err(err).Str("projectID", projectID).Msg("Failed to get batches by projectID")
-		return
-	}
-
-	completedBatches := make([]*firestore.Batch, 0, len(batches))
-	for _, b := range batches {
-		if b.IsComplete {
-			completedBatches = append(completedBatches, &b)
-		}
-	}
-	if len(completedBatches) == 0 {
+	completedBatches, err := h.getCompletedBatches(projectID)
+	if err != nil || len(completedBatches) == 0 {
 		http.Error(w, "No completed batches found", http.StatusNotFound)
-		log.Error().Str("projectID", projectID).Msg("No completed batches found")
 		return
 	}
 
-	images := make([]firestore.Image, 0)
-	for _, b := range completedBatches {
-		imgs, err := h.ImageStore.GetImagesByBatchID(h.Ctx, b.BatchID)
-		if err != nil {
-			http.Error(w, "Error getting images", http.StatusInternalServerError)
-			log.Error().Err(err).Str("projectID", projectID).Str("batchID", b.BatchID).Msg("Failed to get images by batchID")
-			return
-		}
-		images = append(images, imgs...)
+	images, err := h.getProjectImages(completedBatches)
+	if err != nil {
+		http.Error(w, "Error getting images", http.StatusInternalServerError)
+		log.Error().Err(err).Str("projectID", projectID).Msg("Failed to get images by batchID")
+		return
 	}
 
 	keypointLabels, err := h.KeypointLabelStore.GetKeypointLabelsByProjectID(h.Ctx, projectID)
@@ -153,7 +207,8 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 			log.Error().Err(err).Str("projectID", projectID).Str("batchID", img.BatchID).Str("filename", img.ImageName).Msg("Failed to download image")
 			return
 		}
-		img_path := fmt.Sprintf("images/train/%d.jpg", i+1)
+		defer rc.Close()
+		img_path := fmt.Sprintf("images/%d.jpg", i+1)
 		fw, err := zipWriter.Create(img_path)
 		if err != nil {
 			http.Error(w, "Error creating zip entry", http.StatusInternalServerError)
@@ -254,34 +309,17 @@ func (h *ExportHandler) exportBoundingBoxCOCOHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	batches, err := h.BatchStore.GetBatchesByProjectID(h.Ctx, projectID)
-	if err != nil {
-		http.Error(w, "Error getting batches", http.StatusInternalServerError)
-		log.Error().Err(err).Str("projectID", projectID).Msg("Failed to get batches by projectID")
-		return
-	}
-
-	completedBatches := make([]*firestore.Batch, 0, len(batches))
-	for _, b := range batches {
-		if b.IsComplete {
-			completedBatches = append(completedBatches, &b)
-		}
-	}
-	if len(completedBatches) == 0 {
+	completedBatches, err := h.getCompletedBatches(projectID)
+	if err != nil || len(completedBatches) == 0 {
 		http.Error(w, "No completed batches found", http.StatusNotFound)
-		log.Error().Str("projectID", projectID).Msg("No completed batches found")
 		return
 	}
 
-	images := make([]firestore.Image, 0)
-	for _, b := range completedBatches {
-		imgs, err := h.ImageStore.GetImagesByBatchID(h.Ctx, b.BatchID)
-		if err != nil {
-			http.Error(w, "Error getting images", http.StatusInternalServerError)
-			log.Error().Err(err).Str("projectID", projectID).Str("batchID", b.BatchID).Msg("Failed to get images by batchID")
-			return
-		}
-		images = append(images, imgs...)
+	images, err := h.getProjectImages(completedBatches)
+	if err != nil {
+		http.Error(w, "Error getting images", http.StatusInternalServerError)
+		log.Error().Err(err).Str("projectID", projectID).Msg("Failed to get images by batchID")
+		return
 	}
 
 	boundingBoxLabels, err := h.BoundingBoxLabelStore.GetBoundingBoxLabelsByProjectID(h.Ctx, projectID)
@@ -348,7 +386,8 @@ func (h *ExportHandler) exportBoundingBoxCOCOHandler(w http.ResponseWriter, r *h
 			log.Error().Err(err).Str("projectID", projectID).Str("batchID", img.BatchID).Str("filename", img.ImageName).Msg("Failed to download image")
 			return
 		}
-		img_path := fmt.Sprintf("images/train/%d.jpg", i+1)
+		defer rc.Close()
+		img_path := fmt.Sprintf("images/%d.jpg", i+1)
 		fw, err := zipWriter.Create(img_path)
 		if err != nil {
 			http.Error(w, "Error creating zip entry", http.StatusInternalServerError)
@@ -426,5 +465,177 @@ func (h *ExportHandler) exportBoundingBoxCOCOHandler(w http.ResponseWriter, r *h
 	}
 
 	log.Info().Str("projectID", projectID).Msg("Successfully exported project bounding box datset to COCO format")
+
+}
+
+func (h *ExportHandler) exportBoundingBoxPascalVOCHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	projectID := vars["projectID"]
+
+	// project, err := h.ProjectStore.GetProject(h.Ctx, projectID)
+	// if err != nil {
+	// 	http.Error(w, "Error getting project", http.StatusInternalServerError)
+	// 	log.Error().Err(err).Str("projectID", projectID).Msg("Failed to get project by ID")
+	// 	return
+	// }
+
+	completedBatches, err := h.getCompletedBatches(projectID)
+	if err != nil || len(completedBatches) == 0 {
+		http.Error(w, "No completed batches found", http.StatusNotFound)
+		return
+	}
+
+	images, err := h.getProjectImages(completedBatches)
+	if err != nil {
+		http.Error(w, "Error getting images", http.StatusInternalServerError)
+		log.Error().Err(err).Str("projectID", projectID).Msg("Failed to get images by batchID")
+		return
+	}
+
+	boundingBoxLabels, err := h.BoundingBoxLabelStore.GetBoundingBoxLabelsByProjectID(h.Ctx, projectID)
+	if err != nil {
+		http.Error(w, "Error getting bounding box labels", http.StatusInternalServerError)
+		log.Error().Err(err).Str("projectID", projectID).Msg("Failed to get bounding box labels by projectID")
+		return
+	}
+
+	bbLabelMap := make(map[string]string, len(boundingBoxLabels))
+	for _, bb := range boundingBoxLabels {
+		bbLabelMap[bb.BoundingBoxLabelID] = bb.BoundingBoxLabel
+	}
+
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", "attachment; filename=bounding_boxes.zip")
+	zipWriter := zip.NewWriter(w)
+	defer zipWriter.Close()
+
+	for i, img := range images {
+		err := h.exportImage(zipWriter, i+1, img, bbLabelMap)
+		if err != nil {
+			http.Error(w, "Error exporting image", http.StatusInternalServerError)
+			log.Error().Err(err).Str("projectID", projectID).Str("imageID", img.ImageID).Msg("Failed to export image")
+			return
+		}
+	}
+
+	fw, err := zipWriter.Create("labelmap.txt")
+	if err != nil {
+		http.Error(w, "Error creating labelmap.txt in zip", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to create labelmap.txt in zip")
+		return
+	}
+
+	for _, labelName := range bbLabelMap {
+		_, err := fw.Write([]byte(labelName + "\n"))
+		if err != nil {
+			http.Error(w, "Error writing labelmap.txt to zip", http.StatusInternalServerError)
+			log.Error().Err(err).Msg("Failed to write labelmap.txt in zip")
+			return
+		}
+	}
+
+	fw, err = zipWriter.Create("ImageSets/Main/default.txt")
+	if err != nil {
+		http.Error(w, "Error creating default.txt in zip", http.StatusInternalServerError)
+		log.Error().Err(err).Msg("Failed to create default.txt in zip")
+		return
+	}
+
+	for i := range images {
+		line := fmt.Sprintf("%d\n", i+1) // image ID without extension
+		_, err := fw.Write([]byte(line))
+		if err != nil {
+			http.Error(w, "Error writing default.txt to zip", http.StatusInternalServerError)
+			log.Error().Err(err).Msg("Failed to write default.txt in zip")
+			return
+		}
+	}
+
+	log.Info().Str("projectID", projectID).Msg("Successfully exported project bounding box datset to Pascal VOC format")
+
+}
+
+func (h *ExportHandler) exportImage(zipWriter *zip.Writer, i int, img firestore.Image, bbLabelMap map[string]string) error {
+	// write image to zip
+	rc, err := h.Buckets.ImageBucket.StreamImage(h.Ctx, img.ImageName)
+	if err != nil {
+		return err
+	}
+	defer rc.Close()
+
+	img_path := fmt.Sprintf("JPEGImages/%d.jpg", i)
+	fw, err := zipWriter.Create(img_path)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(fw, rc)
+	if err != nil {
+		return err
+	}
+
+	imgAnnotation := PascalVOCAnnotation{
+		Folder:   "",
+		Filename: fmt.Sprintf("%d.jpg", i),
+		Path:     fmt.Sprintf("%d.jpg", i),
+		Source: Source{
+			Database: "Unknown",
+		},
+		Size: Size{
+			Width:  int(img.Width),
+			Height: int(img.Height),
+			Depth:  3,
+		},
+		Segmented: 0,
+		Objects:   []PascalObject{},
+	}
+
+	bbox, err := h.BoundingBoxStore.GetBoundingBoxesByImageID(h.Ctx, img.ImageID)
+	if err != nil {
+		return err
+	}
+
+	for _, bbox := range bbox {
+		bbLabel := bbLabelMap[bbox.BoundingBoxLabelID]
+
+		xmin := int(bbox.Box.X)
+		ymin := int(bbox.Box.Y)
+		xmax := int(bbox.Box.X + bbox.Box.Width)
+		ymax := int(bbox.Box.Y + bbox.Box.Height)
+
+		imgAnnotation.Objects = append(imgAnnotation.Objects, PascalObject{
+			Name:      bbLabel,
+			Pose:      "Unspecified",
+			Truncated: 0,
+			Difficult: 0,
+			Occluded:  0,
+			BndBox: BndBox{
+				XMin: xmin,
+				YMin: ymin,
+				XMax: xmax,
+				YMax: ymax,
+			},
+		})
+	}
+
+	annotation_path := fmt.Sprintf("Annotations/%d.xml", i)
+	fw, err = zipWriter.Create(annotation_path)
+	if err != nil {
+		return err
+	}
+
+	encoder := xml.NewEncoder(fw)
+	encoder.Indent("", "  ")
+	err = encoder.Encode(imgAnnotation)
+	if err != nil {
+		return err
+	}
+
+	err = encoder.Flush()
+	if err != nil {
+		return err
+	}
+
+	return nil
 
 }
