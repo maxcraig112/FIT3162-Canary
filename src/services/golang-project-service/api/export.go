@@ -9,18 +9,9 @@ import (
 	"pkg/handler"
 	"project-service/firestore"
 
-	coco "github.com/aidezone/golang-coco"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
 )
-
-type CorrectKeypointDetection struct {
-	Info        coco.Information    `json:"info,omitempty"`
-	Images      []coco.Image        `json:"images,omitempty"`
-	Annotations []coco.KPAnnotation `json:"annotations,omitempty"`
-	Licenses    []coco.License      `json:"licenses,omitempty"`
-	Categories  []coco.KPCategories `json:"categories,omitempty"`
-}
 
 type ExportHandler struct {
 	*handler.Handler
@@ -149,7 +140,7 @@ func (h *ExportHandler) exportBoundingBoxPASCALVOCHandler(w http.ResponseWriter,
 			log.Error().Err(err).Str("projectID", projectID).Str("batchID", img.BatchID).Str("filename", img.ImageName).Msg("Failed to download image")
 			return
 		}
-		img_path := fmt.Sprintf("images/train/%d.jpg", i+1)
+		img_path := fmt.Sprintf("annotations/%d.jpg", i+1)
 		fw, err := zipWriter.Create(img_path)
 		if err != nil {
 			http.Error(w, "Error creating zip entry", http.StatusInternalServerError)
