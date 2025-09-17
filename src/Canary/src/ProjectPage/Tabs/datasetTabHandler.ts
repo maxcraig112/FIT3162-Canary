@@ -53,6 +53,16 @@ export async function renameBatch(batchID: string, newBatchName: string): Promis
   });
 }
 
+export async function setBatchFinishState(batchID: string, isComplete: boolean): Promise<void> {
+  const url = `${projectServiceUrl()}/batch/${batchID}`;
+  await CallAPI<void>(url, {
+    method: 'PATCH',
+    json: { isComplete: isComplete },
+    // Backend returns plain text, not JSON
+    parseJson: false,
+  });
+}
+
 export async function deleteBatch(batchID: string): Promise<void> {
   const url = `${projectServiceUrl()}/batch/${batchID}`;
   await CallAPI<void>(url, {
@@ -160,10 +170,13 @@ export function useDatasetTab(projectID?: string) {
     setMenuBatchId(null);
   }, []);
 
-  // Finish action (no-op for now)
   const handleFinish = useCallback(() => {
     closeMenu();
-  }, [closeMenu]);
+    if (!selectedBatch) return;
+    setBatchFinishState(selectedBatch.batchID, false).then(() => {
+      load();
+    });
+  }, [closeMenu, selectedBatch, load]);
 
   // rename flow
   const openRename = useCallback(() => {

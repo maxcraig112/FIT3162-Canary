@@ -150,3 +150,27 @@ func (s *BatchStore) ListBatchIDsByProjectID(ctx context.Context, projectID stri
 	}
 	return ids, nil
 }
+
+// UpdateBatch allows updating batchName and/or isComplete
+func (s *BatchStore) UpdateBatch(ctx context.Context, batchID string, req Batch) (*Batch, error) {
+	updateParams := []firestore.Update{}
+
+	if req.BatchName != "" {
+		updateParams = append(updateParams, firestore.Update{Path: "batchName", Value: req.BatchName})
+	}
+	// Always update lastUpdated
+	updateParams = append(updateParams, firestore.Update{Path: "lastUpdated", Value: time.Now()})
+	// Update isComplete if present (true or false)
+	updateParams = append(updateParams, firestore.Update{Path: "isComplete", Value: req.IsComplete})
+
+	if len(updateParams) == 0 {
+		return s.GetBatch(ctx, batchID)
+	}
+
+	err := s.genericStore.UpdateDoc(ctx, batchID, updateParams)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.GetBatch(ctx, batchID)
+}
