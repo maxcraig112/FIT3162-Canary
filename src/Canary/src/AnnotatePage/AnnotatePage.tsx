@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Box, AppBar, Toolbar, Typography, ToggleButtonGroup, ToggleButton, Paper, IconButton, Button, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { MyLocation, SelectAll, NotInterested, KeyboardArrowLeft, KeyboardArrowRight } from '@mui/icons-material';
-import { annotateHandler } from './annotateHandler';
+import { annotateHandler, getCanvas } from './annotateHandler';
+import { ZoomHandler } from './zoomHandler';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { useSearchParams } from 'react-router-dom';
 import { getBoundingBoxLabelNames, getKeypointLabelNames } from './labelRegistry';
 import { loadProjectLabels } from './labelLoader';
@@ -27,6 +31,8 @@ const AnnotatePage: React.FC = () => {
   const [bbOptions, setBbOptions] = useState<string[]>([]);
 
   const boxRef = useRef<HTMLDivElement | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const zoomHandlerRef = useRef<ZoomHandler | null>(null);
 
   useEffect(() => {
     const boxEl = boxRef.current as HTMLDivElement | null;
@@ -43,7 +49,14 @@ const AnnotatePage: React.FC = () => {
     const el = canvasRef.current;
     if (!el) return;
     annotateHandler.createCanvas(el);
-    return () => annotateHandler.disposeCanvas();
+    // Setup zoom handler
+  zoomHandlerRef.current = new ZoomHandler({ canvas: getCanvas() });
+  zoomHandlerRef.current.attachWheelListener((newZoom) => setZoom(newZoom));
+  setZoom(zoomHandlerRef.current.getZoom());
+    return () => {
+      annotateHandler.disposeCanvas();
+      zoomHandlerRef.current = null;
+    };
   }, []);
 
   // Render when batchID or currentImage changes
@@ -130,6 +143,26 @@ const AnnotatePage: React.FC = () => {
     annotateHandler.nextImage(setCurrentImage);
   };
 
+  // Zoom button handlers
+  const handleZoomIn = () => {
+    if (zoomHandlerRef.current) {
+      zoomHandlerRef.current.zoomIn();
+      setZoom(zoomHandlerRef.current.getZoom());
+    }
+  };
+  const handleZoomOut = () => {
+    if (zoomHandlerRef.current) {
+      zoomHandlerRef.current.zoomOut();
+      setZoom(zoomHandlerRef.current.getZoom());
+    }
+  };
+  const handleZoomReset = () => {
+    if (zoomHandlerRef.current) {
+      zoomHandlerRef.current.resetZoom();
+      setZoom(zoomHandlerRef.current.getZoom());
+    }
+  };
+
   return (
     <Box sx={{ display: 'flex', height: '100vh', bgcolor: '#f5f5f5' }}>
       {/* Left Sidebar */}
@@ -142,7 +175,7 @@ const AnnotatePage: React.FC = () => {
       <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
         {/* Top Toolbar */}
         <AppBar position="static" color="default" elevation={1}>
-          <Toolbar>
+          <Toolbar sx={{ position: 'relative' }}>
             <Box
               sx={{
                 flexGrow: 1,
@@ -164,13 +197,43 @@ const AnnotatePage: React.FC = () => {
                 <KeyboardArrowRight />
               </IconButton>
             </Box>
+            {/* Zoom Controls Top Right */}
+            <Box sx={{ position: 'absolute', right: 16, top: 8, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <IconButton aria-label="zoom out" size="small" onClick={handleZoomOut}><RemoveIcon /></IconButton>
+              <Typography variant="body2" sx={{ minWidth: 40, textAlign: 'center' }}>{Math.round(zoom * 100)}%</Typography>
+              <IconButton aria-label="zoom in" size="small" onClick={handleZoomIn}><AddIcon /></IconButton>
+              <IconButton aria-label="reset zoom" size="small" onClick={handleZoomReset}><RefreshIcon /></IconButton>
+            </Box>
           </Toolbar>
         </AppBar>
 
         {/* Canvas */}
-        <Box sx={{ flexGrow: 1, position: 'relative', p: 2 }} ref={boxRef}>
+        <Box
+          sx={{
+            flexGrow: 1,
+            position: 'relative',
+            p: 2,
+            height: '100%',
+            maxHeight: 'calc(100vh - 64px)', // subtract toolbar height if needed
+            maxWidth: '100vw',
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          ref={boxRef}
+        >
           {/* Width/height are set programmatically in useEffect to match container; rely on style for initial sizing */}
-          <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
+          <canvas
+            ref={canvasRef}
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'block',
+              maxWidth: '100%',
+              maxHeight: '100%',
+            }}
+          />
           {labelPrompt.open && (
             <Paper
               elevation={3}
@@ -246,13 +309,15 @@ const AnnotatePage: React.FC = () => {
       <Paper
         elevation={2}
         sx={{
-          width: '120px',
+          width: 120,
+          minWidth: 120,
+          maxWidth: 120,
+          flexShrink: 0,
           p: 1,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          height: '100%',
           gap: 2,
         }}
       >
