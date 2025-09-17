@@ -1,18 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Box, AppBar, Toolbar, Typography, ToggleButtonGroup, ToggleButton, Paper, IconButton, Button, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { MyLocation, SelectAll, NotInterested, KeyboardArrowLeft, KeyboardArrowRight } from '@mui/icons-material';
+import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import { annotateHandler, getCanvas } from './annotateHandler';
 import { ZoomHandler } from './zoomHandler';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { getBoundingBoxLabelNames, getKeypointLabelNames } from './labelRegistry';
 import { loadProjectLabels } from './labelLoader';
 import { useAuthGuard } from '../utils/authUtil';
 
 const AnnotatePage: React.FC = () => {
   useAuthGuard();
+
+  const navigate = useNavigate();
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentImage, setCurrentImage] = useState(0);
@@ -164,7 +168,7 @@ const AnnotatePage: React.FC = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh', bgcolor: '#f5f5f5' }}>
+  <Box sx={{ display: 'flex', height: '100vh', bgcolor: '#f5f5f5' }}>
       {/* Left Sidebar */}
       <Paper elevation={2} sx={{ width: '200px', p: 2 }}>
         <Typography variant="h6">Tools</Typography>
@@ -175,7 +179,23 @@ const AnnotatePage: React.FC = () => {
       <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
         {/* Top Toolbar */}
         <AppBar position="static" color="default" elevation={1}>
-          <Toolbar sx={{ position: 'relative' }}>
+          <Toolbar sx={{ position: 'relative', minHeight: 64 }}>
+            {/* Back Button Top Left */}
+            <IconButton
+              aria-label="back"
+              edge="start"
+              sx={{ position: 'absolute', left: 8, top: 8 }}
+              onClick={() => {
+                const projectID = searchParams.get('projectID');
+                if (projectID) {
+                  navigate(`/projects/${projectID}`);
+                } else {
+                  navigate(-1);
+                }
+              }}
+            >
+              <ExitToAppIcon />
+            </IconButton>
             <Box
               sx={{
                 flexGrow: 1,
