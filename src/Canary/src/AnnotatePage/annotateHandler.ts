@@ -47,7 +47,6 @@ let pendingBB: {
 // Editing selection state
 let pendingEdit: { group: fabric.Group; kind: 'kp' | 'bb' } | null = null;
 
-
 // Expose canvas for zoom handler
 export function getCanvas(): fabric.Canvas | null {
   return canvasRef;

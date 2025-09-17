@@ -50,9 +50,9 @@ const AnnotatePage: React.FC = () => {
     if (!el) return;
     annotateHandler.createCanvas(el);
     // Setup zoom handler
-  zoomHandlerRef.current = new ZoomHandler({ canvas: getCanvas() });
-  zoomHandlerRef.current.attachWheelListener((newZoom) => setZoom(newZoom));
-  setZoom(zoomHandlerRef.current.getZoom());
+    zoomHandlerRef.current = new ZoomHandler({ canvas: getCanvas() });
+    zoomHandlerRef.current.attachWheelListener((newZoom) => setZoom(newZoom));
+    setZoom(zoomHandlerRef.current.getZoom());
     return () => {
       annotateHandler.disposeCanvas();
       zoomHandlerRef.current = null;
@@ -199,10 +199,18 @@ const AnnotatePage: React.FC = () => {
             </Box>
             {/* Zoom Controls Top Right */}
             <Box sx={{ position: 'absolute', right: 16, top: 8, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <IconButton aria-label="zoom out" size="small" onClick={handleZoomOut}><RemoveIcon /></IconButton>
-              <Typography variant="body2" sx={{ minWidth: 40, textAlign: 'center' }}>{Math.round(zoom * 100)}%</Typography>
-              <IconButton aria-label="zoom in" size="small" onClick={handleZoomIn}><AddIcon /></IconButton>
-              <IconButton aria-label="reset zoom" size="small" onClick={handleZoomReset}><RefreshIcon /></IconButton>
+              <IconButton aria-label="zoom out" size="small" onClick={handleZoomOut}>
+                <RemoveIcon />
+              </IconButton>
+              <Typography variant="body2" sx={{ minWidth: 40, textAlign: 'center' }}>
+                {Math.round(zoom * 100)}%
+              </Typography>
+              <IconButton aria-label="zoom in" size="small" onClick={handleZoomIn}>
+                <AddIcon />
+              </IconButton>
+              <IconButton aria-label="reset zoom" size="small" onClick={handleZoomReset}>
+                <RefreshIcon />
+              </IconButton>
             </Box>
           </Toolbar>
         </AppBar>
