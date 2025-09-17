@@ -80,10 +80,11 @@ func (s *BatchStore) GetTotalBatchCountByProjectID(ctx context.Context, projectI
 
 func (s *BatchStore) CreateBatch(ctx context.Context, createBatchReq CreateBatchRequest) (string, error) {
 	batchData := map[string]interface{}{
-		"batchName":   createBatchReq.BatchName,
-		"projectID":   createBatchReq.ProjectID,
-		"lastUpdated": time.Now(),
-		"isComplete":  false,
+		"batchName":          createBatchReq.BatchName,
+		"projectID":          createBatchReq.ProjectID,
+		"lastUpdated":        time.Now(),
+		"numberOfTotalFiles": 0,
+		"isComplete":         false,
 	}
 
 	return s.genericStore.CreateDoc(ctx, batchData)
