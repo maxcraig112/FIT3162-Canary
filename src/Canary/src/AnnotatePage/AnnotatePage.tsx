@@ -168,7 +168,7 @@ const AnnotatePage: React.FC = () => {
   };
 
   return (
-  <Box sx={{ display: 'flex', height: '100vh', bgcolor: '#f5f5f5' }}>
+    <Box sx={{ display: 'flex', height: '100vh', bgcolor: '#f5f5f5' }}>
       {/* Left Sidebar */}
       <Paper elevation={2} sx={{ width: '200px', p: 2 }}>
         <Typography variant="h6">Tools</Typography>
