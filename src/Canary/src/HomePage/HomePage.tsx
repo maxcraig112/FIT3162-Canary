@@ -1,10 +1,11 @@
 import React from 'react';
-import { Box, Button, Typography, Paper } from '@mui/material';
+import { Box, Button, Typography, Paper, Modal, IconButton, TextField } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import AppThemeProvider from '../assets/AppThemeProvider';
 import { CANARY_BUTTON_COLOR, CANARY_BUTTON_TEXT_COLOR } from '../assets/constants';
 import { useNavigate } from 'react-router-dom';
 
-import { handleProjectsPage, handleJoinSession, handleSettings } from './homeHandlers';
+import { handleProjectsPage } from './homeHandlers';
 import { clearCookie } from '../utils/cookieUtils';
 import canaryImg from '../images/canary.jpg';
 import { useAuthGuard } from '../utils/authUtil';
@@ -14,6 +15,19 @@ const HomePage: React.FC = () => {
   useAuthGuard();
 
   const navigate = useNavigate();
+
+  const [joinOpen, setJoinOpen] = React.useState(false);
+  const [sessionName, setSessionName] = React.useState('');
+  const [sessionPassword, setSessionPassword] = React.useState('');
+
+  function handleOpenJoin() {
+    setJoinOpen(true);
+  }
+  function handleCloseJoin() {
+    setJoinOpen(false);
+    setSessionName('');
+    setSessionPassword('');
+  }
 
   function handleLogoutAndRedirect() {
     // Remove JWT token from cookies
@@ -94,41 +108,60 @@ const HomePage: React.FC = () => {
               opacity: 0.95,
             }}
           >
-            {[
-              {
-                label: 'Projects',
-                onClick: handleProjectsPage,
-              },
-              {
-                label: 'Join Session',
-                onClick: handleJoinSession,
-              },
-              {
-                label: 'Settings',
-                onClick: handleSettings,
-              },
-            ].map(({ label, onClick }) => (
-              <Button
-                key={label}
-                variant="contained"
-                sx={{
-                  fontSize: '1.5rem',
-                  borderRadius: 3,
-                  width: 250,
-                  py: 2,
-                  fontWeight: 700,
-                  backgroundColor: CANARY_BUTTON_COLOR,
+            <Button
+              variant="contained"
+              sx={{
+                fontSize: '1.5rem',
+                borderRadius: 3,
+                width: 250,
+                py: 2,
+                fontWeight: 700,
+                backgroundColor: CANARY_BUTTON_COLOR,
+                color: CANARY_BUTTON_TEXT_COLOR,
+                '&:hover': {
+                  backgroundColor: '#0097a7',
                   color: CANARY_BUTTON_TEXT_COLOR,
-                  '&:hover': {
-                    backgroundColor: '#0097a7',
-                    color: CANARY_BUTTON_TEXT_COLOR,
-                  },
-                }}
-                onClick={() => onClick(navigate)}
-              >
-                {label}
-              </Button>
-            ))}
+                },
+              }}
+              onClick={() => handleProjectsPage(navigate)}
+            >
+              Projects
+            </Button>
+            <Button
+              variant="contained"
+              sx={{
+                fontSize: '1.5rem',
+                borderRadius: 3,
+                width: 250,
+                py: 2,
+                fontWeight: 700,
+                backgroundColor: CANARY_BUTTON_COLOR,
+                color: CANARY_BUTTON_TEXT_COLOR,
+                '&:hover': {
+                  backgroundColor: '#0097a7',
+                  color: CANARY_BUTTON_TEXT_COLOR,
+                },
+              }}
+              onClick={handleOpenJoin}
+            >
+              Join Session
+            </Button>
+            {/* Join Session Modal */}
+            <Modal open={joinOpen} onClose={handleCloseJoin} aria-labelledby="join-session-modal" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Paper elevation={12} sx={{ position: 'relative', p: 4, minWidth: 350, borderRadius: 4, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <IconButton sx={{ position: 'absolute', top: 12, right: 12 }} onClick={handleCloseJoin}>
+                  <CloseIcon />
+                </IconButton>
+                <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+                  Join Session
+                </Typography>
+                <TextField label="Session Name" variant="outlined" value={sessionName} onChange={(e) => setSessionName(e.target.value)} fullWidth autoComplete="off" />
+                <TextField label="Password" variant="outlined" type="password" value={sessionPassword} onChange={(e) => setSessionPassword(e.target.value)} fullWidth autoComplete="off" />
+                <Button variant="contained" sx={{ fontWeight: 700, fontSize: '1.2rem', borderRadius: 3, py: 1, backgroundColor: CANARY_BUTTON_COLOR, color: CANARY_BUTTON_TEXT_COLOR }}>
+                  Join
+                </Button>
+              </Paper>
+            </Modal>
           </Paper>
         </Box>
         {/* Logout button bottom right */}

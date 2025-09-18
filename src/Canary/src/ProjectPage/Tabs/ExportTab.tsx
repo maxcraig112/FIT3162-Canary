@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Box, Stack, FormControl, InputLabel, Select, MenuItem, Button, Alert, Typography } from '@mui/material';
+import { Box, Stack, FormControl, Select, MenuItem, Button, Alert, Typography } from '@mui/material';
 import type { Project } from '../ProjectPage';
 import { getAuthTokenFromCookie } from '../../utils/cookieUtils';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
