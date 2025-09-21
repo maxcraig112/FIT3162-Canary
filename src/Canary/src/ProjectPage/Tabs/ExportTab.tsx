@@ -1,44 +1,74 @@
 import React, { useMemo, useState } from 'react';
-import { Box, Stack, FormControl, Select, MenuItem, Button, Alert, Typography } from '@mui/material';
+import {
+  Box,
+  Stack,
+  FormControl,
+  Select,
+  MenuItem,
+  Button,
+  Alert,
+  Typography,
+} from '@mui/material';
 import type { Project } from '../ProjectPage';
 import { getAuthTokenFromCookie } from '../../utils/cookieUtils';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 type ExportFormat = 'coco' | 'pascal-voc';
+type AnnotationType = 'bbox' | 'keypoint';
 
 export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) => {
-  const [format, setFormat] = useState<ExportFormat | ''>(''); // start empty
+  /* ---------- state ---------- */
+  const [format, setFormat] = useState<ExportFormat | ''>('');
+  const [annotationType, setAnnotationType] = useState<AnnotationType | ''>('');
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const baseUrl = useMemo(() => import.meta.env.VITE_PROJECT_SERVICE_URL as string, []);
 
+  /* ---------- helpers ---------- */
+  const bothSelectsDisabled = !format;
+  const keypointDisabled = format === 'pascal-voc';
+
+  /* ---------- export ---------- */
   function inferFilename(res: Response, fallbackBase: string): string {
     const cd = res.headers.get('content-disposition') || '';
     const m = cd.match(/filename="?([^"]+)"?/i);
     if (m?.[1]) return m[1];
 
     const ct = (res.headers.get('content-type') || '').toLowerCase();
-    const ext = ct.includes('application/zip') ? '.zip' : ct.includes('application/json') ? '.json' : ct.includes('text/xml') ? '.xml' : '.bin';
+    const ext = ct.includes('application/zip')
+      ? '.zip'
+      : ct.includes('application/json')
+      ? '.json'
+      : ct.includes('text/xml')
+      ? '.xml'
+      : '.bin';
     return `${fallbackBase}${ext}`;
   }
 
   async function handleExport() {
     setError(null);
     setMessage(null);
-    if (!project?.projectID) {
-      setError('No project selected.');
-      return;
-    }
-    if (!format) {
-      setError('Please select an export format.');
-      return;
-    }
+
+    if (!project?.projectID) return setError('No project selected.');
+    if (!format) return setError('Please select an export format.');
+    if (!annotationType) return setError('Please select an annotation type.');
 
     setExporting(true);
     try {
-      const url = `${baseUrl}/project/${encodeURIComponent(project.projectID)}/keypoints/export/${format}`;
+      let url;
+      if (format === 'pascal-voc' && annotationType === 'bbox') {
+        url = `${baseUrl}/project/${encodeURIComponent(project.projectID)}/boundingboxes/export/pascal_voc`;
+      } else if (format === 'coco' && annotationType === 'bbox') {
+        url = `${baseUrl}/project/${encodeURIComponent(project.projectID)}/boundingboxes/export/coco`;
+      } else if (format === 'coco' && annotationType === 'keypoint') {
+        url = `${baseUrl}/project/${encodeURIComponent(project.projectID)}/keypoints/export/coco`;
+      }
+      if (!url) {
+        throw new Error('Invalid format or annotation type.');
+      }
+       // <-- type query-param
       const token = getAuthTokenFromCookie();
 
       const res = await fetch(url, {
@@ -54,13 +84,14 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
       }
 
       const blob = await res.blob();
-      const nameBase = `${project.projectName || 'project'}_${format}_keypoints`;
+      const nameBase = `${project.projectName || 'project'}_${format}_${annotationType}`;
       const filename = inferFilename(res, nameBase);
 
       const href = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = href;
-      a.download = filename;
+      const a = Object.assign(document.createElement('a'), {
+        href,
+        download: filename,
+      });
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -73,6 +104,20 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
       setExporting(false);
     }
   }
+
+  /* ---------- render ---------- */
+  const selectSx = {
+    '& .MuiSelect-select': {
+      color: '#000',
+      bgcolor: '#fff',
+      borderRadius: 2,
+    },
+    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#000' },
+    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#000' },
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#000' },
+    '& .MuiSelect-icon': { color: '#000' },
+    minWidth: 260,
+  };
 
   return (
     <Box
@@ -90,38 +135,66 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
           Export all finished annotations
         </Typography>
 
-        <FormControl size="small" sx={{ minWidth: 260 }}>
-          {/* No floating label; gray placeholder + black down arrow */}
+        {/* Format selector */}
+        <FormControl size="small">
           <Select
             value={format}
-            onChange={(e) => setFormat(e.target.value as ExportFormat | '')}
-            displayEmpty
-            renderValue={(selected) => (selected ? String(selected).toUpperCase() : <Typography sx={{ color: '#777' }}>Select format…</Typography>)}
-            IconComponent={ExpandMoreIcon}
-            sx={{
-              '& .MuiSelect-select': {
-                color: format ? '#000' : '#777',
-                bgcolor: '#fff',
-                borderRadius: 2,
-              },
-              '& .MuiOutlinedInput-notchedOutline': { borderColor: '#000' },
-              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#000' },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#000' },
-              '& .MuiSelect-icon': { color: '#000' }, // make arrow visible/black
-              minWidth: 260,
+            onChange={(e) => {
+              const f = e.target.value as ExportFormat | '';
+              setFormat(f);
+              setAnnotationType((prev) => (f === 'pascal-voc' && prev === 'keypoint' ? '' : prev));
             }}
+            displayEmpty
+            renderValue={(s) =>
+              s ? s.toUpperCase() : <Typography sx={{ color: '#777' }}>Select format…</Typography>
+            }
+            IconComponent={ExpandMoreIcon}
+            sx={selectSx}
           >
-            <MenuItem value="">
-              <Typography sx={{ color: '#777' }}>Select format…</Typography>
-            </MenuItem>
+            <MenuItem value="">Select format…</MenuItem>
             <MenuItem value="coco">COCO</MenuItem>
             <MenuItem value="pascal-voc">PASCAL VOC</MenuItem>
           </Select>
         </FormControl>
 
+        {/* Annotation-type selector */}
+        <FormControl
+          size="small"
+          disabled={bothSelectsDisabled}
+          sx={{
+            '&:hover .MuiOutlinedInput-notchedOutline': {
+              borderColor: bothSelectsDisabled ? 'transparent !important' : undefined,
+            },
+          }}
+        >
+          <Select
+            value={annotationType}
+            onChange={(e) => setAnnotationType(e.target.value as AnnotationType | '')}
+            displayEmpty
+            renderValue={(s) =>
+              s
+                ? s.replace('bbox', 'Bounding box').replace('keypoint', 'Keypoint')
+                : <Typography sx={{ color: '#777' }}>Select annotation type…</Typography>
+            }
+            IconComponent={ExpandMoreIcon}
+            sx={selectSx}
+            MenuProps={{
+              PaperProps: {
+                sx: { pointerEvents: keypointDisabled ? 'auto' : undefined },
+              },
+            }}
+          >
+            <MenuItem disabled={keypointDisabled} value="keypoint">
+              Key-point
+            </MenuItem>
+            <MenuItem value="bbox">Bounding box</MenuItem>
+          </Select>
+        </FormControl>
+
+        {/* Export button */}
         <Button
           variant="outlined"
-          disabled={!project || exporting || !format}
+          disabled={!project || exporting || !format || !annotationType}
           onClick={handleExport}
           sx={{
             fontWeight: 600,
@@ -147,13 +220,14 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
           {exporting ? 'Exporting...' : 'Export'}
         </Button>
 
+        {/* Feedback */}
         {message && (
-          <Alert severity="success" onClose={() => setMessage(null)} sx={{ borderRadius: 2, width: '100%', maxWidth: 520 }}>
+          <Alert severity="success" onClose={() => setMessage(null)} sx={{ borderRadius: 2, width: '100%' }}>
             {message}
           </Alert>
         )}
         {error && (
-          <Alert severity="error" onClose={() => setError(null)} sx={{ borderRadius: 2, width: '100%', maxWidth: 520 }}>
+          <Alert severity="error" onClose={() => setError(null)} sx={{ borderRadius: 2, width: '100%' }}>
             {error}
           </Alert>
         )}
