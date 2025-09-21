@@ -1,14 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import {
-  Box,
-  Stack,
-  FormControl,
-  Select,
-  MenuItem,
-  Button,
-  Alert,
-  Typography,
-} from '@mui/material';
+import { Box, Stack, FormControl, Select, MenuItem, Button, Alert, Typography } from '@mui/material';
 import type { Project } from '../ProjectPage';
 import { getAuthTokenFromCookie } from '../../utils/cookieUtils';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -37,13 +28,7 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
     if (m?.[1]) return m[1];
 
     const ct = (res.headers.get('content-type') || '').toLowerCase();
-    const ext = ct.includes('application/zip')
-      ? '.zip'
-      : ct.includes('application/json')
-      ? '.json'
-      : ct.includes('text/xml')
-      ? '.xml'
-      : '.bin';
+    const ext = ct.includes('application/zip') ? '.zip' : ct.includes('application/json') ? '.json' : ct.includes('text/xml') ? '.xml' : '.bin';
     return `${fallbackBase}${ext}`;
   }
 
@@ -68,7 +53,7 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
       if (!url) {
         throw new Error('Invalid format or annotation type.');
       }
-       // <-- type query-param
+      // <-- type query-param
       const token = getAuthTokenFromCookie();
 
       const res = await fetch(url, {
@@ -145,9 +130,7 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
               setAnnotationType((prev) => (f === 'pascal-voc' && prev === 'keypoint' ? '' : prev));
             }}
             displayEmpty
-            renderValue={(s) =>
-              s ? s.toUpperCase() : <Typography sx={{ color: '#777' }}>Select format…</Typography>
-            }
+            renderValue={(s) => (s ? s.toUpperCase() : <Typography sx={{ color: '#777' }}>Select format…</Typography>)}
             IconComponent={ExpandMoreIcon}
             sx={selectSx}
           >
@@ -171,11 +154,7 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
             value={annotationType}
             onChange={(e) => setAnnotationType(e.target.value as AnnotationType | '')}
             displayEmpty
-            renderValue={(s) =>
-              s
-                ? s.replace('bbox', 'Bounding box').replace('keypoint', 'Keypoint')
-                : <Typography sx={{ color: '#777' }}>Select annotation type…</Typography>
-            }
+            renderValue={(s) => (s ? s.replace('bbox', 'Bounding box').replace('keypoint', 'Keypoint') : <Typography sx={{ color: '#777' }}>Select annotation type…</Typography>)}
             IconComponent={ExpandMoreIcon}
             sx={selectSx}
             MenuProps={{
