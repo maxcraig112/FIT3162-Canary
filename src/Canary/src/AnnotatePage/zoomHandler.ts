@@ -1,9 +1,11 @@
+import { Canvas } from "fabric";
+
 export type ZoomHandlerOptions = {
-  canvas: any; // fabric.Canvas
+  canvas: Canvas; // fabric.Canvas
 };
 
 export class ZoomHandler {
-  private canvas: any; // fabric.Canvas
+  private canvas: Canvas; // fabric.Canvas
   private zoom: number = 1;
   private minZoom: number = 0.1;
   private maxZoom: number = 8;
@@ -19,7 +21,7 @@ export class ZoomHandler {
   setZoom(zoom: number, center?: { x: number; y: number }, keepPosition = true) {
     zoom = Math.max(this.minZoom, Math.min(this.maxZoom, zoom));
     this.zoom = zoom;
-    let vt = this.canvas.viewportTransform || [1, 0, 0, 1, 0, 0];
+    const vt = this.canvas.viewportTransform || [1, 0, 0, 1, 0, 0];
     let cx = vt[4];
     let cy = vt[5];
     if (!keepPosition) {

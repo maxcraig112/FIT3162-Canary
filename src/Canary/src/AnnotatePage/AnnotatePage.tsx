@@ -57,7 +57,7 @@ const AnnotatePage: React.FC = () => {
     if (!el) return;
     annotateHandler.createCanvas(el);
     // Setup zoom handler
-    zoomHandlerRef.current = new ZoomHandler({ canvas: getCanvas() });
+    zoomHandlerRef.current = new ZoomHandler({ canvas: getCanvas()! });
     zoomHandlerRef.current.attachWheelListener((newZoom) => setZoom(newZoom));
     setZoom(zoomHandlerRef.current.getZoom());
     return () => {
