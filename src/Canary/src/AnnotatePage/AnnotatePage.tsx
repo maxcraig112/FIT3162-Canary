@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, AppBar, Toolbar, Typography, ToggleButtonGroup, ToggleButton, Paper, IconButton, Button, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import { Box, AppBar, Toolbar, Typography, ToggleButtonGroup, ToggleButton, Paper, IconButton, Button, FormControl, InputLabel, Select, MenuItem, TextField } from '@mui/material';
 import { MyLocation, SelectAll, NotInterested, KeyboardArrowLeft, KeyboardArrowRight } from '@mui/icons-material';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import { annotateHandler, getCanvas } from './annotateHandler';
@@ -21,6 +21,7 @@ const AnnotatePage: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentImage, setCurrentImage] = useState(0);
   const [totalImages, setTotalImages] = useState(0);
+  const [inputImage, setInputImage] = useState<string>(currentImage.toString());
   const [selectedTool, setSelectedTool] = useState<string | null>('kp');
   const [searchParams] = useSearchParams();
   const [labelPrompt, setLabelPrompt] = useState<{
@@ -37,6 +38,8 @@ const AnnotatePage: React.FC = () => {
   const boxRef = useRef<HTMLDivElement | null>(null);
   const [zoom, setZoom] = useState(1);
   const zoomHandlerRef = useRef<ZoomHandler | null>(null);
+
+  const clamp = (val: number) => Math.min(Math.max(val, 1), totalImages);
 
   useEffect(() => {
     const boxEl = boxRef.current as HTMLDivElement | null;
@@ -135,6 +138,10 @@ const AnnotatePage: React.FC = () => {
     return () => window.removeEventListener('keydown', onKey, { capture: true });
   }, [labelPrompt.open, labelPrompt.mode, searchParams]);
 
+  useEffect(() => {
+    setInputImage(currentImage.toString());
+  }, [currentImage]);
+
   const handleToolChange = (_event: React.MouseEvent<HTMLElement>, newTool: string | null) => {
     if (newTool !== null) setSelectedTool(newTool);
   };
@@ -208,9 +215,66 @@ const AnnotatePage: React.FC = () => {
               <IconButton aria-label="previous image" onClick={handlePrev}>
                 <KeyboardArrowLeft />
               </IconButton>
-              <Paper elevation={2} sx={{ px: 3, py: 1 }}>
+              <Paper
+                elevation={2}
+                sx={{
+                  px: 2,
+                  py: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                }}
+              >
+                <TextField
+                  size="small"
+                  type="number"
+                  value={inputImage}
+                  slotProps={{
+                    input: {
+                      inputProps: {
+                        style: { textAlign: 'center', width: 60 },
+                      },
+                    },
+                  }}
+                  sx={{
+                    '& input[type=number]::-webkit-inner-spin-button, & input[type=number]::-webkit-outer-spin-button': {
+                      WebkitAppearance: 'none',
+                      margin: 0,
+                    },
+                    '& input[type=number]': {
+                      MozAppearance: 'textfield',
+                    },
+                  }}
+                  onChange={(e) => {
+                    setInputImage(e.target.value); // allow empty string while typing
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const val = parseInt(inputImage, 10);
+                      if (!isNaN(val)) {
+                        const clamped = clamp(val);
+                        annotateHandler.goToImage(clamped, setCurrentImage);
+                        setInputImage(clamped.toString());
+                      } else {
+                        setInputImage(currentImage.toString());
+                      }
+                      (e.target as HTMLInputElement).blur(); // deselect
+                    }
+                  }}
+                  onBlur={() => {
+                    const val = parseInt(inputImage, 10);
+                    if (!isNaN(val)) {
+                      const clamped = clamp(val);
+                      annotateHandler.goToImage(clamped, setCurrentImage);
+                      setInputImage(clamped.toString());
+                    } else {
+                      setInputImage(currentImage.toString());
+                    }
+                  }}
+                />
+
                 <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  {currentImage}/{totalImages}
+                  /{totalImages}
                 </Typography>
               </Paper>
               <IconButton aria-label="next image" onClick={handleNext}>

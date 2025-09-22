@@ -86,6 +86,14 @@ export const annotateHandler = {
     prevImage(setCurrentImage);
     currentImageNumber = getCurrentImageNumber();
   },
+  
+  goToImage(n: number, setCurrentImage: React.Dispatch<React.SetStateAction<number>>) {
+    const total = getTotalImageCount();
+    const clamped = Math.max(1, Math.min(n, total));
+    setCurrentImageNumber(clamped);
+    currentImageNumber = getCurrentImageNumber();
+    setCurrentImage(currentImageNumber);
+  },
 
   setTool(tool: string | null) {
     switch (tool) {
