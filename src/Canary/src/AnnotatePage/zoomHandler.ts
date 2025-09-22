@@ -1,4 +1,4 @@
-import { Canvas } from "fabric";
+import { Canvas } from 'fabric';
 
 export type ZoomHandlerOptions = {
   canvas: Canvas; // fabric.Canvas
