@@ -19,6 +19,13 @@ type Keypoint struct {
 	KeypointLabelID string `firestore:"keypointLabelID,omitempty" json:"keypointLabelID"`
 }
 
+type KeypointPtr struct {
+	ImageID         *string `firestore:"imageID" json:"imageID"`
+	Position        *Point  `firestore:"position" json:"position"`
+	BoundingBoxID   *string `firestore:"boundingBoxID" json:"boundingBoxID"`
+	KeypointLabelID *string `firestore:"keypointLabelID" json:"keypointLabelID"`
+}
+
 type Point struct {
 	X float64 `firestore:"x" json:"x"`
 	Y float64 `firestore:"y" json:"y"`
@@ -52,8 +59,14 @@ func NewKeypointStore(client fs.FirestoreClientInterface) *KeypointStore {
 func (s *KeypointStore) CreateKeypoint(ctx context.Context, req CreateKeypointRequest) (string, error) {
 	qp := []fs.QueryParameter{
 		{Path: "keypointLabelID", Op: "==", Value: req.KeypointLabelID},
-		{Path: "boundingBoxID", Op: "==", Value: req.BoundingBoxID},
 	}
+
+	if req.BoundingBoxID != "" {
+		qp = append(qp, fs.QueryParameter{Path: "boundingBoxID", Op: "==", Value: req.BoundingBoxID})
+	} else {
+		qp = append(qp, fs.QueryParameter{Path: "boundingBoxID", Op: "==", Value: nil})
+	}
+
 	docs, err := s.genericStore.ReadCollection(ctx, qp)
 	if err != nil {
 		return "", err
@@ -62,12 +75,34 @@ func (s *KeypointStore) CreateKeypoint(ctx context.Context, req CreateKeypointRe
 		return "", fs.ErrAlreadyExists
 	}
 
-	kp := Keypoint{
-		ImageID:         req.ImageID,
-		Position:        req.Position,
-		KeypointLabelID: req.KeypointLabelID,
-		BoundingBoxID:   req.BoundingBoxID,
+	// convert request values into pointers (nil if missing/empty)
+	var imageIDPtr *string
+	if req.ImageID != "" {
+		imageIDPtr = &req.ImageID
 	}
+
+	var keypointLabelIDPtr *string
+	if req.KeypointLabelID != "" {
+		keypointLabelIDPtr = &req.KeypointLabelID
+	}
+
+	var boundingBoxIDPtr *string
+	if req.BoundingBoxID != "" {
+		boundingBoxIDPtr = &req.BoundingBoxID
+	}
+
+	var positionPtr *Point
+	if req.Position != (Point{}) { // assumes Point is comparable
+		positionPtr = &req.Position
+	}
+
+	kp := KeypointPtr{
+		ImageID:         imageIDPtr,
+		Position:        positionPtr,
+		KeypointLabelID: keypointLabelIDPtr,
+		BoundingBoxID:   boundingBoxIDPtr,
+	}
+
 	return s.genericStore.CreateDoc(ctx, kp)
 }
 
