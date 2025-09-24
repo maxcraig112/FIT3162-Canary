@@ -64,7 +64,7 @@ const AnnotatePage: React.FC = () => {
   //   // Always redraw annotation visuals after undo/redo
   //   drawAnnotationsForCurrentImage();
   //   const canvas = getCanvas();
-  //   if (canvas) canvas.requestRenderAll();
+  //   if (canvas) //canvas.requestRenderAll();
   // };
   useAuthGuard();
 
@@ -140,7 +140,7 @@ const AnnotatePage: React.FC = () => {
       }
 
       try {
-        const { current } = await annotateHandler.renderToCanvas(batchID, projectID);
+        const { current } = await annotateHandler.  renderToCanvas(batchID, projectID);
         imageHandler.setCurrentImageNumber(current);
         setInputImage(current.toString());
       } catch (e) {
@@ -150,7 +150,7 @@ const AnnotatePage: React.FC = () => {
 
     render();
     // Re-render when current image number changes
-  }, [batchID, projectID, imageHandler, imageHandler.currentImageNumber]);
+  });
 
   // Keep handler tool selection in sync with UI
   useEffect(() => {
@@ -191,25 +191,25 @@ const AnnotatePage: React.FC = () => {
   }, []);
 
   // Undo/Redo keydown handler
-  // useEffect(() => {
-  //   const onKeyDown = (e: KeyboardEvent) => {
-  //     if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
-  //       e.preventDefault();
-  //       handleUndoRedo('undo');
-  //     }
-  //     if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
-  //       e.preventDefault();
-  //       handleUndoRedo('redo');
-  //     }
-  //     if ((e.key === 'Backspace' || e.key === 'Delete') && labelPrompt.mode === 'edit') {
-  //       e.preventDefault();
-  //       annotateHandler.deleteSelected();
-  //       setLabelPrompt({ open: false, kind: null, x: 0, y: 0, mode: 'create' });
-  //     }
-  //   };
-  //   window.addEventListener('keydown', onKeyDown);
-  //   return () => window.removeEventListener('keydown', onKeyDown);
-  // }, [labelPrompt.open, labelPrompt.mode, searchParams, handleUndoRedo]);
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault();
+        // handleUndoRedo('undo');
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+        e.preventDefault();
+        // handleUndoRedo('redo');
+      }
+      if ((e.key === 'Backspace' || e.key === 'Delete') && labelPrompt.mode === 'edit') {
+        e.preventDefault();
+        annotateHandler.deleteSelected();
+        setLabelPrompt({ open: false, kind: null, x: 0, y: 0, mode: 'create' });
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [labelPrompt.open, labelPrompt.mode, searchParams]);
 
   const handleToolChange = (_event: React.MouseEvent<HTMLElement>, newTool: string | null) => {
     if (newTool !== null) setSelectedTool(newTool);

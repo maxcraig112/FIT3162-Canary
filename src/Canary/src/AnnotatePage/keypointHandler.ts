@@ -10,30 +10,39 @@ export const keypointUndoRedo = new UndoRedoHandler();
 const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
 
 export const KeyPointFabricHandler = {
-  createFabricKeyPoint(ann: KeypointAnnotation): { group: fabric.Group } {
+  createFabricKeyPoint(canvas: fabric.Canvas, ann: KeypointAnnotation): { group: fabric.Group } {
     const marker = new fabric.Circle(fabricKPMarkerProps(ann.position));
     const labelText = getKeypointLabelName(ann.labelID);
     const text = new fabric.FabricText(labelText, fabricKPProps(ann.position));
     const group = new fabric.Group([marker, text], fabricGroupProps);
+    canvas.add(group);
+    //canvas.requestRenderAll();
     return { group };
   },
 
-  deleteFabricKeyPoint(group: fabric.Group): void {
-    group.remove();
+  deleteFabricKeyPoint(canvas: fabric.Canvas, group: fabric.Group): void {
+    canvas.remove(group);
+    //canvas.requestRenderAll();
   },
 
-  renameFabricKeyPoint(group: fabric.Group, newLabel: string): void {
+  renameFabricKeyPoint(canvas: fabric.Canvas, group: fabric.Group, newLabel: string): void {
     const textObj = group.item(1) as fabric.FabricText;
     textObj.text = newLabel;
+    //canvas.requestRenderAll();
   },
 
-  updateFabricKeyPointPosition(group: fabric.Group, newX: number, newY: number): void {
+  updateFabricKeyPointPosition(canvas: fabric.Canvas, group: fabric.Group, newX: number, newY: number): void {
     const marker = group.item(0) as fabric.Circle;
     marker.set({ left: newX, top: newY });
+    canvas.add(group);
+    //canvas.requestRenderAll();
   },
 
-  createPendingMarker(x: number, y: number): fabric.Circle {
-    return new fabric.Circle(fabricKPMarkerProps({ x, y }));
+  createPendingMarker(canvas: fabric.Canvas, x: number, y: number): fabric.Circle {
+    const circle = new fabric.Circle(fabricKPMarkerProps({ x, y }));
+    canvas.add(circle);
+    //canvas.requestRenderAll();
+    return circle;
   },
 };
 
@@ -85,9 +94,12 @@ export const keypointDatabaseHandler = {
   // Delete an existing keypoint in the database
   async deleteKeyPoint(ann: KeypointAnnotation): Promise<void> {
     const url = `${baseUrl}/projects/${ann.projectID}/keypoints/${ann.id}`;
+    console.log('Deleting keypoint:', ann);
+    console.log(`URL: ${url}`);
     try {
       await CallAPI(url, {
         method: 'DELETE',
+        ignoreResponse: true,
       });
     } catch (err) {
       console.error(`Failed to delete keypoint ${ann.id}:`, err);
@@ -110,7 +122,7 @@ export const keypointDatabaseHandler = {
       .map((it) => {
         const item = it as Record<string, unknown>;
         const kp: KeypointAnnotation = createKeypointAnnotation({
-          id: item.id as string,
+          id: item.keypointID as string,
           labelID: item.keypointLabelID as string,
           position: item.position as { x: number; y: number },
           projectID,

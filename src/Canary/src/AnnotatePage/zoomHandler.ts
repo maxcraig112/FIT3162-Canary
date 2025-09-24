@@ -37,7 +37,7 @@ export class ZoomHandler {
       cy -= center.y * (zoom - prevZoom);
     }
     this.canvas.viewportTransform = [zoom, 0, 0, zoom, cx, cy];
-    this.canvas.requestRenderAll();
+    // this.canvas.requestRenderAll();
   }
 
   zoomIn(center: { x: number; y: number }) {

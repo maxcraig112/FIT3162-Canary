@@ -7,10 +7,13 @@ export interface CallAPIOptions extends RequestInit {
   json?: unknown; // if provided, will be JSON.stringified and content-type set
   parseJson?: boolean; // default true; if false returns text
   auth?: boolean; // default true; include Bearer token if available
+  // If true, do not read or parse the response body at all.
+  // Useful for endpoints that return no content (e.g., DELETE 204)
+  ignoreResponse?: boolean;
 }
 
 export async function CallAPI<T = unknown>(url: string, options: CallAPIOptions = {}): Promise<T> {
-  const { method = 'GET', json, parseJson = true, auth = true, headers: initHeaders, body: initBody, ...rest } = options;
+  const { method = 'GET', json, parseJson = true, auth = true, ignoreResponse = false, headers: initHeaders, body: initBody, ...rest } = options;
 
   const headers = new Headers({ Accept: 'application/json' });
   if (initHeaders) {
@@ -30,6 +33,14 @@ export async function CallAPI<T = unknown>(url: string, options: CallAPIOptions 
   }
 
   const resp = await fetch(url, { method, headers, body, ...rest });
+  if (ignoreResponse) {
+    if (!resp.ok) {
+      // Don't attempt to read the body when ignoring
+      throw new Error(`${resp.status} ${resp.statusText}`);
+    }
+    return undefined as unknown as T;
+  }
+
   const text = await resp.text();
   if (!resp.ok) {
     throw new Error(text || `${resp.status} ${resp.statusText}`);

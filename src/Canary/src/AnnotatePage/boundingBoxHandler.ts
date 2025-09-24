@@ -11,31 +11,40 @@ const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
 export const boundingBoxUndoRedo = new UndoRedoHandler();
 
 export const BoundingBoxFabricHandler = {
-  createFabricBoundingBox(ann: BoundingBoxAnnotation): { group: fabric.Group } {
+  createFabricBoundingBox(canvas: fabric.Canvas, ann: BoundingBoxAnnotation): { group: fabric.Group } {
     const poly = new fabric.Polygon(ann.points, fabricBBPolygonProps);
     const c = polygonCentroid(ann.points);
     const labelText = getBoundingBoxLabelName(ann.labelID);
     const text = new fabric.FabricText(labelText, fabricBBProps({ x: c.x, y: c.y }));
     const group = new fabric.Group([poly, text], fabricGroupProps);
+    canvas.add(group);
+    //canvas.requestRenderAll();
     return { group };
   },
 
-  deleteFabricBoundingBox(group: fabric.Group): void {
-    group.remove();
+  deleteFabricBoundingBox(canvas: fabric.Canvas, group: fabric.Group): void {
+    canvas.remove(group);
+    //canvas.requestRenderAll();
   },
 
-  renameFabricBoundingBox(group: fabric.Group, newLabel: string): void {
+  renameFabricBoundingBox(canvas: fabric.Canvas, group: fabric.Group, newLabel: string): void {
     const textObj = group.item(1) as fabric.FabricText;
     textObj.text = newLabel;
+    //canvas.requestRenderAll();
   },
 
-  updateFabricBoundingBoxPosition(group: fabric.Group, newPoints: fabric.Point[]): void {
+  updateFabricBoundingBoxPosition(canvas: fabric.Canvas, group: fabric.Group, newPoints: fabric.Point[]): void {
     const poly = group.item(0) as fabric.Polygon;
     poly.set({ points: newPoints });
+    canvas.add(group);
+    //canvas.requestRenderAll();
   },
 
-  createPendingMarker(x: number, y: number): fabric.Circle {
-    return new fabric.Circle(fabricBBMarkerProps({ x, y }));
+  createPendingMarker(canvas: fabric.Canvas, x: number, y: number): fabric.Circle {
+    const circle = new fabric.Circle(fabricBBMarkerProps({ x, y }));
+    canvas.add(circle);
+    //canvas.requestRenderAll();
+    return circle;
   },
 };
 
@@ -88,6 +97,7 @@ export const boundingBoxDatabaseHandler = {
     try {
       await CallAPI(url, {
         method: 'DELETE',
+        ignoreResponse: true,
       });
     } catch (err) {
       console.error(`Failed to delete bounding box ${ann.id}:`, err);
@@ -97,7 +107,7 @@ export const boundingBoxDatabaseHandler = {
     boundingBoxUndoRedo.deleteAction('bb', ann);
   },
 
-  async getAllBoundingBoxes(projectID?: string, imageID?: string) {
+  async getAllBoundingBoxes(projectID: string, imageID: string) {
     const url = `${baseUrl}/projects/${projectID}/images/${imageID}/boundingboxes`;
     let raw;
     try {
@@ -111,8 +121,6 @@ export const boundingBoxDatabaseHandler = {
     const normalized: BoundingBoxAnnotation[] = arr
       .map((it) => {
         const item = it as Record<string, unknown>;
-        const id = (item.boundingBoxID ?? item.id) as string;
-        const labelID = (item.boundingBoxLabelID ?? '') as string;
         const box = item.box as { x: number; y: number; width: number; height: number };
         const x = box.x;
         const y = box.y;
@@ -126,11 +134,11 @@ export const boundingBoxDatabaseHandler = {
           { x: x, y: y + h },
         ];
         const bb: BoundingBoxAnnotation = createBoundingBoxAnnotation({
-          id,
-          labelID,
-          points,
-          projectID: projectID!,
-          imageID: imageID!,
+          id: item.boundingBoxID as string,
+          labelID: item.boundingBoxLabelID as string,
+          points: points,
+          projectID: projectID,
+          imageID: imageID,
         });
         return bb;
       })
