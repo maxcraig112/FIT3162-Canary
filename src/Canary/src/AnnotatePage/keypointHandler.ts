@@ -24,8 +24,8 @@ export const KeyPointFabricHandler = {
   },
 
   renameFabricKeyPoint(canvas: fabric.Canvas, group: fabric.Group, newLabel: string): void {
-    const textObj = group.item(1) as fabric.FabricText;
-    textObj.text = newLabel;
+    const textObj = group.item(1) as fabric.Text;
+    textObj.set({ text: newLabel });
     canvas.requestRenderAll();
   },
 
