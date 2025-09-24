@@ -222,13 +222,14 @@ const ProjectPage: React.FC = () => {
                 flex: '1 1 auto',
                 width: '100%',
                 minWidth: 1000, // keep a stable wide layout
-                minHeight: 500,
+                height: 'calc(100vh - 200px)', // Set fixed height based on viewport
                 px: 5,
                 py: 4,
                 display: 'flex',
                 flexDirection: 'column',
                 boxSizing: 'border-box',
                 backgroundColor: '#ffffff', // ensure paper stays white
+                overflow: 'hidden', // Prevent Paper itself from scrolling
               }}
             >
               <Box
@@ -237,6 +238,7 @@ const ProjectPage: React.FC = () => {
                   display: 'flex',
                   flexDirection: 'column',
                   width: '100%',
+                  overflow: 'auto', // Enable scrolling for the content area only
                 }}
               >
                 {loading && !projectData && <Typography variant="body1">Loading content...</Typography>}
