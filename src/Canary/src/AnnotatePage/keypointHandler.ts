@@ -1,10 +1,9 @@
 import * as fabric from 'fabric';
 import { createKeypointAnnotation, fabricGroupProps, fabricKPMarkerProps, fabricKPProps } from './constants';
 import type { KeypointAnnotation } from './constants';
-import { getKeypointLabelIdByName, getKeypointLabelName } from './labelRegistry';
+import { getKeypointLabelName } from './labelRegistry';
 import { CallAPI } from '../utils/apis';
 
-// Singleton instance for undo/redo
 const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
 
 export const KeyPointFabricHandler = {
@@ -14,13 +13,11 @@ export const KeyPointFabricHandler = {
     const text = new fabric.FabricText(labelText, fabricKPProps(ann.position));
     const group = new fabric.Group([marker, text], fabricGroupProps);
     canvas.add(group);
-    //canvas.requestRenderAll();
     return { group };
   },
 
   deleteFabricKeyPoint(canvas: fabric.Canvas, group: fabric.Group): void {
     canvas.remove(group);
-    //canvas.requestRenderAll();
   },
 
   renameFabricKeyPoint(canvas: fabric.Canvas, group: fabric.Group, newLabel: string): void {
@@ -33,13 +30,11 @@ export const KeyPointFabricHandler = {
     const marker = group.item(0) as fabric.Circle;
     marker.set({ left: newX, top: newY });
     canvas.add(group);
-    //canvas.requestRenderAll();
   },
 
   createPendingMarker(canvas: fabric.Canvas, x: number, y: number): fabric.Circle {
     const circle = new fabric.Circle(fabricKPMarkerProps({ x, y }));
     canvas.add(circle);
-    //canvas.requestRenderAll();
     return circle;
   },
 };

@@ -16,13 +16,11 @@ export const BoundingBoxFabricHandler = {
     const text = new fabric.FabricText(labelText, fabricBBProps({ x: c.x, y: c.y }));
     const group = new fabric.Group([poly, text], fabricGroupProps);
     canvas.add(group);
-    //canvas.requestRenderAll();
     return { group };
   },
 
   deleteFabricBoundingBox(canvas: fabric.Canvas, group: fabric.Group): void {
     canvas.remove(group);
-    //canvas.requestRenderAll();
   },
 
   renameFabricBoundingBox(canvas: fabric.Canvas, group: fabric.Group, newLabel: string): void {
@@ -35,13 +33,11 @@ export const BoundingBoxFabricHandler = {
     const poly = group.item(0) as fabric.Polygon;
     poly.set({ points: newPoints });
     canvas.add(group);
-    //canvas.requestRenderAll();
   },
 
   createPendingMarker(canvas: fabric.Canvas, x: number, y: number): fabric.Circle {
     const circle = new fabric.Circle(fabricBBMarkerProps({ x, y }));
     canvas.add(circle);
-    //canvas.requestRenderAll();
     return circle;
   },
 };

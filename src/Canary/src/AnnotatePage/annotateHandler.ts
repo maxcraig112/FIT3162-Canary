@@ -179,22 +179,11 @@ export const annotateHandler = {
     } else if (pendingEdit) {
       pendingEdit = null;
     }
-
-    // TODO MIGHT BE NEEDED
-    // if (currentTool === 'bb' && bbActive && canvasRef) {
-    //   if (bbPolyline) {
-    //     removeAndRender(bbPolyline);
-    //     bbPolyline = null;
-    //   }
-    //   bbPoints.forEach((p) => p.marker && removeAndRender(p.marker));
-    //   bbPoints = [];
-    //   // no label pending in end-label flow
-    //   bbActive = false;
-    // }
   },
 
   // Canvas lifecycle
   createCanvas(el: HTMLCanvasElement): fabric.Canvas {
+    
     if (canvasRef) {
       canvasRef.dispose();
     }
@@ -225,6 +214,7 @@ export const annotateHandler = {
           }
         }
       }
+      removePendingMarkers();
       if (currentTool === 'kp') {
         // add a small marker and request a label
         const c = KeyPointFabricHandler.createPendingMarker(canvasRef, p.x, p.y);
