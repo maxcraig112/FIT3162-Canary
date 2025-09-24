@@ -8,9 +8,11 @@ import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
-import ListItemText from '@mui/material/ListItemText';
 import IconButton from '@mui/material/IconButton';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import InputBase from '@mui/material/InputBase';
 import { useSettingsTab } from './settingsTabHandler';
 import type { Project } from '../ProjectPage';
 
@@ -21,46 +23,167 @@ type ListPanelProps = {
   onAdd: () => void;
   items: string[];
   onDelete: (v: string) => void;
+  onRename?: (oldName: string, newName: string) => void;
   placeholder?: string;
 };
 
-const ListPanel: React.FC<ListPanelProps> = React.memo(({ title, inputValue, onInputChange, onAdd, items, onDelete, placeholder }) => (
-  <Paper
-    sx={{
-      bgcolor: '#fff',
-      color: '#000',
-      border: '1px solid #e0e0e0',
-      boxShadow: 8,
-      p: 2,
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100%',
-    }}
-  >
-    <Typography variant="h6" sx={{ mb: 1, textAlign: 'center' }}>
-      {title}
-    </Typography>
-    <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-      <TextField fullWidth size="small" placeholder={placeholder || 'New label'} value={inputValue} onChange={(e) => onInputChange(e.target.value)} InputProps={{ style: { color: '#000' } }} />
-      <Button variant="contained" onClick={onAdd} disabled={!inputValue.trim()}>
-        Add
-      </Button>
-    </Box>
-    <List dense sx={{ flex: 1, overflowY: 'auto', pr: 1 }}>
-      {items.map((it) => (
-        <ListItem key={it} sx={{ pr: 1 }}>
-          <ListItemText primary={it} primaryTypographyProps={{ color: '#000' }} />
-          <Box sx={{ ml: 'auto' }}>
-            <IconButton edge="end" aria-label={`delete ${it}`} onClick={() => onDelete(it)} sx={{ color: '#000' }}>
-              <DeleteOutlineIcon />
-            </IconButton>
-          </Box>
-        </ListItem>
-      ))}
-      {items.length === 0 && <Typography sx={{ color: '#666', textAlign: 'center', mt: 2 }}>No labels yet</Typography>}
-    </List>
-  </Paper>
-));
+const ListPanel: React.FC<ListPanelProps> = React.memo(({ title, inputValue, onInputChange, onAdd, items, onDelete, onRename, placeholder }) => {
+  // Inline rename state
+  const [editingItem, setEditingItem] = React.useState<string | null>(null);
+  const [editValue, setEditValue] = React.useState<string>('');
+  // Options menu state
+  const [menuAnchor, setMenuAnchor] = React.useState<null | HTMLElement>(null);
+  const [menuFor, setMenuFor] = React.useState<string | null>(null);
+
+  const startEditing = (name: string) => {
+    setEditingItem(name);
+    setEditValue(name);
+  };
+
+  const cancelEditing = () => {
+    setEditingItem(null);
+    setEditValue('');
+  };
+
+  const commitEditing = () => {
+    const oldName = editingItem;
+    const newName = editValue.trim();
+    if (!oldName) return;
+    if (newName && newName !== oldName) {
+      onRename?.(oldName, newName);
+    }
+    cancelEditing();
+  };
+
+  // Menu handlers
+  const openMenu = (e: React.MouseEvent<HTMLElement>, name: string) => {
+    setMenuAnchor(e.currentTarget);
+    setMenuFor(name);
+  };
+  const closeMenu = () => {
+    setMenuAnchor(null);
+    setMenuFor(null);
+  };
+  const handleMenuRename = () => {
+    const target = menuFor;
+    closeMenu();
+    if (target) startEditing(target);
+  };
+  const handleMenuDelete = () => {
+    const target = menuFor;
+    closeMenu();
+    if (target) onDelete(target);
+  };
+
+  return (
+    <Paper
+      sx={{
+        bgcolor: '#fff',
+        color: '#000',
+        border: '1px solid #e0e0e0',
+        boxShadow: 8,
+        p: 2,
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+      }}
+    >
+      <Typography variant="h6" sx={{ mb: 1, textAlign: 'center' }}>
+        {title}
+      </Typography>
+      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+        <TextField fullWidth size="small" placeholder={placeholder || 'New label'} value={inputValue} onChange={(e) => onInputChange(e.target.value)} InputProps={{ style: { color: '#000' } }} />
+        <Button variant="contained" onClick={onAdd} disabled={!inputValue.trim()}>
+          Add
+        </Button>
+      </Box>
+      <List dense sx={{ flex: 1, overflowY: 'auto', pr: 1 }}>
+        {items.map((it) => (
+          <ListItem key={it} sx={{ pr: 1, py: 0 /* keep row compact */ }}>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: '1fr auto',
+                alignItems: 'center',
+                columnGap: 1,
+                width: '100%',
+              }}
+            >
+              <Box sx={{ minWidth: 0 }}>
+                {editingItem === it ? (
+                  <InputBase
+                    fullWidth
+                    autoFocus
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        commitEditing();
+                      } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        cancelEditing();
+                      }
+                    }}
+                    onBlur={commitEditing}
+                    inputProps={{ style: { padding: 0 } }}
+                    sx={{
+                      m: 0,
+                      color: '#000',
+                      fontSize: (t) => t.typography.body2.fontSize,
+                      lineHeight: (t) => t.typography.body2.lineHeight,
+                    }}
+                  />
+                ) : (
+                  <Typography
+                    variant="body2"
+                    color="#000"
+                    noWrap
+                    sx={{ m: 0, lineHeight: (t) => t.typography.body2.lineHeight }}
+                  >
+                    {it}
+                  </Typography>
+                )}
+              </Box>
+              <Box sx={{ width: 40, display: 'flex', justifyContent: 'flex-end' }}>
+                <IconButton
+                  edge="end"
+                  aria-label={`options ${it}`}
+                  onClick={(e) => openMenu(e, it)}
+                  sx={{ color: '#000', visibility: editingItem === it ? 'hidden' : 'visible' }}
+                >
+                  <MoreVertIcon />
+                </IconButton>
+              </Box>
+            </Box>
+          </ListItem>
+        ))}
+        {items.length === 0 && <Typography sx={{ color: '#666', textAlign: 'center', mt: 2 }}>No labels yet</Typography>}
+      </List>
+
+      {/* Single shared menu for all rows */}
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={closeMenu}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        PaperProps={{
+          sx: {
+            bgcolor: '#fff',
+            '& .MuiMenuItem-root': {
+              fontSize: 13,
+              py: 0.5,
+            },
+          },
+        }}
+      >
+        <MenuItem onClick={handleMenuRename} sx={{ color: '#000' }}>Rename</MenuItem>
+        <MenuItem onClick={handleMenuDelete} sx={{ color: '#d32f2f' }}>Delete</MenuItem>
+      </Menu>
+    </Paper>
+  );
+});
 
 export function SettingsTab({ project: _project }: { project: Project | null }) {
   const projectID = _project?.projectID;
@@ -84,6 +207,8 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
     addBbox,
     deleteKeypoint,
     deleteBbox,
+    renameKeypointLabel,
+    renameBboxLabel,
   } = useSettingsTab(projectID, (_project as unknown as { settings?: { session?: { enabled?: boolean; name?: string; password?: string } } } | null)?.settings ?? null);
 
   return (
@@ -250,6 +375,7 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
           onAdd={addKeypoint}
           items={keypointLabels}
           onDelete={deleteKeypoint}
+          onRename={(oldName, newName) => renameKeypointLabel(oldName, newName)}
           placeholder="Add new keypoint label"
         />
       </Box>
@@ -281,7 +407,16 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
           </Box>
         </Box>
         {/* Bottom half: labels list starts at half screen */}
-        <ListPanel title="Bounding Box Labels" inputValue={bboxInput} onInputChange={setBboxInput} onAdd={addBbox} items={bboxLabels} onDelete={deleteBbox} placeholder="Add new bounding box label" />
+        <ListPanel
+          title="Bounding Box Labels"
+          inputValue={bboxInput}
+          onInputChange={setBboxInput}
+          onAdd={addBbox}
+          items={bboxLabels}
+          onDelete={deleteBbox}
+          onRename={(oldName, newName) => renameBboxLabel(oldName, newName)}
+          placeholder="Add new bounding box label"
+        />
       </Box>
     </Box>
   );
