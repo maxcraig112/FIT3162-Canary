@@ -1,4 +1,3 @@
-import { UndoRedoHandler } from './undoRedoHandler';
 import * as fabric from 'fabric';
 import { createKeypointAnnotation, fabricGroupProps, fabricKPMarkerProps, fabricKPProps } from './constants';
 import type { KeypointAnnotation } from './constants';
@@ -6,7 +5,6 @@ import { getKeypointLabelIdByName, getKeypointLabelName } from './labelRegistry'
 import { CallAPI } from '../utils/apis';
 
 // Singleton instance for undo/redo
-export const keypointUndoRedo = new UndoRedoHandler();
 const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
 
 export const KeyPointFabricHandler = {
@@ -28,7 +26,7 @@ export const KeyPointFabricHandler = {
   renameFabricKeyPoint(canvas: fabric.Canvas, group: fabric.Group, newLabel: string): void {
     const textObj = group.item(1) as fabric.FabricText;
     textObj.text = newLabel;
-    //canvas.requestRenderAll();
+    canvas.requestRenderAll();
   },
 
   updateFabricKeyPointPosition(canvas: fabric.Canvas, group: fabric.Group, newX: number, newY: number): void {
@@ -59,36 +57,35 @@ export const keypointDatabaseHandler = {
         method: 'POST',
         json: requestBody,
       });
-      const newId = result as string;
+      const newId = (result as { keypointID: string }).keypointID;
       if (!newId) throw new Error('No keypoint ID returned from server');
       ann.id = newId;
     } catch (err) {
       throw new Error(`Invalid JSON response: ${err}`);
     }
 
-    keypointUndoRedo.addAction('kp', ann);
     console.log('Keypoint stored:', ann);
     return ann;
   },
 
   // Rename an existing keypoint's label in the database
-  async renameKeyPoint(ann: KeypointAnnotation, newLabelID: string): Promise<void> {
+  async renameKeyPoint(ann: KeypointAnnotation, newLabelID: string): Promise<KeypointAnnotation> {
     const url = `${baseUrl}/projects/${ann.projectID}/keypoints/${ann.id}`;
     const body = {
-      position: ann.position,
       keypointLabelID: getKeypointLabelIdByName(newLabelID),
     };
     try {
       await CallAPI(url, {
         method: 'PATCH',
         json: body,
+        ignoreResponse: true,
       });
     } catch (err) {
       console.error(`Failed to rename keypoint ${ann.id}:`, err);
     }
 
-    keypointUndoRedo.editAction('kp', { ...ann, labelID: ann.labelID }, { ...ann, labelID: newLabelID });
     console.log(`Keypoint ${ann.id} renamed to label ${newLabelID}`);
+    return { ...ann, labelID: newLabelID };
   },
 
   // Delete an existing keypoint in the database
@@ -106,7 +103,6 @@ export const keypointDatabaseHandler = {
     }
 
     console.log('Keypoint deleted:', ann);
-    keypointUndoRedo.deleteAction('kp', ann);
   },
 
   async getAllKeyPoints(projectID: string, imageID: string) {
@@ -131,7 +127,7 @@ export const keypointDatabaseHandler = {
         return kp;
       })
       .filter((v): v is KeypointAnnotation => Boolean(v));
-    console.log(normalized);
+    console.log(`keypoints loaded:`, normalized);
     return normalized;
   },
 };

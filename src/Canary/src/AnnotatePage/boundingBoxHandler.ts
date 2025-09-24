@@ -1,14 +1,12 @@
 import * as fabric from 'fabric';
 import { fabricBBPolygonProps, fabricBBProps, fabricGroupProps, fabricBBMarkerProps } from './constants';
 import type { BoundingBoxAnnotation } from './constants';
-import { UndoRedoHandler } from './undoRedoHandler';
 import { getBoundingBoxLabelName } from './labelRegistry';
 import { polygonCentroid } from './helper';
 import { CallAPI } from '../utils/apis';
 import { createBoundingBoxAnnotation } from './constants';
 
 const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
-export const boundingBoxUndoRedo = new UndoRedoHandler();
 
 export const BoundingBoxFabricHandler = {
   createFabricBoundingBox(canvas: fabric.Canvas, ann: BoundingBoxAnnotation): { group: fabric.Group } {
@@ -61,19 +59,19 @@ export const boundingBoxDatabaseHandler = {
         method: 'POST',
         json: body,
       });
-      const newId = result as string;
+      console.log(result)
+      const newId = (result as { boundingBoxID: string }).boundingBoxID;
       if (!newId) throw new Error('No bounding box ID returned from server');
       ann.id = newId;
     } catch (err) {
       console.error(`Failed to create bounding box ${ann.id}:`, err);
     }
 
-    boundingBoxUndoRedo.addAction('bb', ann);
     console.log('Bounding box stored:', ann);
     return ann;
   },
 
-  async renameBoundingBox(ann: BoundingBoxAnnotation, newLabelID: string): Promise<void> {
+  async renameBoundingBox(ann: BoundingBoxAnnotation, newLabelID: string): Promise<BoundingBoxAnnotation> {
     const url = `${baseUrl}/projects/${ann.projectID}/boundingboxes/${ann.id}`;
     const body = {
       box: getBox(ann),
@@ -83,13 +81,14 @@ export const boundingBoxDatabaseHandler = {
       await CallAPI(url, {
         method: 'PATCH',
         json: body,
+        ignoreResponse: true,
       });
     } catch (err) {
       console.error(`Failed to rename bounding box ${ann.id}:`, err);
     }
 
-    boundingBoxUndoRedo.editAction('bb', { ...ann, labelID: ann.labelID }, { ...ann, labelID: newLabelID });
     console.log(`Bounding box ${ann.id} renamed to label ${newLabelID}`);
+    return { ...ann, labelID: newLabelID };
   },
 
   async deleteBoundingBox(ann: BoundingBoxAnnotation): Promise<void> {
@@ -104,7 +103,6 @@ export const boundingBoxDatabaseHandler = {
     }
 
     console.log('Bounding box deleted:', ann);
-    boundingBoxUndoRedo.deleteAction('bb', ann);
   },
 
   async getAllBoundingBoxes(projectID: string, imageID: string) {
@@ -143,6 +141,7 @@ export const boundingBoxDatabaseHandler = {
         return bb;
       })
       .filter((v): v is BoundingBoxAnnotation => Boolean(v));
+    console.log(`bounding boxes loaded:`, normalized);
     return normalized;
   },
 };

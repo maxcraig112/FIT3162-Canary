@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Box, AppBar, Toolbar, Typography, ToggleButtonGroup, ToggleButton, Paper, IconButton, Button, FormControl, InputLabel, Select, MenuItem, TextField } from '@mui/material';
 import { MyLocation, SelectAll, NotInterested, KeyboardArrowLeft, KeyboardArrowRight } from '@mui/icons-material';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
-import { annotateHandler, getCanvas } from './annotateHandler';
+import { annotateHandler, getCanvas, handleUndoRedo } from './annotateHandler';
 import { ZoomHandler } from './zoomHandler';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
@@ -10,7 +10,6 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import { useSearchParams } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { getBoundingBoxLabelNames, getKeypointLabelNames } from './labelRegistry';
-import { loadProjectLabels } from './labelLoader';
 import { getCentreOfCanvas } from './helper';
 import { useAuthGuard } from '../utils/authUtil';
 // import { useSharedImageHandler } from './imagehandlercontext';
@@ -19,53 +18,7 @@ import { useImageHandler } from './imageStateHandler';
 const AnnotatePage: React.FC = () => {
   // Helper for undo/redo actions
   // Type guards
-  // function isBoundingBoxAnnotation(ann: KeypointAnnotation | BoundingBoxAnnotation): ann is BoundingBoxAnnotation {
-  //   return ann.kind === 'boundingbox';
-  // }
-  // function isKeypointAnnotation(ann: KeypointAnnotation | BoundingBoxAnnotation): ann is KeypointAnnotation {
-  //   return ann.kind === 'keypoint';
-  // }
 
-  // const undoRedoAPI = {
-  //   onAdd: async (ann: KeypointAnnotation | BoundingBoxAnnotation) => {
-  //     if (isBoundingBoxAnnotation(ann)) {
-  //       await boundingBoxHandler.finalizeCreate(new fabric.Polygon(ann.points), ann);
-  //     } else if (isKeypointAnnotation(ann)) {
-  //       await keypointHandler.createdKeyPoint(ann);
-  //     }
-  //   },
-  //   onEdit: async (before: KeypointAnnotation | BoundingBoxAnnotation, after: KeypointAnnotation | BoundingBoxAnnotation) => {
-  //     if (isBoundingBoxAnnotation(before) && isBoundingBoxAnnotation(after)) {
-  //       await boundingBoxHandler.renameBoundingBox(after, after.labelID);
-  //     } else if (isKeypointAnnotation(before) && isKeypointAnnotation(after)) {
-  //       await keypointHandler.renameKeyPoint(after, after.labelID);
-  //     } else {
-  //       throw new Error('Mismatched annotation types in undo/redo edit action');
-  //     }
-  //   },
-  //   onDelete: async (kind: 'kp' | 'bb', ann: KeypointAnnotation | BoundingBoxAnnotation) => {
-  //     if (kind === 'bb' && isBoundingBoxAnnotation(ann)) {
-  //       await boundingBoxHandler.deleteBoundingBox(ann);
-  //     } else if (kind === 'kp' && isKeypointAnnotation(ann)) {
-  //       await keypointHandler.deleteKeyPoint(ann);
-  //     }
-  //   },
-  //   validate: () => true,
-  // };
-
-  // const handleUndoRedo = async (action: 'undo' | 'redo') => {
-  //   if (action === 'undo') {
-  //     await boundingBoxUndoRedo.undo(undoRedoAPI);
-  //     await keypointUndoRedo.undo(undoRedoAPI);
-  //   } else {
-  //     await boundingBoxUndoRedo.redo(undoRedoAPI);
-  //     await keypointUndoRedo.redo(undoRedoAPI);
-  //   }
-  //   // Always redraw annotation visuals after undo/redo
-  //   drawAnnotationsForCurrentImage();
-  //   const canvas = getCanvas();
-  //   if (canvas) //canvas.requestRenderAll();
-  // };
   useAuthGuard();
 
   const navigate = useNavigate();
@@ -75,7 +28,7 @@ const AnnotatePage: React.FC = () => {
   // Ensure annotateHandler uses the same imageHandler instance
   useEffect(() => {
     annotateHandler.setImageHandler(imageHandler);
-  }, [imageHandler]);
+  });
 
   // inputImage is the value in the text box, separate from currentImageNumber
   const [inputImage, setInputImage] = useState(imageHandler.currentImageNumber.toString());
@@ -150,7 +103,7 @@ const AnnotatePage: React.FC = () => {
 
     render();
     // Re-render when current image number changes
-  });
+  }, [imageHandler.currentImageNumber]);
 
   // Keep handler tool selection in sync with UI
   useEffect(() => {
@@ -160,13 +113,12 @@ const AnnotatePage: React.FC = () => {
   }, [selectedTool]);
 
   // Load labels when projectID changes
-  useEffect(() => {
-    (async () => {
-      await loadProjectLabels(projectID || undefined);
-      setKpOptions(getKeypointLabelNames());
-      setBbOptions(getBoundingBoxLabelNames());
-    })();
-  }, [searchParams, projectID]);
+  // useEffect(() => {
+  //   (async () => {
+  //     setKpOptions(getKeypointLabelNames());
+  //     setBbOptions(getBoundingBoxLabelNames());
+  //   })();
+  // }, [searchParams, projectID]);
 
   // Subscribe to label requests from handler
   useEffect(() => {
@@ -195,11 +147,11 @@ const AnnotatePage: React.FC = () => {
     const onKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
         e.preventDefault();
-        // handleUndoRedo('undo');
+        handleUndoRedo('undo');
       }
       if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
         e.preventDefault();
-        // handleUndoRedo('redo');
+        handleUndoRedo('redo');
       }
       if ((e.key === 'Backspace' || e.key === 'Delete') && labelPrompt.mode === 'edit') {
         e.preventDefault();

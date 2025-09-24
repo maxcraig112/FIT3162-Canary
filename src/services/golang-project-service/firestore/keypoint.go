@@ -40,8 +40,9 @@ type CreateKeypointRequest struct {
 }
 
 type UpdateKeypointPositionRequest struct {
-	KeypointID string `json:"keypointID"`
-	Position   Point  `json:"position"`
+	KeypointID      string `json:"keypointID"`
+	KeypointLabelID string `json:"keypointLabelID"`
+	Position        *Point `json:"position"`
 }
 
 // Store wrapper
@@ -168,8 +169,13 @@ func (s *KeypointStore) GetKeypoint(ctx context.Context, keypointID string) (*Ke
 }
 
 func (s *KeypointStore) UpdateKeypointPosition(ctx context.Context, req UpdateKeypointPositionRequest) error {
-	updates := []firestore.Update{
-		{Path: "position", Value: req.Position},
+	updates := []firestore.Update{}
+
+	if req.KeypointLabelID != "" {
+		updates = append(updates, firestore.Update{Path: "keypointLabelID", Value: req.KeypointLabelID})
+	}
+	if req.Position != nil {
+		updates = append(updates, firestore.Update{Path: "position", Value: req.Position})
 	}
 
 	return s.genericStore.UpdateDoc(ctx, req.KeypointID, updates)

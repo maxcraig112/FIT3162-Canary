@@ -1,15 +1,12 @@
-// UndoRedoHandler for bounding boxes and keypoints
-// Tracks add, edit, delete operations and syncs with backend
-
-
+import * as fabric from 'fabric';
 import type { KeypointAnnotation, BoundingBoxAnnotation } from './constants';
 export type AnnotationType = KeypointAnnotation | BoundingBoxAnnotation;
 
 
 export type UndoRedoAction =
-  | { type: 'add'; kind: 'kp' | 'bb'; annotation: AnnotationType }
-  | { type: 'edit'; kind: 'kp' | 'bb'; before: AnnotationType; after: AnnotationType }
-  | { type: 'delete'; kind: 'kp' | 'bb'; annotation: AnnotationType };
+  | { type: 'add'; kind: 'kp' | 'bb'; annotation: AnnotationType; group: fabric.Group}
+  | { type: 'edit'; kind: 'kp' | 'bb'; before: AnnotationType; after: AnnotationType; group: fabric.Group }
+  | { type: 'delete'; kind: 'kp' | 'bb'; annotation: AnnotationType; group: fabric.Group };
 
 export class UndoRedoHandler {
   private undoStack: UndoRedoAction[] = [];
@@ -23,18 +20,18 @@ export class UndoRedoHandler {
   }
 
   // Pushes the inverse of the action to the undo stack and clears redo stack
-  addAction(kind: 'kp' | 'bb', annotation: AnnotationType) {
-    this.undoStack.push({ type: 'delete', kind, annotation });
+  addAction(kind: 'kp' | 'bb', annotation: AnnotationType, group: fabric.Group) {
+    this.undoStack.push({ type: 'delete', kind, annotation, group });
     this.redoStack = [];
     console.log('Added action to undo stack:', this.undoStack);
   }
-  editAction(kind: 'kp' | 'bb', before: AnnotationType, after: AnnotationType) {
-    this.undoStack.push({ type: 'edit', kind, before: after, after: before });
+  editAction(kind: 'kp' | 'bb', before: AnnotationType, after: AnnotationType, group: fabric.Group) {
+    this.undoStack.push({ type: 'edit', kind, before: after, after: before, group: group });
     this.redoStack = [];
     console.log('Added edit action to undo stack:', this.undoStack);
   }
-  deleteAction(kind: 'kp' | 'bb', annotation: AnnotationType) {
-    this.undoStack.push({ type: 'add', kind, annotation });
+  deleteAction(kind: 'kp' | 'bb', annotation: AnnotationType, group: fabric.Group) {
+    this.undoStack.push({ type: 'add', kind, annotation, group: group});
     this.redoStack = [];
     console.log('Added delete action to undo stack:', this.undoStack);
   }
@@ -45,9 +42,9 @@ export class UndoRedoHandler {
     onDelete,
     validate,
   }: {
-    onAdd: (kind: 'kp' | 'bb', annotation: AnnotationType) => Promise<void>;
-    onEdit: (kind: 'kp' | 'bb', before: AnnotationType, after: AnnotationType) => Promise<void>;
-    onDelete: (kind: 'kp' | 'bb', annotation: AnnotationType) => Promise<void>;
+    onAdd: (kind: 'kp' | 'bb', annotation: AnnotationType, group: fabric.Group) => Promise<void>;
+    onEdit: (kind: 'kp' | 'bb', before: AnnotationType, after: AnnotationType, group: fabric.Group) => Promise<void>;
+    onDelete: (kind: 'kp' | 'bb', annotation: AnnotationType, group: fabric.Group) => Promise<void>;
     validate: (action: UndoRedoAction) => boolean;
   }) {
     if (!this.canUndo()) return;
@@ -56,16 +53,16 @@ export class UndoRedoHandler {
     let inverse: UndoRedoAction | null = null;
     switch (action.type) {
       case 'add':
-        await onAdd(action.kind, action.annotation);
-        inverse = { type: 'delete', kind: action.kind, annotation: action.annotation };
+        await onAdd(action.kind, action.annotation, action.group);
+        inverse = { type: 'delete', kind: action.kind, annotation: action.annotation, group: action.group };
         break;
       case 'edit':
-        await onEdit(action.kind, action.before, action.after);
-        inverse = { type: 'edit', kind: action.kind, before: action.after, after: action.before };
+        await onEdit(action.kind, action.before, action.after, action.group);
+        inverse = { type: 'edit', kind: action.kind, before: action.after, after: action.before, group: action.group };
         break;
       case 'delete':
-        await onDelete(action.kind, action.annotation);
-        inverse = { type: 'add', kind: action.kind, annotation: action.annotation };
+        await onDelete(action.kind, action.annotation, action.group);
+        inverse = { type: 'add', kind: action.kind, annotation: action.annotation, group: action.group };
         break;
     }
     if (inverse) this.redoStack.push(inverse);
@@ -77,9 +74,9 @@ export class UndoRedoHandler {
     onDelete,
     validate,
   }: {
-    onAdd: (kind: 'kp' | 'bb', annotation: AnnotationType) => Promise<void>;
-    onEdit: (kind: 'kp' | 'bb', before: AnnotationType, after: AnnotationType) => Promise<void>;
-    onDelete: (kind: 'kp' | 'bb', annotation: AnnotationType) => Promise<void>;
+    onAdd: (kind: 'kp' | 'bb', annotation: AnnotationType, group: fabric.Group) => Promise<void>;
+    onEdit: (kind: 'kp' | 'bb', before: AnnotationType, after: AnnotationType, group: fabric.Group) => Promise<void>;
+    onDelete: (kind: 'kp' | 'bb', annotation: AnnotationType, group: fabric.Group) => Promise<void>;
     validate: (action: UndoRedoAction) => boolean;
   }) {
     if (!this.canRedo()) return;
@@ -88,16 +85,16 @@ export class UndoRedoHandler {
     let inverse: UndoRedoAction | null = null;
     switch (action.type) {
       case 'add':
-        await onAdd(action.kind, action.annotation);
-        inverse = { type: 'delete', kind: action.kind, annotation: action.annotation };
+        await onAdd(action.kind, action.annotation, action.group);
+        inverse = { type: 'delete', kind: action.kind, annotation: action.annotation, group: action.group };
         break;
       case 'edit':
-        await onEdit(action.kind, action.before, action.after);
-        inverse = { type: 'edit', kind: action.kind, before: action.after, after: action.before };
+        await onEdit(action.kind, action.before, action.after, action.group);
+        inverse = { type: 'edit', kind: action.kind, before: action.after, after: action.before, group: action.group };
         break;
       case 'delete':
-        await onDelete(action.kind, action.annotation);
-        inverse = { type: 'add', kind: action.kind, annotation: action.annotation };
+        await onDelete(action.kind, action.annotation, action.group);
+        inverse = { type: 'add', kind: action.kind, annotation: action.annotation, group: action.group };
         break;
     }
     if (inverse) this.undoStack.push(inverse);
