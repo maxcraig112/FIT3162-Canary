@@ -5,8 +5,6 @@ import (
 	"pkg/gcp/bucket"
 	fs "pkg/gcp/firestore"
 	"time"
-
-	"cloud.google.com/go/firestore"
 )
 
 // This file is a placeholder for image storage logic, e.g., saving image metadata or references to Firestore.
@@ -87,7 +85,27 @@ func (s *ImageStore) GetTotalImageCountByBatchID(ctx context.Context, batchID st
 func (s *ImageStore) CreateImageMetadata(ctx context.Context, batchID string, imageInfo bucket.ObjectList, isSequence bool) ([]Image, error) {
 	imageBatch := []Image{}
 
-	for _, objectData := range imageInfo {
+	ids, err := s.genericStore.GenerateNIDs(len(imageInfo))
+	if err != nil {
+		return nil, err
+	}
+
+	nextImageID := ""
+	prevImageID := ""
+
+	for i, objectData := range imageInfo {
+		if isSequence {
+			if i < len(imageInfo)-1 {
+				nextImageID = ids[i+1]
+			} else {
+				nextImageID = ""
+			}
+			if i > 0 {
+				prevImageID = ids[i-1]
+			} else {
+				prevImageID = ""
+			}
+		}
 		imageBatch = append(imageBatch, Image{
 			ImageURL:    objectData.ImageData.URL,
 			ImageName:   objectData.ImageName,
@@ -96,8 +114,8 @@ func (s *ImageStore) CreateImageMetadata(ctx context.Context, batchID string, im
 			BatchID:     batchID,
 			LastUpdated: time.Now(),
 			IsSequence:  isSequence,
-			PrevImageID: "",
-			NextImageID: "",
+			PrevImageID: prevImageID,
+			NextImageID: nextImageID,
 		})
 	}
 
@@ -106,24 +124,9 @@ func (s *ImageStore) CreateImageMetadata(ctx context.Context, batchID string, im
 		imageInterfaces[i] = img
 	}
 
-	ids, err := s.genericStore.CreateDocsBatch(ctx, imageInterfaces)
+	ids, err = s.genericStore.CreateDocsBatch(ctx, imageInterfaces, ids)
 	if err != nil {
 		return nil, err
-	}
-	for i := range imageBatch {
-		imageBatch[i].ImageID = ids[i]
-		if isSequence {
-			update := []firestore.Update{}
-			if i > 0 {
-				imageBatch[i].PrevImageID = ids[i-1]
-				update = append(update, firestore.Update{Path: "prevImageID", Value: ids[i-1]})
-			}
-			if i < len(imageBatch)-1 {
-				imageBatch[i].NextImageID = ids[i+1]
-				update = append(update, firestore.Update{Path: "nextImageID", Value: ids[i+1]})
-			}
-			s.genericStore.UpdateDoc(ctx, ids[i], update)
-		}
 	}
 	return imageBatch, nil
 }
@@ -137,4 +140,19 @@ func (s *ImageStore) DeleteImagesByBatchID(ctx context.Context, batchID string) 
 		return nil
 	}
 	return err
+}
+
+func (s *ImageStore) GetImageMetadata(ctx context.Context, imageID string) (*Image, error) {
+	docSnap, err := s.genericStore.GetDoc(ctx, imageID)
+	if err != nil {
+		return nil, err
+	}
+
+	var i Image
+	if err := docSnap.DataTo(&i); err != nil {
+		return nil, err
+	}
+
+	i.ImageID = docSnap.Ref.ID
+	return &i, nil
 }

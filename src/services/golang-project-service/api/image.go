@@ -58,6 +58,10 @@ func RegisterImageRoutes(r *mux.Router, h *handler.Handler) {
 		{"POST", "/batch/{batchID}/images", ih.UploadImagesHandler},
 		// Delete all images from a batch
 		{"DELETE", "/batch/{batchID}/images", ih.DeleteImagesHandler},
+
+		{"GET", "/images/{imageID}/previous", ih.HasPreviousImageHandler},
+
+		{"POST", "/images/{imageID}/annotations/copy_previous", ih.CopyPrevAnnotationsHandler},
 	}
 
 	for _, rt := range routes {
@@ -459,4 +463,113 @@ func (h *ImageHandler) DeleteImagesHandler(w http.ResponseWriter, r *http.Reques
 		"deleted": true,
 		"message": "All images and annotations deleted",
 	})
+}
+
+func (h *ImageHandler) HasPreviousImageHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	vars := mux.Vars(r)
+	imageID := vars["imageID"]
+	if imageID == "" {
+		http.Error(w, "Missing imageID in URL", http.StatusBadRequest)
+		log.Error().Msg("Missing imageID in URL for HasPreviousImageHandler")
+		return
+	}
+
+	imageData, err := h.ImageStore.GetImageMetadata(ctx, imageID)
+	if err != nil {
+		http.Error(w, "Failed to get image metadata", http.StatusInternalServerError)
+		log.Error().Err(err).Str("imageID", imageID).Msg("Failed to get image metadata")
+		return
+	}
+
+	// check if image is sequence
+	// check if prevImageID is empty
+
+	w.Header().Set("Content-Type", "application/json")
+	log.Info().Str("imageID", imageID).Msg("Successfully checked if image has previous image")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]bool{"hasPrevious": imageData.IsSequence && imageData.PrevImageID != ""})
+}
+
+func (h *ImageHandler) CopyPrevAnnotationsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	vars := mux.Vars(r)
+	imageID := vars["imageID"]
+	if imageID == "" {
+		http.Error(w, "Missing imageID in URL", http.StatusBadRequest)
+		log.Error().Msg("Missing imageID in URL for HasPreviousImageHandler")
+		return
+	}
+
+	currImageData, err := h.ImageStore.GetImageMetadata(ctx, imageID)
+	if err != nil {
+		http.Error(w, "Failed to get image metadata", http.StatusInternalServerError)
+		log.Error().Err(err).Str("imageID", imageID).Msg("Failed to get image metadata")
+		return
+	}
+
+	if !currImageData.IsSequence || currImageData.PrevImageID == "" {
+		http.Error(w, "Image is not a sequence or has no previous image", http.StatusBadRequest)
+		log.Error().Err(err).Str("imageID", imageID).Msg("Image is not a sequence or has no previous image")
+		return
+	}
+
+	// get previous image
+	prevImageID := currImageData.PrevImageID
+
+	// get all bounding boxes
+	prevBoundingBoxes, err := h.BoundingBoxStore.GetBoundingBoxesByImageID(ctx, prevImageID)
+	if err != nil {
+		http.Error(w, "Failed to get bounding boxes", http.StatusInternalServerError)
+		log.Error().Err(err).Str("imageID", imageID).Msg("Failed to get bounding boxes")
+		return
+	}
+
+	// get all keypoints
+	prevKeypoints, err := h.KeypointStore.GetKeypointsByImageID(ctx, prevImageID)
+	if err != nil {
+		http.Error(w, "Failed to get keypoints", http.StatusInternalServerError)
+		log.Error().Err(err).Str("imageID", imageID).Msg("Failed to get keypoints")
+		return
+	}
+
+	// create new bounding boxes
+	// map old to new id
+	boundingBoxIdMap := make(map[string]string, len(prevBoundingBoxes))
+	for _, boundingBox := range prevBoundingBoxes {
+		// create new bounding box
+		createBoundingBoxReq := fs.CreateBoundingBoxRequest{
+			ImageID:            imageID,
+			Box:                boundingBox.Box,
+			BoundingBoxLabelID: boundingBox.BoundingBoxLabelID,
+		}
+		newId, err := h.BoundingBoxStore.CreateBoundingBox(ctx, createBoundingBoxReq)
+		if err != nil {
+			http.Error(w, "Failed to create bounding box", http.StatusInternalServerError)
+			log.Error().Err(err).Str("imageID", imageID).Msg("Failed to create bounding box")
+			return
+		}
+		boundingBoxIdMap[boundingBox.BoundingBoxID] = newId
+	}
+
+	// create new keypoints
+	for _, keypoint := range prevKeypoints {
+		// create new keypoint
+		createKeypointReq := fs.CreateKeypointRequest{
+			ImageID:         imageID,
+			Position:        keypoint.Position,
+			KeypointLabelID: keypoint.KeypointLabelID,
+			BoundingBoxID:   boundingBoxIdMap[keypoint.BoundingBoxID],
+		}
+		if _, err := h.KeypointStore.CreateKeypoint(ctx, createKeypointReq); err != nil {
+			http.Error(w, "Failed to create keypoint", http.StatusInternalServerError)
+			log.Error().Err(err).Str("imageID", imageID).Msg("Failed to create keypoint")
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	log.Info().Str("imageID", imageID).Msg("Successfully copied annotations from previous image")
+	w.Write([]byte("Successfully copied annotations from previous image"))
+
 }
