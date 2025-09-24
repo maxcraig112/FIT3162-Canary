@@ -19,6 +19,15 @@ let canvasRef: fabric.Canvas;
 // Store a reference to the current ImageHandler instance provided by the React component
 let imageHandlerRef: ImageHandler | null = null;
 
+// Current transform from image space -> canvas space
+let currentScale = 1;
+let currentOffsetX = 0;
+let currentOffsetY = 0;
+
+function canvasToImage(p: { x: number; y: number }): { x: number; y: number } {
+  return { x: (p.x - currentOffsetX) / currentScale, y: (p.y - currentOffsetY) / currentScale };
+}
+
 const labelRequestSubs = new Set<(req: LabelRequest) => void>();
 
 // Map Fabric groups to backing annotation
@@ -119,21 +128,27 @@ export const annotateHandler = {
         const { x, y, marker } = pendingKP;
         if (!marker) return;
 
+        // Convert canvas click position to image-space before saving
+        const imgPt = canvasToImage({ x, y });
         const ann = createKeypointAnnotation({
           id: '',
-          position: { x, y },
+          position: { x: imgPt.x, y: imgPt.y },
           labelID: getKeypointLabelIdByName(label),
           projectID: projectID,
           imageID: imageID,
         });
 
         keypointDatabaseHandler.createdKeyPoint(ann).then((createdAnn) => {
-          const { group }: { group: fabric.Group } = KeyPointFabricHandler.createFabricKeyPoint(canvasRef, createdAnn);
+          const { group }: { group: fabric.Group } = KeyPointFabricHandler.createFabricKeyPoint(canvasRef, createdAnn, {
+            scale: currentScale,
+            offsetX: currentOffsetX,
+            offsetY: currentOffsetY,
+          });
           groupToAnnotation.set(group, { kind: 'kp', ann: createdAnn });
           const s = imageHandler.annotationStore.get(imageHandler.currentImageURL) ?? { kps: [], bbs: [] };
           s.kps.push(createdAnn);
           imageHandler.annotationStore.set(imageHandler.currentImageURL, s);
-          undoRedoHandler.addAction('kp', ann, group);
+          undoRedoHandler.addAction('kp', createdAnn, group);
         });
         console.log('[KP] Keypoint created:', { x, y, marker, ann });
         removePendingMarkers();
@@ -142,21 +157,27 @@ export const annotateHandler = {
       if (currentTool === 'bb' && pendingBB) {
         const { polygon, points } = pendingBB;
 
+        // Convert pending canvas points to image-space before saving
+        const imgPts = points.map((p) => canvasToImage(p));
         const ann = createBoundingBoxAnnotation({
           id: '',
-          points: points,
+          points: imgPts,
           labelID: getBoundingBoxLabelIdByName(label),
           projectID: projectID,
           imageID: imageID,
         });
 
         boundingBoxDatabaseHandler.createBoundingBox(ann).then((createdAnn) => {
-          const { group }: { group: fabric.Group } = BoundingBoxFabricHandler.createFabricBoundingBox(canvasRef, createdAnn);
+          const { group }: { group: fabric.Group } = BoundingBoxFabricHandler.createFabricBoundingBox(canvasRef, createdAnn, {
+            scale: currentScale,
+            offsetX: currentOffsetX,
+            offsetY: currentOffsetY,
+          });
           groupToAnnotation.set(group, { kind: 'bb', ann: createdAnn });
           const s = imageHandler.annotationStore.get(imageHandler.currentImageURL) ?? { kps: [], bbs: [] };
           s.bbs.push(createdAnn);
           imageHandler.annotationStore.set(imageHandler.currentImageURL, s);
-          undoRedoHandler.addAction('bb', ann, group);
+          undoRedoHandler.addAction('bb', createdAnn, group);
         });
         console.log('[BB] Bounding box created:', { points, polygon, ann });
         removePendingMarkers();
@@ -318,24 +339,36 @@ export const annotateHandler = {
 
     const img = await imageHandler.getFabricImage(meta.imageURL);
 
-    const cw = canvasRef.getWidth();
-    const ch = canvasRef.getHeight();
     const total = imageHandler.getTotalImageCount();
-    if (!cw || !ch) return { current: imageHandler.currentImageNumber, total };
-
     const iw = img.width ?? 1;
     const ih = img.height ?? 1;
-    const scale = Math.min(cw / iw, ch / ih);
-    img.scale(scale);
-    img.set({
-      originX: 'center',
-      originY: 'center',
-      left: cw / 2,
-      top: ch / 2,
-    });
 
+    // Determine available canvas size from parent container; fallback to image size
+    const canvasEl = canvasRef.getElement() as HTMLCanvasElement;
+    const parent = canvasEl?.parentElement;
+    const cw = Math.max(1, parent?.clientWidth ?? iw);
+    const ch = Math.max(1, parent?.clientHeight ?? ih);
+
+    canvasRef.setWidth(cw);
+    canvasRef.setHeight(ch);
+
+    // Compute scale to fit image into canvas while preserving aspect ratio
+    const scale = Math.min(cw / iw, ch / ih);
+    const scaledW = iw * scale;
+    const scaledH = ih * scale;
+    const offsetX = (cw - scaledW) / 2;
+    const offsetY = (ch - scaledH) / 2;
+
+    // Store transform for later conversions
+    currentScale = scale;
+    currentOffsetX = offsetX;
+    currentOffsetY = offsetY;
+
+    // Place the image as background, scaled and centered within the canvas
+    img.set({ originX: 'left', originY: 'top', left: offsetX, top: offsetY, scaleX: scale, scaleY: scale });
     canvasRef.backgroundImage = img;
-    // Pass the handler explicitly to avoid relying on outer-scope variables
+
+    // Draw annotations using current transform
     drawAnnotationsForCurrentImage(imageHandler, meta.imageURL);
     canvasRef.requestRenderAll();
 
@@ -452,13 +485,21 @@ export function drawAnnotationsForCurrentImage(handler: ImageHandler, forImageUR
 
   // Draw keypoints
   for (const ann of s.kps) {
-    const { group } = KeyPointFabricHandler.createFabricKeyPoint(canvasRef, ann);
+    const { group } = KeyPointFabricHandler.createFabricKeyPoint(canvasRef, ann, {
+      scale: currentScale,
+      offsetX: currentOffsetX,
+      offsetY: currentOffsetY,
+    });
     groupToAnnotation.set(group, { kind: 'kp', ann });
   }
 
   // Draw bounding boxes
   for (const ann of s.bbs) {
-    const { group } = BoundingBoxFabricHandler.createFabricBoundingBox(canvasRef, ann);
+    const { group } = BoundingBoxFabricHandler.createFabricBoundingBox(canvasRef, ann, {
+      scale: currentScale,
+      offsetX: currentOffsetX,
+      offsetY: currentOffsetY,
+    });
     groupToAnnotation.set(group, { kind: 'bb', ann });
   }
 }
@@ -492,7 +533,11 @@ const undoRedoAPI = {
         canvasRef.add(group);
         groupToAnnotation.set(group, { kind: 'bb', ann: annotation });
       } else {
-        const { group: g } = BoundingBoxFabricHandler.createFabricBoundingBox(canvasRef, annotation);
+        const { group: g } = BoundingBoxFabricHandler.createFabricBoundingBox(canvasRef, annotation, {
+          scale: currentScale,
+          offsetX: currentOffsetX,
+          offsetY: currentOffsetY,
+        });
         groupToAnnotation.set(g, { kind: 'bb', ann: annotation });
       }
     } else if (kind === 'kp' && isKeypointAnnotation(annotation)) {
@@ -501,7 +546,11 @@ const undoRedoAPI = {
         canvasRef.add(group);
         groupToAnnotation.set(group, { kind: 'kp', ann: annotation });
       } else {
-        const { group: g } = KeyPointFabricHandler.createFabricKeyPoint(canvasRef, annotation);
+        const { group: g } = KeyPointFabricHandler.createFabricKeyPoint(canvasRef, annotation, {
+          scale: currentScale,
+          offsetX: currentOffsetX,
+          offsetY: currentOffsetY,
+        });
         groupToAnnotation.set(g, { kind: 'kp', ann: annotation });
       }
     } else {

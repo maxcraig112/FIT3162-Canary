@@ -7,10 +7,18 @@ import { CallAPI } from '../utils/apis';
 const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
 
 export const KeyPointFabricHandler = {
-  createFabricKeyPoint(canvas: fabric.Canvas, ann: KeypointAnnotation): { group: fabric.Group } {
-    const marker = new fabric.Circle(fabricKPMarkerProps(ann.position));
+  createFabricKeyPoint(
+    canvas: fabric.Canvas,
+    ann: KeypointAnnotation,
+    transform?: { scale: number; offsetX: number; offsetY: number }
+  ): { group: fabric.Group } {
+    const mapPoint = (p: { x: number; y: number }) =>
+      transform ? { x: p.x * transform.scale + transform.offsetX, y: p.y * transform.scale + transform.offsetY } : p;
+
+    const pos = mapPoint(ann.position);
+    const marker = new fabric.Circle(fabricKPMarkerProps(pos));
     const labelText = getKeypointLabelName(ann.labelID);
-    const text = new fabric.FabricText(labelText, fabricKPProps(ann.position));
+    const text = new fabric.FabricText(labelText, fabricKPProps(pos));
     const group = new fabric.Group([marker, text], fabricGroupProps);
     canvas.add(group);
     return { group };

@@ -57,7 +57,7 @@ const AnnotatePage: React.FC = () => {
   const boxRef = useRef<HTMLDivElement | null>(null);
   const [zoom, setZoom] = useState(1);
   const zoomHandlerRef = useRef<ZoomHandler | null>(null);
-
+  
   useEffect(() => {
     const boxEl = boxRef.current as HTMLDivElement | null;
     const canvasEl = canvasRef.current as HTMLCanvasElement | null;

@@ -9,9 +9,16 @@ import { createBoundingBoxAnnotation } from './constants';
 const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
 
 export const BoundingBoxFabricHandler = {
-  createFabricBoundingBox(canvas: fabric.Canvas, ann: BoundingBoxAnnotation): { group: fabric.Group } {
-    const poly = new fabric.Polygon(ann.points, fabricBBPolygonProps);
-    const c = polygonCentroid(ann.points);
+  createFabricBoundingBox(
+    canvas: fabric.Canvas,
+    ann: BoundingBoxAnnotation,
+    transform?: { scale: number; offsetX: number; offsetY: number }
+  ): { group: fabric.Group } {
+    const mapPoint = (p: { x: number; y: number }) =>
+      transform ? { x: p.x * transform.scale + transform.offsetX, y: p.y * transform.scale + transform.offsetY } : p;
+    const pts = ann.points.map(mapPoint);
+    const poly = new fabric.Polygon(pts, fabricBBPolygonProps);
+    const c = polygonCentroid(pts);
     const labelText = getBoundingBoxLabelName(ann.labelID);
     const text = new fabric.FabricText(labelText, fabricBBProps({ x: c.x, y: c.y }));
     const group = new fabric.Group([poly, text], fabricGroupProps);
