@@ -76,7 +76,7 @@ export const keypointDatabaseHandler = {
         ignoreResponse: true,
       });
     } catch (err) {
-      console.error(`Failed to rename keypoint ${ann.id}:`, err);
+      throw new Error(`Failed to rename keypoint ${ann.id}: ${err}`);
     }
 
     console.log(`Keypoint ${ann.id} renamed to label ${newLabelID}`);

@@ -97,16 +97,18 @@ export const annotateHandler = {
 
       if (kind == 'kp') {
         const ann = meta.ann as KeypointAnnotation;
-        KeyPointFabricHandler.renameFabricKeyPoint(canvasRef, group, label);
-        const updatedAnn = await keypointDatabaseHandler.renameKeyPoint(ann, getKeypointLabelIdByName(label));
-        console.log(`Keypoint ${ann.id} renamed to label ${label}`);
-        undoRedoHandler.editAction('kp', ann, updatedAnn, group);
+        keypointDatabaseHandler.renameKeyPoint(ann, getKeypointLabelIdByName(label)).then((updatedAnn) => {
+          KeyPointFabricHandler.renameFabricKeyPoint(canvasRef, group, label);
+          console.log(`Keypoint ${ann.id} renamed to label ${label}`);
+          undoRedoHandler.editAction('kp', ann, updatedAnn, group);
+        });
       } else if (kind == 'bb') {
         const ann = meta.ann as BoundingBoxAnnotation;
-        BoundingBoxFabricHandler.renameFabricBoundingBox(canvasRef, group, label);
-        const updatedAnn = await boundingBoxDatabaseHandler.renameBoundingBox(ann, getBoundingBoxLabelIdByName(label));
-        console.log(`Bounding box ${ann.id} renamed to label ${label}`);
-        undoRedoHandler.editAction('bb', ann, updatedAnn, group);
+        boundingBoxDatabaseHandler.renameBoundingBox(ann, getBoundingBoxLabelIdByName(label)).then((updatedAnn) => {
+          BoundingBoxFabricHandler.renameFabricBoundingBox(canvasRef, group, label);
+          console.log(`Bounding box ${ann.id} renamed to label ${label}`);
+          undoRedoHandler.editAction('bb', ann, updatedAnn, group);
+        });
       }
       pendingEdit = null;
     } else {
@@ -183,7 +185,6 @@ export const annotateHandler = {
 
   // Canvas lifecycle
   createCanvas(el: HTMLCanvasElement): fabric.Canvas {
-    
     if (canvasRef) {
       canvasRef.dispose();
     }
