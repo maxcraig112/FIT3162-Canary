@@ -17,7 +17,6 @@ import { useSettingsTab } from './settingsTabHandler';
 import type { Project } from '../ProjectPage';
 
 type ListPanelProps = {
-  title: string;
   inputValue: string;
   onInputChange: (v: string) => void;
   onAdd: () => void;
@@ -27,7 +26,7 @@ type ListPanelProps = {
   placeholder?: string;
 };
 
-const ListPanel: React.FC<ListPanelProps> = React.memo(({ title, inputValue, onInputChange, onAdd, items, onDelete, onRename, placeholder }) => {
+const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputChange, onAdd, items, onDelete, onRename, placeholder }) => {
   // Inline rename state
   const [editingItem, setEditingItem] = React.useState<string | null>(null);
   const [editValue, setEditValue] = React.useState<string>('');
@@ -81,18 +80,27 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ title, inputValue, onI
         bgcolor: '#fff',
         color: '#000',
         border: '1px solid #e0e0e0',
-        boxShadow: 8,
+        boxShadow: 0, // Remove shadow
         p: 2,
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
       }}
     >
-      <Typography variant="h6" sx={{ mb: 1, textAlign: 'center' }}>
-        {title}
-      </Typography>
       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-        <TextField fullWidth size="small" placeholder={placeholder || 'New label'} value={inputValue} onChange={(e) => onInputChange(e.target.value)} InputProps={{ style: { color: '#000' } }} />
+        <TextField 
+          fullWidth 
+          size="small" 
+          placeholder={placeholder || 'Add new label'} 
+          value={inputValue} 
+          onChange={(e) => onInputChange(e.target.value)} 
+          InputProps={{ 
+            style: { color: '#000', fontSize: '0.875rem' } // Smaller text
+          }}
+          InputLabelProps={{
+            style: { fontSize: '0.875rem' } // Smaller label text
+          }}
+        />
         <Button variant="contained" onClick={onAdd} disabled={!inputValue.trim()}>
           Add
         </Button>
@@ -218,6 +226,7 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
         display: 'flex',
         justifyContent: 'space-between',
         gap: 4,
+        minHeight: 'fit-content', // Let content determine height
       }}
     >
       {/* Column 1 split into two boxes (no Paper) */}
@@ -227,25 +236,17 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
           display: 'grid',
           gridTemplateRows: '1fr 1fr',
           gap: 2,
-          minHeight: '70vh',
+          minHeight: '60vh', // Reduced from 70vh for better laptop compatibility
         }}
       >
-        <Box
-          sx={{
-            bgcolor: '#fff',
-            color: '#000',
-            p: 2,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-          }}
-        >
-          <Typography variant="h4" sx={{ textAlign: 'center' }}>
+        {/* Top half: description */}
+        <Box>
+          <Typography variant="h5" sx={{ color: '#000', textAlign: 'center' }}>
             Sessions
           </Typography>
           <br />
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Typography variant="body1" sx={{ textAlign: 'center' }}>
+            <Typography variant="body2" sx={{ color: '#000', textAlign: 'center' }}>
               Sessions allow you to cross-collaborate with multiple users on the same project, allowing them to upload, annotate and export images.
               <br />
               <br />
@@ -256,6 +257,7 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
             </Typography>
           </Box>
         </Box>
+        {/* Bottom half: session form */}
         <Box
           sx={{
             bgcolor: '#fff',
@@ -349,17 +351,17 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
           display: 'grid',
           gridTemplateRows: '1fr 1fr',
           gap: 2,
-          minHeight: '70vh',
+          minHeight: '60vh', // Reduced from 70vh for better laptop compatibility
         }}
       >
         {/* Top half: description */}
         <Box>
-          <Typography variant="h4" sx={{ color: '#000', textAlign: 'center' }}>
+          <Typography variant="h5" sx={{ color: '#000', textAlign: 'center' }}>
             Configure KeyPoints
           </Typography>
           <br />
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Typography variant="body1" sx={{ color: '#000', textAlign: 'center' }}>
+            <Typography variant="body2" sx={{ color: '#000', textAlign: 'center' }}>
               KeyPoints are used to identify specific points of interest within an image. Labels configured below are shared across all images within this project.
               <br />
               <br />
@@ -369,14 +371,13 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
         </Box>
         {/* Bottom half: labels list starts at half screen */}
         <ListPanel
-          title="KeyPoint Labels"
           inputValue={keypointInput}
           onInputChange={setKeypointInput}
           onAdd={addKeypoint}
           items={keypointLabels}
           onDelete={deleteKeypoint}
           onRename={(oldName, newName) => renameKeypointLabel(oldName, newName)}
-          placeholder="Add new keypoint label"
+          placeholder="Add new label"
         />
       </Box>
 
@@ -387,17 +388,17 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
           display: 'grid',
           gridTemplateRows: '1fr 1fr',
           gap: 2,
-          minHeight: '70vh',
+          minHeight: '60vh', // Reduced from 70vh for better laptop compatibility
         }}
       >
         {/* Top half: description */}
         <Box>
-          <Typography variant="h4" sx={{ color: '#000', textAlign: 'center' }}>
+          <Typography variant="h5" sx={{ color: '#000', textAlign: 'center' }}>
             Configure BoundingBox
           </Typography>
           <br />
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Typography variant="body1" sx={{ color: '#000', textAlign: 'center' }}>
+            <Typography variant="body2" sx={{ color: '#000', textAlign: 'center' }}>
               BoundingBoxes are used to identify specific areas of interest within an image, defined by a rectangle area. In the annotate page, they are defined as two points (the top right and bottom
               left of the desired area).
               <br />
@@ -408,14 +409,13 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
         </Box>
         {/* Bottom half: labels list starts at half screen */}
         <ListPanel
-          title="Bounding Box Labels"
           inputValue={bboxInput}
           onInputChange={setBboxInput}
           onAdd={addBbox}
           items={bboxLabels}
           onDelete={deleteBbox}
           onRename={(oldName, newName) => renameBboxLabel(oldName, newName)}
-          placeholder="Add new bounding box label"
+          placeholder="Add new label"
         />
       </Box>
     </Box>
