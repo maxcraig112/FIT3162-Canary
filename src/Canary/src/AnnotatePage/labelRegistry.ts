@@ -15,23 +15,23 @@ export function setBoundingBoxLabelMaps(idToName: Record<string, string>) {
   bbNameToId = Object.fromEntries(Object.entries(idToName).map(([id, name]) => [name, id]));
 }
 
-export function getKeypointLabelName(id?: string): string | undefined {
-  if (!id) return undefined;
+export function getKeypointLabelName(id: string): string {
+  if (!id) return '';
   return kpIdToName[id];
 }
 
-export function getBoundingBoxLabelName(id?: string): string | undefined {
-  if (!id) return undefined;
+export function getBoundingBoxLabelName(id: string): string {
+  if (!id) return '';
   return bbIdToName[id];
 }
 
-export function getKeypointLabelIdByName(name?: string): string | undefined {
-  if (!name) return undefined;
+export function getKeypointLabelIdByName(name: string): string {
+  if (!name) return '';
   return kpNameToId[name];
 }
 
-export function getBoundingBoxLabelIdByName(name?: string): string | undefined {
-  if (!name) return undefined;
+export function getBoundingBoxLabelIdByName(name: string): string {
+  if (!name) return '';
   return bbNameToId[name];
 }
 

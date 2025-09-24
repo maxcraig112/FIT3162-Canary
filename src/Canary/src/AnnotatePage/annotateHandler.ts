@@ -2,32 +2,22 @@
 
 import * as fabric from 'fabric';
 import type { LabelRequest } from './constants';
-import { fabricBBColour } from './constants';
+import { createBoundingBoxAnnotation, createKeypointAnnotation, fabricBBColour } from './constants';
 import type { KeypointAnnotation, BoundingBoxAnnotation } from './constants';
-import { keypointHandler } from './keypointHandler.ts';
-import { boundingBoxHandler, polygonCentroid } from './boundingBoxHandler.ts';
+import { KeyPointFabricHandler, keypointDatabaseHandler } from './keypointHandler.ts';
+import { boundingBoxDatabaseHandler, BoundingBoxFabricHandler } from './boundingBoxHandler.ts';
 import { loadProjectLabels } from './labelLoader.ts';
-import { loadImageURL, nextImage, prevImage, setCurrentImageNumber, getCurrentImageNumber, getTotalImageCount, getFabricImage } from './imageStateHandler.ts';
-
-// Fabric image instances come from imageStateHandler now
+import { polygonCentroid, polygonFromTwoPoints } from './helper.ts';
+import { type ImageHandler } from './imageStateHandler.ts';
 
 type ToolMode = 'kp' | 'bb' | 'none';
 let currentTool: ToolMode = 'none';
 
-let currentImageNumber = 1; // 1-based (mirrors imageStateHandler)
-let canvasRef: fabric.Canvas | null = null;
-
-let currentImageID: string | null = null;
+let canvasRef: fabric.Canvas;
+// Store a reference to the current ImageHandler instance provided by the React component
+let imageHandlerRef: ImageHandler | null = null;
 
 const labelRequestSubs = new Set<(req: LabelRequest) => void>();
-
-// In-memory per-image annotation store
-type ImageAnnotations = {
-  kps: KeypointAnnotation[];
-  bbs: BoundingBoxAnnotation[];
-};
-const annotationStore = new Map<string, ImageAnnotations>();
-let currentImageKey: string | null = null; // canonical imageURL
 
 // Map Fabric groups to backing annotation
 const groupToAnnotation = new WeakMap<fabric.Group, { kind: 'kp' | 'bb'; ann: KeypointAnnotation | BoundingBoxAnnotation }>();
@@ -52,7 +42,6 @@ export function getCanvas(): fabric.Canvas | null {
   return canvasRef;
 }
 
-// Helpers to avoid 'any' casts
 function isGroup(obj: unknown): obj is fabric.Group {
   return Boolean(obj && (obj as { type?: string }).type === 'group');
 }
@@ -68,34 +57,12 @@ function getGroupChildren(group: fabric.Group): fabric.Object[] {
   return g._objects ?? [];
 }
 
-// devRewriteURL is handled in imageStateHandler
-
 export const annotateHandler = {
-  /** Optionally allow UI to set the current image number (1-based). */
-  setCurrentImageNumber(n: number) {
-    setCurrentImageNumber(n);
-    currentImageNumber = getCurrentImageNumber();
+  // Inject the ImageHandler instance from the component (must be called once on mount)
+  setImageHandler(instance: ImageHandler) {
+    imageHandlerRef = instance;
   },
-
-  nextImage(setCurrentImage: React.Dispatch<React.SetStateAction<number>>) {
-    nextImage(setCurrentImage);
-    currentImageNumber = getCurrentImageNumber();
-  },
-
-  prevImage(setCurrentImage: React.Dispatch<React.SetStateAction<number>>) {
-    prevImage(setCurrentImage);
-    currentImageNumber = getCurrentImageNumber();
-  },
-
-  goToImage(n: number, setCurrentImage: React.Dispatch<React.SetStateAction<number>>) {
-    const total = getTotalImageCount();
-    const clamped = Math.max(1, Math.min(n, total));
-    setCurrentImageNumber(clamped);
-    currentImageNumber = getCurrentImageNumber();
-    setCurrentImage(currentImageNumber);
-  },
-
-  setTool(tool: string | null) {
+  setTool(tool: string) {
     switch (tool) {
       case 'kp':
         currentTool = 'kp';
@@ -108,148 +75,127 @@ export const annotateHandler = {
     }
   },
 
-  getKeypoints(): KeypointAnnotation[] {
-    if (!currentImageKey) return [];
-    const s = annotationStore.get(currentImageKey);
-    return s ? s.kps : [];
-  },
-
-  getBoundingBoxes(): BoundingBoxAnnotation[] {
-    if (!currentImageKey) return [];
-    const s = annotationStore.get(currentImageKey);
-    return s ? s.bbs : [];
-  },
-
   subscribeLabelRequests(cb: (req: LabelRequest) => void) {
     labelRequestSubs.add(cb);
     return () => labelRequestSubs.delete(cb);
   },
 
   // When you press OK to confirm the name of a label
-  async confirmLabel(label: string, projectID?: string) {
+  async confirmLabel(label: string, projectID: string) {
+    const imageHandler = imageHandlerRef;
+    if (!imageHandler) throw new Error('Image handler not set');
+    // const imageHandler = getImageHandlerInstance();
     if (!canvasRef) return;
-    // If renaming an existing annotation
+
     if (pendingEdit) {
       const { group, kind } = pendingEdit;
-      const texts = getGroupChildren(group).filter((o) => (o as unknown as { type?: string }).type === 'text');
-      const textObj = (texts[0] as fabric.Text) || undefined;
-      if (textObj) {
-        textObj.set({ text: label });
-        // Update backing store
-        const meta = groupToAnnotation.get(group);
-        if (meta) {
-          (meta.ann as KeypointAnnotation | BoundingBoxAnnotation).label = label;
+      const meta = groupToAnnotation.get(group);
+      if (!meta) return;
 
-          if (kind === 'kp') {
-            console.log('[KP] Renamed:', { label, group });
-            void keypointHandler.renameKeyPoint(meta.ann as KeypointAnnotation, label);
-          } else {
-            console.log('[BB] Renamed:', { label, group });
-            void boundingBoxHandler.renameBoundingBox(meta.ann as BoundingBoxAnnotation, label);
-          }
-        }
-        canvasRef.requestRenderAll();
+      if (kind == 'kp') {
+        const ann = meta.ann as KeypointAnnotation;
+        KeyPointFabricHandler.renameFabricKeyPoint(group, label);
+        keypointDatabaseHandler.renameKeyPoint(ann, label);
+        console.log(`Keypoint ${ann.id} renamed to label ${label}`);
+      } else if (kind == 'bb') {
+        const ann = meta.ann as BoundingBoxAnnotation;
+        BoundingBoxFabricHandler.renameFabricBoundingBox(group, label);
+        boundingBoxDatabaseHandler.renameBoundingBox(ann, label);
+        console.log(`Bounding box ${ann.id} renamed to label ${label}`);
       }
       pendingEdit = null;
-      return;
+    } else {
+      const imageID = imageHandler.currentImageID;
+      if (!imageID) return;
+
+      if (currentTool === 'kp' && pendingKP) {
+        const { x, y, marker } = pendingKP;
+        if (!marker) return;
+
+        const ann = createKeypointAnnotation({
+          id: '',
+          position: { x, y },
+          labelID: '',
+          projectID: projectID,
+          imageID: imageID,
+        });
+
+        keypointDatabaseHandler.createdKeyPoint(ann).then((createdAnn) => {
+          const { group }: { group: fabric.Group } = KeyPointFabricHandler.createFabricKeyPoint(createdAnn);
+          groupToAnnotation.set(group, { kind: 'kp', ann: createdAnn });
+          canvasRef.add(group);
+          const s = imageHandler.annotationStore.get(imageHandler.currentImageURL) ?? { kps: [], bbs: [] };
+          s.kps.push(createdAnn);
+          imageHandler.annotationStore.set(imageHandler.currentImageURL, s);
+        });
+        pendingKP = null;
+        console.log('[KP] Keypoint created:', { x, y, marker, ann });
+      }
+
+      if (currentTool === 'bb' && pendingBB) {
+        const { polygon, points } = pendingBB;
+
+        const ann = createBoundingBoxAnnotation({
+          id: '',
+          points: points,
+          labelID: '',
+          projectID: projectID,
+          imageID: imageID,
+        });
+
+        boundingBoxDatabaseHandler.createBoundingBox(ann).then((createdAnn) => {
+          const { group }: { group: fabric.Group } = BoundingBoxFabricHandler.createFabricBoundingBox(createdAnn);
+          groupToAnnotation.set(group, { kind: 'bb', ann: createdAnn });
+          canvasRef.add(group);
+          const s = imageHandler.annotationStore.get(imageHandler.currentImageURL) ?? { kps: [], bbs: [] };
+          s.bbs.push(createdAnn);
+          imageHandler.annotationStore.set(imageHandler.currentImageURL, s);
+        });
+        pendingBB = null;
+        console.log('[BB] Bounding box created:', { points, polygon, ann });
+      }
     }
-
-    // New keypoint
-    if (currentTool === 'kp' && pendingKP) {
-      if (!currentImageKey) return; // no active image
-
-      const { x, y, marker } = pendingKP;
-      if (!marker) return;
-
-      canvasRef.remove(marker);
-
-      const { group, annotation: ann } = await keypointHandler.finalizeCreate(marker, x, y, label, projectID, currentImageID ?? undefined);
-
-      canvasRef.add(group);
-      canvasRef.requestRenderAll();
-
-      const s = annotationStore.get(currentImageKey) ?? { kps: [], bbs: [] };
-
-      s.kps.push(ann);
-
-      annotationStore.set(currentImageKey, s);
-      groupToAnnotation.set(group, { kind: 'kp', ann });
-
-      console.log('[KP] Created:', { x, y, label, ann });
-      pendingKP = null;
-      return;
-    }
-
-    // Label a newly created rectangle
-    if (currentTool === 'bb' && pendingBB) {
-      if (!currentImageKey) return;
-
-      const { polygon, points } = pendingBB;
-
-      canvasRef.remove(polygon);
-
-      const { group, annotation } = boundingBoxHandler.finalizeCreate(polygon, points, label, projectID, currentImageID ?? undefined);
-
-      canvasRef.add(group);
-      canvasRef.requestRenderAll();
-
-      const ann: BoundingBoxAnnotation = annotation;
-
-      const s = annotationStore.get(currentImageKey) ?? { kps: [], bbs: [] };
-
-      s.bbs.push(ann);
-
-      annotationStore.set(currentImageKey, s);
-      groupToAnnotation.set(group, { kind: 'bb', ann });
-
-      console.log('[BB] Labeled:', { points, label, ann });
-      pendingBB = null;
-      return;
-    }
+    canvasRef.requestRenderAll();
   },
 
   // If the cancel button is clicked
   cancelLabel() {
-    // If keypoint pending, remove marker
-    if (pendingKP?.marker && canvasRef) {
-      canvasRef.remove(pendingKP.marker);
-      canvasRef.requestRenderAll();
-    }
-    pendingKP = null;
-    // If editing existing, just clear edit mode
-    if (pendingEdit) {
+    if (currentTool == 'kp' && pendingKP) {
+      if (pendingKP.marker) {
+        canvasRef.remove(pendingKP.marker);
+      }
+      pendingKP = null;
+      console.log('[KP] Keypoint creation cancelled:', pendingKP);
+    } else if (currentTool === 'bb' && pendingBB) {
+      if (pendingBB.polygon) {
+        canvasRef.remove(pendingBB.polygon);
+      }
+      pendingBB = null;
+      console.log('[BB] Bounding box creation cancelled:', pendingBB);
+    } else if (pendingEdit) {
       pendingEdit = null;
     }
 
-    // If a finalized polygon is awaiting label, remove it
-    if (pendingBB && canvasRef) {
-      canvasRef.remove(pendingBB.polygon);
-      pendingBB = null;
-      canvasRef.requestRenderAll();
-    }
-
-    // If cancelling during bbox creation, clear temp state
-    if (currentTool === 'bb' && bbActive && canvasRef) {
-      if (bbPolyline) {
-        canvasRef.remove(bbPolyline);
-        bbPolyline = null;
-      }
-      bbPoints.forEach((p) => p.marker && canvasRef!.remove(p.marker));
-      bbPoints = [];
-      // no label pending in end-label flow
-      bbActive = false;
-      canvasRef.requestRenderAll();
-    }
+    // TODO MIGHT BE NEEDED
+    // if (currentTool === 'bb' && bbActive && canvasRef) {
+    //   if (bbPolyline) {
+    //     removeAndRender(bbPolyline);
+    //     bbPolyline = null;
+    //   }
+    //   bbPoints.forEach((p) => p.marker && removeAndRender(p.marker));
+    //   bbPoints = [];
+    //   // no label pending in end-label flow
+    //   bbActive = false;
+    // }
   },
 
   // Canvas lifecycle
   createCanvas(el: HTMLCanvasElement): fabric.Canvas {
     if (canvasRef) {
       canvasRef.dispose();
-      canvasRef = null;
     }
     canvasRef = new fabric.Canvas(el);
-    // install mouse handler
+
     canvasRef.on('mouse:down', (opt) => {
       const evt = opt.e as MouseEvent;
       const p = canvasRef!.getScenePoint(evt);
@@ -277,11 +223,9 @@ export const annotateHandler = {
       }
       if (currentTool === 'kp') {
         // add a small marker and request a label
-        const c = keypointHandler.createPendingMarker(p.x, p.y);
-        canvasRef!.add(c);
-        canvasRef!.requestRenderAll();
+        const c = KeyPointFabricHandler.createPendingMarker(p.x, p.y);
+        canvasRef.add(c);
         pendingKP = { x: p.x, y: p.y, marker: c };
-        console.log('[KP] Marker created:', { x: p.x, y: p.y, marker: c });
         // ask UI for label to the right
         labelRequestSubs.forEach((cb) => cb({ kind: 'kp', x: p.x, y: p.y, mode: 'create', currentLabel: '' }));
       } else if (currentTool === 'bb') {
@@ -290,126 +234,167 @@ export const annotateHandler = {
     });
     return canvasRef;
   },
+
   deleteSelected() {
+    const imageHandler = imageHandlerRef;
+    if (!imageHandler) throw new Error('Image handler not set');
+    // const imageHandler = getImageHandlerInstance();
     if (!canvasRef) return;
+
     if (pendingEdit) {
       const g = pendingEdit.group;
       const meta = groupToAnnotation.get(g);
-      if (meta && currentImageKey) {
-        const s = annotationStore.get(currentImageKey);
+      if (meta && imageHandler.currentImageURL) {
+        const s = imageHandler.getAnnotationStoreForCurrent();
         if (s) {
           if (meta.kind === 'kp') {
             const idx = s.kps.indexOf(meta.ann as KeypointAnnotation);
             if (idx >= 0) s.kps.splice(idx, 1);
             // backend delete
-            void keypointHandler.deleteKeyPoint(meta.ann as KeypointAnnotation);
+            keypointDatabaseHandler.deleteKeyPoint(meta.ann as KeypointAnnotation);
+            KeyPointFabricHandler.deleteFabricKeyPoint(g);
           } else {
             const idx = s.bbs.indexOf(meta.ann as BoundingBoxAnnotation);
+            // TODO i don't know what this does below
             if (idx >= 0) s.bbs.splice(idx, 1);
-            // placeholder for future bbox delete API
-            void boundingBoxHandler.deleteBoundingBox(meta.ann as BoundingBoxAnnotation);
+            boundingBoxDatabaseHandler.deleteBoundingBox(meta.ann as BoundingBoxAnnotation);
+            BoundingBoxFabricHandler.deleteFabricBoundingBox(g);
           }
         }
         groupToAnnotation.delete(g);
       }
-      canvasRef.remove(g);
+      // Try to remove the group from canvas. If not found, search for a matching group.
+      // TODO MIGHT BE NEEDED
+      // if (!canvasRef.getObjects().includes(g)) {
+      //   // Find a group on the canvas that matches the annotation
+      //   const s = annotationStore.get(currentImageURL);
+      //   const allGroups = canvasRef.getObjects('group') as fabric.Group[];
+      //   for (const group of allGroups) {
+      //     const mapped = groupToAnnotation.get(group);
+      //     if (mapped && meta && mapped.kind === meta.kind && mapped.ann === meta.ann) {
+      //       g = group;
+      //       break;
+      //     }
+      //   }
+      // }
       pendingEdit = null;
-      canvasRef.requestRenderAll();
+      // TODO might not need this remove
+      canvasRef.remove(g);
       return;
     }
     if (pendingBB) {
       canvasRef.remove(pendingBB.polygon);
       pendingBB = null;
-      canvasRef.requestRenderAll();
     }
+    if (pendingKP) {
+      if (pendingKP.marker) {
+        canvasRef.remove(pendingKP.marker);
+      }
+      pendingKP = null;
+    }
+    canvasRef.requestRenderAll();
   },
   disposeCanvas() {
     canvasRef?.dispose();
-    canvasRef = null;
   },
 
   /**
    * Render the current image to the Fabric canvas, centered and scaled.
    * Uses an in-memory cache of FabricImage instances to avoid re-downloading.
    */
-  async renderToCanvas(batchID: string, projectID?: string): Promise<{ current: number; total: number }> {
-    if (!canvasRef) throw new Error('Canvas not initialized');
+  async renderToCanvas(
+  batchID: string,
+  projectID: string
+): Promise<{ current: number; total: number }> {
+  const imageHandler = imageHandlerRef;
+  if (!imageHandler) throw new Error("Image handler not set");
+  if (!canvasRef) throw new Error("Canvas not initialized");
 
-    const { imageURL, imageID } = await loadImageURL(batchID, currentImageNumber);
-    // Update current image key
-    currentImageKey = imageURL;
-    currentImageID = imageID ?? null;
+  // ✅ use metadata returned from loadImageURL, not React state
+  const meta = await imageHandler.loadImageURL(
+    batchID,
+    imageHandler.currentImageNumber
+  );
+  if (!meta || !meta.imageURL) {
+    throw new Error('Failed to load image metadata');
+  }
 
-    // Ensure labels are loaded for this project before rendering annotations
-    await loadProjectLabels(projectID);
+  await loadProjectLabels(projectID);
+  clearAnnotationGroups();
 
-    // Clear existing annotation groups before drawing the new image
-    clearAnnotationGroups();
+  const store = imageHandler.annotationStore;
 
-    // On first load for this image, fetch existing keypoints from backend
-    if (currentImageKey && (!annotationStore.has(currentImageKey) || (annotationStore.get(currentImageKey)?.kps.length ?? 0) === 0)) {
-      try {
-        const kps = await keypointHandler.getAllKeyPoints(projectID, currentImageID ?? undefined);
-        const s = annotationStore.get(currentImageKey) ?? { kps: [], bbs: [] };
-        for (const kp of kps) {
-          // Ensure IDs are set for downstream rename/delete
-          kp.projectID = kp.projectID ?? projectID;
-          kp.imageID = kp.imageID ?? currentImageID ?? undefined;
-          s.kps.push(kp);
-        }
-        annotationStore.set(currentImageKey, s);
-      } catch (e) {
-        console.error('[KP] Failed to fetch existing keypoints:', e);
-      }
+  // Fetch keypoints if not already cached
+  if (
+    !store.has(meta.imageURL) ||
+    (store.get(meta.imageURL)?.kps.length ?? 0) === 0
+  ) {
+    try {
+      const kps = await keypointDatabaseHandler.getAllKeyPoints(
+        projectID,
+        meta.imageID
+      );
+      const s = store.get(meta.imageURL) ?? { kps: [], bbs: [] };
+      s.kps.push(...kps);
+      store.set(meta.imageURL, s);
+    } catch (e) {
+      console.error("[KP] Failed to fetch existing keypoints:", e);
     }
+  }
 
-    // Load bounding boxes for this image if not already cached
-    if (currentImageKey && (!annotationStore.has(currentImageKey) || (annotationStore.get(currentImageKey)?.bbs.length ?? 0) === 0)) {
-      try {
-        const bbs = await boundingBoxHandler.getAllBoundingBoxes(projectID, currentImageID ?? undefined);
-        const s = annotationStore.get(currentImageKey) ?? { kps: [], bbs: [] };
-        for (const bb of bbs) {
-          bb.projectID = bb.projectID ?? projectID;
-          bb.imageID = bb.imageID ?? currentImageID ?? undefined;
-          s.bbs.push(bb);
-        }
-        annotationStore.set(currentImageKey, s);
-      } catch (e) {
-        console.error('[BB] Failed to fetch existing bounding boxes:', e);
-      }
+  // Fetch bounding boxes if not already cached
+  if (
+    !store.has(meta.imageURL) ||
+    (store.get(meta.imageURL)?.bbs.length ?? 0) === 0
+  ) {
+    try {
+      const bbs = await boundingBoxDatabaseHandler.getAllBoundingBoxes(
+        projectID,
+        meta.imageID
+      );
+      const s = store.get(meta.imageURL) ?? { kps: [], bbs: [] };
+      s.bbs.push(...bbs);
+      store.set(meta.imageURL, s);
+    } catch (e) {
+      console.error("[BB] Failed to fetch existing bounding boxes:", e);
     }
+  }
 
-    // Try in-memory cache first
-    const img = await getFabricImage(imageURL);
+  // ✅ no race, use meta.imageURL directly
+  console.log("current image url is", meta.imageURL);
+  const img = await imageHandler.getFabricImage(meta.imageURL);
 
-    const cw = canvasRef.getWidth();
-    const ch = canvasRef.getHeight();
-    const total = getTotalImageCount();
-    if (!cw || !ch) return { current: currentImageNumber, total };
+  const cw = canvasRef.getWidth();
+  const ch = canvasRef.getHeight();
+  const total = imageHandler.getTotalImageCount();
+  if (!cw || !ch) return { current: imageHandler.currentImageNumber, total };
 
-    const iw = img.width ?? 1;
-    const ih = img.height ?? 1;
-    const scale = Math.min(cw / iw, ch / ih);
-    img.scale(scale);
-    img.set({
-      originX: 'center',
-      originY: 'center',
-      left: cw / 2,
-      top: ch / 2,
-    });
+  const iw = img.width ?? 1;
+  const ih = img.height ?? 1;
+  const scale = Math.min(cw / iw, ch / ih);
+  img.scale(scale);
+  img.set({
+    originX: "center",
+    originY: "center",
+    left: cw / 2,
+    top: ch / 2,
+  });
 
-    canvasRef.backgroundImage = img;
-    // After background is set, draw annotations for this image (if any)
-    drawAnnotationsForCurrentImage();
-    canvasRef.requestRenderAll();
+  canvasRef.backgroundImage = img;
+  // Pass the handler explicitly to avoid relying on outer-scope variables
+  drawAnnotationsForCurrentImage(imageHandler, meta.imageURL);
+  canvasRef.requestRenderAll();
 
-    return { current: currentImageNumber, total };
-  },
+  return { current: imageHandler.currentImageNumber, total };
+}
 };
 
 function handleBoundingBoxClick(x: number, y: number) {
+  const imageHandler = imageHandlerRef;
+  if (!imageHandler) throw new Error('Image handler not set');
+  // const imageHandler = getImageHandlerInstance();
   if (!canvasRef) return;
-  if (!currentImageKey) return;
+  if (!imageHandler.currentImageURL) return;
 
   // Start a new bbox if not active
   if (!bbActive) {
@@ -422,9 +407,9 @@ function handleBoundingBoxClick(x: number, y: number) {
   }
 
   // Add marker for this click
-  const marker = boundingBoxHandler.createPointMarker(x, y);
-  canvasRef.add(marker);
+  const marker = BoundingBoxFabricHandler.createPendingMarker(x, y);
   bbPoints.push({ x, y, marker });
+  canvasRef.add(marker);
   console.log('[BB] Point added:', { x, y, marker });
 
   // When we have 2 points, create a normalized rectangle polygon
@@ -444,7 +429,8 @@ function handleBoundingBoxClick(x: number, y: number) {
     ];
 
     // Remove temp markers
-    bbPoints.forEach((pt) => pt.marker && canvasRef!.remove(pt.marker));
+    bbPoints.forEach((pt) => pt.marker && canvasRef.remove(pt.marker));
+    // TODO might not need this
     // Defensive cleanup: remove any stray blue small circles not in a group
     const circles = canvasRef.getObjects('circle') as fabric.Circle[];
     circles.forEach((obj) => {
@@ -457,7 +443,7 @@ function handleBoundingBoxClick(x: number, y: number) {
     });
 
     // Create a polygon representing the rectangle (so downstream logic works the same)
-    const { polygon: poly } = boundingBoxHandler.polygonFromTwoPoints({ x: p1.x, y: p1.y }, { x: p2.x, y: p2.y });
+    const { polygon: poly } = polygonFromTwoPoints({ x: p1.x, y: p1.y }, { x: p2.x, y: p2.y });
     canvasRef.add(poly);
     console.log('[BB] Rectangle created (corrected to axis-aligned):', {
       from: [p1, p2],
@@ -468,14 +454,12 @@ function handleBoundingBoxClick(x: number, y: number) {
     pendingBB = { polygon: poly, points: rectPts };
     const c = polygonCentroid(rectPts);
     labelRequestSubs.forEach((cb) => cb({ kind: 'bb', x: c.x, y: c.y, mode: 'create', currentLabel: '' }));
-    canvasRef.requestRenderAll();
 
     // Reset drawing state
     bbActive = false;
     bbPoints = [];
-  } else {
-    canvasRef.requestRenderAll();
   }
+  canvasRef.requestRenderAll();
 }
 
 // Remove all existing non-background annotation visuals from the canvas
@@ -484,25 +468,28 @@ function clearAnnotationGroups() {
   const objs = canvasRef.getObjects();
   // Keep only background image; remove groups and any stray circles/lines
   const toRemove = objs.filter((o) => (o as unknown as { type?: string }).type !== 'image');
-  toRemove.forEach((o) => canvasRef!.remove(o));
+  toRemove.forEach((o) => canvasRef.remove(o));
+  canvasRef.requestRenderAll();
 }
 
 // Redraw annotations for the current image key
-function drawAnnotationsForCurrentImage() {
-  if (!canvasRef || !currentImageKey) return;
-  const s = annotationStore.get(currentImageKey);
+export function drawAnnotationsForCurrentImage(handler: ImageHandler, forImageURL?: string) {
+  // Use the provided handler instead of relying on a module-scoped reference
+  const url = forImageURL ?? handler.currentImageURL;
+  if (!canvasRef || !url) return;
+  const s = handler.annotationStore.get(url);
   if (!s) return;
 
   // Draw keypoints
   for (const ann of s.kps) {
-    const { group } = keypointHandler.renderAnnotation(ann);
+    const { group } = KeyPointFabricHandler.createFabricKeyPoint(ann);
     groupToAnnotation.set(group, { kind: 'kp', ann });
     canvasRef.add(group);
   }
 
   // Draw bounding boxes
   for (const ann of s.bbs) {
-    const { group } = boundingBoxHandler.renderAnnotation(ann);
+    const { group } = BoundingBoxFabricHandler.createFabricBoundingBox(ann);
     groupToAnnotation.set(group, { kind: 'bb', ann });
     canvasRef.add(group);
   }
