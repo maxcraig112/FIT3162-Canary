@@ -9,7 +9,12 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-type ObjectMap map[string]ImageData
+type ObjectList []ObjectData
+
+type ObjectData struct {
+	ImageName string
+	ImageData ImageData
+}
 
 type ImageData struct {
 	Width        int64
@@ -47,18 +52,21 @@ func (b *GenericBucket) CreateObject(ctx context.Context, objectName string, dat
 }
 
 // CreateObjectsBatch uploads multiple objects and returns their URLs.
-func (b *GenericBucket) CreateObjectsBatch(ctx context.Context, objects ObjectMap) (map[string]ImageData, error) {
-	urls := make(map[string]ImageData, len(objects))
+func (b *GenericBucket) CreateObjectsBatch(ctx context.Context, objects ObjectList) (ObjectList, error) {
+	urls := make([]ObjectData, len(objects))
 
-	for name, imageData := range objects {
-		url, err := b.CreateObject(ctx, name, imageData.ObjectReader)
+	for i := range len(objects) {
+		url, err := b.CreateObject(ctx, objects[i].ImageName, objects[i].ImageData.ObjectReader)
 		if err != nil {
-			return nil, fmt.Errorf("failed to upload %s: %w", name, err)
+			return nil, fmt.Errorf("failed to upload %s: %w", objects[i].ImageName, err)
 		}
-		urls[name] = ImageData{
-			Width:  imageData.Width,
-			Height: imageData.Height,
-			URL:    url,
+		urls[i] = ObjectData{
+			ImageName: objects[i].ImageName,
+			ImageData: ImageData{
+				Width:  objects[i].ImageData.Width,
+				Height: objects[i].ImageData.Height,
+				URL:    url,
+			},
 		}
 	}
 

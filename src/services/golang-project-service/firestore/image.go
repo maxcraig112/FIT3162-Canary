@@ -5,6 +5,8 @@ import (
 	"pkg/gcp/bucket"
 	fs "pkg/gcp/firestore"
 	"time"
+
+	"cloud.google.com/go/firestore"
 )
 
 // This file is a placeholder for image storage logic, e.g., saving image metadata or references to Firestore.
@@ -22,6 +24,9 @@ type Image struct {
 	Width       int64     `firestore:"width" json:"width"`
 	BatchID     string    `firestore:"batchID" json:"batchID"`
 	LastUpdated time.Time `firestore:"lastUpdated" json:"lastUpdated"`
+	IsSequence  bool      `firestore:"isSequence" json:"isSequence"`
+	PrevImageID string    `firestore:"prevImageID" json:"prevImageID"`
+	NextImageID string    `firestore:"nextImageID" json:"nextImageID"`
 }
 
 type ImageStore struct {
@@ -79,16 +84,20 @@ func (s *ImageStore) GetTotalImageCountByBatchID(ctx context.Context, batchID st
 	return s.genericStore.GetAggregationWithQuery(ctx, queryParams, fs.Count)
 }
 
-func (s *ImageStore) CreateImageMetadata(ctx context.Context, batchID string, imageInfo bucket.ObjectMap) ([]Image, error) {
+func (s *ImageStore) CreateImageMetadata(ctx context.Context, batchID string, imageInfo bucket.ObjectList, isSequence bool) ([]Image, error) {
 	imageBatch := []Image{}
-	for imageName, imageData := range imageInfo {
+
+	for _, objectData := range imageInfo {
 		imageBatch = append(imageBatch, Image{
-			ImageURL:    imageData.URL,
-			ImageName:   imageName,
-			Height:      imageData.Height,
-			Width:       imageData.Width,
+			ImageURL:    objectData.ImageData.URL,
+			ImageName:   objectData.ImageName,
+			Height:      objectData.ImageData.Height,
+			Width:       objectData.ImageData.Width,
 			BatchID:     batchID,
 			LastUpdated: time.Now(),
+			IsSequence:  isSequence,
+			PrevImageID: "",
+			NextImageID: "",
 		})
 	}
 
@@ -103,6 +112,18 @@ func (s *ImageStore) CreateImageMetadata(ctx context.Context, batchID string, im
 	}
 	for i := range imageBatch {
 		imageBatch[i].ImageID = ids[i]
+		if isSequence {
+			update := []firestore.Update{}
+			if i > 0 {
+				imageBatch[i].PrevImageID = ids[i-1]
+				update = append(update, firestore.Update{Path: "prevImageID", Value: ids[i-1]})
+			}
+			if i < len(imageBatch)-1 {
+				imageBatch[i].NextImageID = ids[i+1]
+				update = append(update, firestore.Update{Path: "nextImageID", Value: ids[i+1]})
+			}
+			s.genericStore.UpdateDoc(ctx, ids[i], update)
+		}
 	}
 	return imageBatch, nil
 }

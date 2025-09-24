@@ -139,7 +139,7 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	var imageData bucket.ObjectMap
+	var imageData bucket.ObjectList
 	imgUpStart := time.Now()
 	if imageData, err = h.ImageBucket.CreateImages(ctx, batchID, imageObjects); err != nil {
 		http.Error(w, "Failed to upload images", http.StatusInternalServerError)
@@ -155,7 +155,7 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 	imgMetaStart := time.Now()
 	var createdImages []fs.Image
 	if len(imageData) > 0 {
-		imgs, err := h.ImageStore.CreateImageMetadata(ctx, batchID, imageData)
+		imgs, err := h.ImageStore.CreateImageMetadata(ctx, batchID, imageData, false)
 		if err != nil {
 			http.Error(w, "Failed to create image metadata", http.StatusInternalServerError)
 			log.Error().Err(err).Str("batchID", batchID).Msg("Failed to create image metadata in Firestore")
@@ -172,7 +172,7 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 			Msg("Created image metadata in Firestore (batch)")
 	}
 
-	var videoData bucket.ObjectMap
+	var videoData bucket.ObjectList
 	vidUpStart := time.Now()
 	if videoData, err = h.ImageBucket.CreateImages(ctx, batchID, videoFrameObjects); err != nil {
 		http.Error(w, "Failed to upload videos", http.StatusInternalServerError)
@@ -190,7 +190,7 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 	vidMetaStart := time.Now()
 	var createdVideoFrames []fs.Image
 	if len(videoData) > 0 {
-		frames, err := h.ImageStore.CreateImageMetadata(ctx, batchID, videoData)
+		frames, err := h.ImageStore.CreateImageMetadata(ctx, batchID, videoData, true)
 		if err != nil {
 			http.Error(w, "Failed to create video metadata", http.StatusInternalServerError)
 			log.Error().Err(err).Str("batchID", batchID).Msg("Failed to create video metadata in Firestore")
@@ -225,15 +225,15 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 	w.Write([]byte("Upload successful"))
 }
 
-func generateImageData(batchID string, form *multipart.Form) (bucket.ObjectMap, error) {
+func generateImageData(batchID string, form *multipart.Form) (bucket.ObjectList, error) {
 	files := form.File["images"]
 	if len(files) == 0 {
 		return nil, ErrNoMediaFound
 	}
 
-	objects := make(bucket.ObjectMap, len(files))
+	objects := make(bucket.ObjectList, len(files))
 
-	for _, fileHeader := range files {
+	for i, fileHeader := range files {
 		f, err := fileHeader.Open()
 		if err != nil {
 			return nil, ErrOpeningFile(fileHeader.Filename)
@@ -254,10 +254,13 @@ func generateImageData(batchID string, form *multipart.Form) (bucket.ObjectMap, 
 
 		uuid := GenerateUUID()
 		objectName := fmt.Sprintf("%s/%s_%s", batchID, fileHeader.Filename, uuid)
-		objects[objectName] = bucket.ImageData{
-			Width:        int64(width),
-			Height:       int64(height),
-			ObjectReader: io.NopCloser(bytes.NewReader(data)),
+		objects[i] = bucket.ObjectData{
+			ImageName: objectName,
+			ImageData: bucket.ImageData{
+				Width:        int64(width),
+				Height:       int64(height),
+				ObjectReader: io.NopCloser(bytes.NewReader(data)),
+			},
 		}
 	}
 
@@ -265,13 +268,13 @@ func generateImageData(batchID string, form *multipart.Form) (bucket.ObjectMap, 
 
 }
 
-func generateVideoData(batchID string, form *multipart.Form) (bucket.ObjectMap, func(), error) {
+func generateVideoData(batchID string, form *multipart.Form) (bucket.ObjectList, func(), error) {
 	files := form.File["videos"]
 	if len(files) == 0 {
 		return nil, nil, ErrNoMediaFound
 	}
 
-	objects := make(bucket.ObjectMap)
+	objects := bucket.ObjectList{}
 	// Track resources for cleanup outside this function
 	var closers []io.Closer
 	var tempDirs []string
@@ -376,11 +379,14 @@ func generateVideoData(batchID string, form *multipart.Form) (bucket.ObjectMap, 
 			closers = append(closers, frameFile)
 			frameName := fmt.Sprintf("%s/%s/%s_frame_%04d_w%d_h%d.png",
 				batchID, uuid, fileHeader.Filename, i+1, width, height)
-			objects[frameName] = bucket.ImageData{
-				ObjectReader: frameFile,
-				Width:        int64(width),
-				Height:       int64(height),
-			}
+			objects = append(objects, bucket.ObjectData{
+				ImageName: frameName,
+				ImageData: bucket.ImageData{
+					ObjectReader: frameFile,
+					Width:        int64(width),
+					Height:       int64(height),
+				},
+			})
 		}
 	}
 
