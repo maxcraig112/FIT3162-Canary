@@ -357,15 +357,15 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
         {/* Top half: description */}
         <Box>
           <Typography variant="h5" sx={{ color: '#000', textAlign: 'center' }}>
-            Configure KeyPoints
+            Configure Keypoints
           </Typography>
           <br />
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
             <Typography variant="body2" sx={{ color: '#000', textAlign: 'center' }}>
-              KeyPoints are used to identify specific points of interest within an image. Labels configured below are shared across all images within this project.
+              Keypoints are used to identify specific points of interest within an image. Labels configured below are shared across all images within this project.
               <br />
               <br />
-              Warning, deleting a tag that is currently in use will remove it from all annotations.
+              WARNING: deleting a tag that is currently in use will remove it from all annotations.
             </Typography>
           </Box>
         </Box>
@@ -394,16 +394,16 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
         {/* Top half: description */}
         <Box>
           <Typography variant="h5" sx={{ color: '#000', textAlign: 'center' }}>
-            Configure BoundingBox
+            Configure Bounding Box
           </Typography>
           <br />
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
             <Typography variant="body2" sx={{ color: '#000', textAlign: 'center' }}>
-              BoundingBoxes are used to identify specific areas of interest within an image, defined by a rectangle area. In the annotate page, they are defined as two points (the top right and bottom
+              Bounding Boxes are used to identify specific areas of interest within an image, defined by a rectangle area. In the annotate page, they are defined as two points (the top right and bottom
               left of the desired area).
               <br />
               <br />
-              Warning, deleting a tag that is currently in use will remove it from all annotations.
+              WARNING: deleting a tag that is currently in use will remove it from all annotations.
             </Typography>
           </Box>
         </Box>
