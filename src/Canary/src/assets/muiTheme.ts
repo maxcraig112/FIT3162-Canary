@@ -19,4 +19,19 @@ export const darkTheme = createTheme({
   shape: {
     borderRadius: 16,
   },
+  components: {
+    MuiCheckbox: {
+      styleOverrides: {
+        root: {
+          opacity: 1,
+          '& svg': { // unchecked icon color
+            color: '#000000', 
+          },
+          '&.Mui-checked svg': {
+            color: '#00bcd4',
+          },
+        },
+      },
+    },
+  },
 });
