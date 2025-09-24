@@ -187,16 +187,36 @@ const ProjectPage: React.FC = () => {
               iconPosition="start"
               label="Settings"
               onClick={handleSettingsClick}
+              disableRipple
+              disableFocusRipple
               sx={{
                 textAlign: 'left',
                 padding: '10px 16px',
-                borderTop: 1,
-                borderColor: 'divider',
                 mt: 'auto',
-                color: '#000000',
+                // remove the hover blue line on the top edge
+                borderTop: 'none',
+                borderColor: 'transparent',
+                color: (t) => (settingsTab ? t.palette.primary.main : '#000000'),
+                fontWeight: settingsTab ? 700 : 400,
                 fontSize: '1.3rem',
                 textTransform: 'none',
                 justifyContent: 'flex-start',
+                '& .MuiSvgIcon-root': { color: 'inherit' },
+                opacity: 1,
+                WebkitTapHighlightColor: 'transparent',
+                '&:hover': {
+                  backgroundColor: (t) => t.palette.action.hover,
+                  borderTop: 'none',
+                  boxShadow: 'none',
+                },
+                '&:focus, &.Mui-focusVisible': {
+                  outline: 'none',
+                  boxShadow: 'none',
+                  borderTop: 'none',
+                },
+                '&::before, &::after': {
+                  display: 'none',
+                },
               }}
             />
           </Box>
