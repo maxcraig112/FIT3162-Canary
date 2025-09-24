@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"pkg/handler"
 	"project-service/firestore"
@@ -64,9 +63,7 @@ func (h *BoundingBoxHandler) CreateBoundingBoxHandler(w http.ResponseWriter, r *
 
 	w.WriteHeader(http.StatusCreated)
 	log.Info().Str("boundingBoxID", id).Msg("Bounding box created successfully")
-	if _, err := w.Write([]byte(fmt.Sprintf("Bounding box %s created", id))); err != nil {
-		log.Error().Err(err).Str("boundingBoxID", id).Msg("Error writing create bounding box response")
-	}
+	json.NewEncoder(w).Encode(map[string]string{"boundingBoxID": id})
 }
 
 func (h *BoundingBoxHandler) GetBoundingBoxesByImageHandler(w http.ResponseWriter, r *http.Request) {

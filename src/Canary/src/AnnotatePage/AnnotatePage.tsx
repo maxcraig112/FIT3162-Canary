@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Box, AppBar, Toolbar, Typography, ToggleButtonGroup, ToggleButton, Paper, IconButton, Button, FormControl, InputLabel, Select, MenuItem, TextField } from '@mui/material';
 import { MyLocation, SelectAll, NotInterested, KeyboardArrowLeft, KeyboardArrowRight } from '@mui/icons-material';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
-import { annotateHandler, getCanvas } from './annotateHandler';
+import { annotateHandler, getCanvas, handleUndoRedo } from './annotateHandler';
 import { ZoomHandler } from './zoomHandler';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
@@ -10,20 +10,39 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import { useSearchParams } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { getBoundingBoxLabelNames, getKeypointLabelNames } from './labelRegistry';
-import { loadProjectLabels } from './labelLoader';
+import { getCentreOfCanvas } from './helper';
 import { useAuthGuard } from '../utils/authUtil';
+// import { useSharedImageHandler } from './imagehandlercontext';
+import { useImageHandler } from './imageStateHandler';
 
 const AnnotatePage: React.FC = () => {
+  // Helper for undo/redo actions
+  // Type guards
+
   useAuthGuard();
 
   const navigate = useNavigate();
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [currentImage, setCurrentImage] = useState(0);
-  const [totalImages, setTotalImages] = useState(0);
-  const [inputImage, setInputImage] = useState<string>(currentImage.toString());
+  const imageHandler = useImageHandler();
+  // Ensure annotateHandler uses the same imageHandler instance
+  useEffect(() => {
+    annotateHandler.setImageHandler(imageHandler);
+  });
+
+  // inputImage is the value in the text box, separate from currentImageNumber
+  const [inputImage, setInputImage] = useState(imageHandler.currentImageNumber.toString());
   const [selectedTool, setSelectedTool] = useState<string | null>('kp');
   const [searchParams] = useSearchParams();
+  const batchID = searchParams.get('batchID') || '';
+  const projectID = searchParams.get('projectID') || '';
+  if (!batchID) {
+    throw new Error('No batchID specified in URL');
+  }
+  if (!projectID) {
+    throw new Error('No projectID specified in URL');
+  }
+
   const [labelPrompt, setLabelPrompt] = useState<{
     open: boolean;
     kind: 'kp' | 'bb' | null;
@@ -38,8 +57,6 @@ const AnnotatePage: React.FC = () => {
   const boxRef = useRef<HTMLDivElement | null>(null);
   const [zoom, setZoom] = useState(1);
   const zoomHandlerRef = useRef<ZoomHandler | null>(null);
-
-  const clamp = (val: number) => Math.min(Math.max(val, 1), totalImages);
 
   useEffect(() => {
     const boxEl = boxRef.current as HTMLDivElement | null;
@@ -69,36 +86,31 @@ const AnnotatePage: React.FC = () => {
   // Render when batchID or currentImage changes
   useEffect(() => {
     async function render() {
-      const batchID = searchParams.get('batchID') || '';
-      if (!batchID) return;
+      if (!batchID || !projectID) return;
+      if (!getCanvas()) {
+        console.error('Canvas not initialized yet');
+        return;
+      }
+
       try {
-        const projectID = searchParams.get('projectID') || undefined;
-        const { current, total } = await annotateHandler.renderToCanvas(batchID, projectID);
-        setCurrentImage(current);
-        setTotalImages(total);
+        const { current } = await annotateHandler.  renderToCanvas(batchID, projectID);
+        imageHandler.setCurrentImageNumber(current);
+        setInputImage(current.toString());
       } catch (e) {
         console.error(e);
       }
     }
+
     render();
-  }, [searchParams, currentImage]);
+    // Re-render when current image number changes
+  }, [imageHandler.currentImageNumber]);
 
   // Keep handler tool selection in sync with UI
   useEffect(() => {
     const t = selectedTool;
     if (t === 'kp' || t === 'bb') annotateHandler.setTool(t);
-    else annotateHandler.setTool(null);
+    else annotateHandler.setTool('none');
   }, [selectedTool]);
-
-  // Load labels when projectID changes
-  useEffect(() => {
-    const projectID = searchParams.get('projectID') || undefined;
-    (async () => {
-      await loadProjectLabels(projectID || undefined);
-      setKpOptions(getKeypointLabelNames());
-      setBbOptions(getBoundingBoxLabelNames());
-    })();
-  }, [searchParams]);
 
   // Subscribe to label requests from handler
   useEffect(() => {
@@ -122,49 +134,66 @@ const AnnotatePage: React.FC = () => {
     };
   }, []);
 
-  // Global Backspace/Delete handling when modal is open
+  // Undo/Redo keydown handler
   useEffect(() => {
-    if (!labelPrompt.open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Backspace' && e.key !== 'Delete') return;
-      // Only delete existing annotation labels during edit mode
-      if (labelPrompt.mode === 'edit') {
+    const onKeyDown = (e: KeyboardEvent) => {
+      // Close label prompt on Escape
+      if (e.key === 'Escape' && labelPrompt.open) {
+        e.preventDefault();
+        annotateHandler.cancelLabel();
+        setLabelPrompt({ open: false, kind: null, x: 0, y: 0, mode: 'create' });
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault();
+        handleUndoRedo('undo');
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+        e.preventDefault();
+        handleUndoRedo('redo');
+      }
+      if ((e.key === 'Backspace' || e.key === 'Delete') && labelPrompt.mode === 'edit') {
         e.preventDefault();
         annotateHandler.deleteSelected();
         setLabelPrompt({ open: false, kind: null, x: 0, y: 0, mode: 'create' });
       }
     };
-    window.addEventListener('keydown', onKey, { capture: true });
-    return () => window.removeEventListener('keydown', onKey, { capture: true });
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, [labelPrompt.open, labelPrompt.mode, searchParams]);
-
-  useEffect(() => {
-    setInputImage(currentImage.toString());
-  }, [currentImage]);
 
   const handleToolChange = (_event: React.MouseEvent<HTMLElement>, newTool: string | null) => {
     if (newTool !== null) setSelectedTool(newTool);
   };
 
   const handlePrev = () => {
-    annotateHandler.prevImage(setCurrentImage);
+    imageHandler.prevImage();
   };
 
   const handleNext = () => {
-    annotateHandler.nextImage(setCurrentImage);
+    imageHandler.nextImage();
   };
 
   // Zoom button handlers
   const handleZoomIn = () => {
     if (zoomHandlerRef.current) {
-      zoomHandlerRef.current.zoomIn();
-      setZoom(zoomHandlerRef.current.getZoom());
+      const canvas = getCanvas();
+      if (canvas) {
+        const center = getCentreOfCanvas(canvas);
+        zoomHandlerRef.current.zoomIn(center);
+        setZoom(zoomHandlerRef.current.getZoom());
+      }
     }
   };
   const handleZoomOut = () => {
     if (zoomHandlerRef.current) {
-      zoomHandlerRef.current.zoomOut();
-      setZoom(zoomHandlerRef.current.getZoom());
+      const canvas = getCanvas();
+      if (canvas) {
+        const center = getCentreOfCanvas(canvas);
+        zoomHandlerRef.current.zoomOut(center);
+        setZoom(zoomHandlerRef.current.getZoom());
+      }
     }
   };
   const handleZoomReset = () => {
@@ -193,7 +222,6 @@ const AnnotatePage: React.FC = () => {
               edge="start"
               sx={{ position: 'absolute', left: 8, top: 8 }}
               onClick={() => {
-                const projectID = searchParams.get('projectID');
                 if (projectID) {
                   navigate(`/projects/${projectID}`);
                 } else {
@@ -229,52 +257,32 @@ const AnnotatePage: React.FC = () => {
                   size="small"
                   type="number"
                   value={inputImage}
-                  slotProps={{
-                    input: {
-                      inputProps: {
-                        style: { textAlign: 'center', width: 60 },
-                      },
-                    },
-                  }}
+                  inputProps={{ style: { textAlign: 'center', width: 60 } }}
                   sx={{
-                    '& input[type=number]::-webkit-inner-spin-button, & input[type=number]::-webkit-outer-spin-button': {
-                      WebkitAppearance: 'none',
-                      margin: 0,
-                    },
+                    width: 40,
                     '& input[type=number]': {
                       MozAppearance: 'textfield',
                     },
+                    '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': {
+                      WebkitAppearance: 'none',
+                      margin: 0,
+                    },
                   }}
                   onChange={(e) => {
-                    setInputImage(e.target.value); // allow empty string while typing
+                    setInputImage(e.target.value);
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      const val = parseInt(inputImage, 10);
-                      if (!isNaN(val)) {
-                        const clamped = clamp(val);
-                        annotateHandler.goToImage(clamped, setCurrentImage);
-                        setInputImage(clamped.toString());
-                      } else {
-                        setInputImage(currentImage.toString());
-                      }
-                      (e.target as HTMLInputElement).blur(); // deselect
+                      imageHandler.setInputImage(inputImage);
+                      (e.target as HTMLInputElement).blur();
                     }
                   }}
                   onBlur={() => {
-                    const val = parseInt(inputImage, 10);
-                    if (!isNaN(val)) {
-                      const clamped = clamp(val);
-                      annotateHandler.goToImage(clamped, setCurrentImage);
-                      setInputImage(clamped.toString());
-                    } else {
-                      setInputImage(currentImage.toString());
-                    }
+                    imageHandler.setInputImage(inputImage);
                   }}
                 />
-
                 <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  /{totalImages}
+                  / {imageHandler.getTotalImageCount()}
                 </Typography>
               </Paper>
               <IconButton aria-label="next image" onClick={handleNext}>
@@ -360,7 +368,6 @@ const AnnotatePage: React.FC = () => {
                 size="small"
                 onClick={() => {
                   if (labelValue) {
-                    const projectID = searchParams.get('projectID') || undefined;
                     annotateHandler.confirmLabel(labelValue, projectID);
                   } else {
                     annotateHandler.cancelLabel();
