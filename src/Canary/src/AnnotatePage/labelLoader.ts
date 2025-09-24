@@ -23,8 +23,8 @@ export async function loadProjectLabels(projectID?: string) {
     if (kpData && Array.isArray(kpData)) {
       const map: Record<string, string> = {};
       for (const d of kpData) {
-        const id = (d.keyPointLabelID).toString();
-        const name = (d.keypointLabel).toString();
+        const id = d.keyPointLabelID.toString();
+        const name = d.keypointLabel.toString();
         if (id && name) map[id] = name;
       }
       console.log('Loaded keypoint labels:', map);
@@ -33,8 +33,8 @@ export async function loadProjectLabels(projectID?: string) {
     if (bbData && Array.isArray(bbData)) {
       const map: Record<string, string> = {};
       for (const d of bbData) {
-        const id = (d.boundingBoxLabelID).toString();
-        const name = (d.boundingBoxLabel).toString();
+        const id = d.boundingBoxLabelID.toString();
+        const name = d.boundingBoxLabel.toString();
         if (id && name) map[id] = name;
       }
       console.log('Loaded bounding box labels:', map);

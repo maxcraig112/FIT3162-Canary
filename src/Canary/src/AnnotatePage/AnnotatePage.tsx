@@ -93,7 +93,7 @@ const AnnotatePage: React.FC = () => {
       }
 
       try {
-        const { current } = await annotateHandler.  renderToCanvas(batchID, projectID);
+        const { current } = await annotateHandler.renderToCanvas(batchID, projectID);
         imageHandler.setCurrentImageNumber(current);
         setInputImage(current.toString());
       } catch (e) {

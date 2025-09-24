@@ -357,10 +357,10 @@ export const annotateHandler = {
     const img = await imageHandler.getFabricImage(meta.imageURL);
 
     const total = imageHandler.getTotalImageCount();
-  const iw = img.width ?? 1;
-  const ih = img.height ?? 1;
-  currentImageW = iw;
-  currentImageH = ih;
+    const iw = img.width ?? 1;
+    const ih = img.height ?? 1;
+    currentImageW = iw;
+    currentImageH = ih;
 
     // Determine available canvas size from parent container; fallback to image size
     const canvasEl = canvasRef.getElement() as HTMLCanvasElement;

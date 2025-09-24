@@ -14,7 +14,7 @@ export async function renameProject(projectID: string, newProjectName: string): 
 // Delete a project
 export async function deleteProject(projectID: string): Promise<string> {
   const token = getAuthTokenFromCookie();
-  
+
   const url = `${baseUrl}/projects/${projectID}`;
   const res = await fetch(url, {
     method: 'DELETE',

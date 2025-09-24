@@ -2,9 +2,8 @@ import * as fabric from 'fabric';
 import type { KeypointAnnotation, BoundingBoxAnnotation } from './constants';
 export type AnnotationType = KeypointAnnotation | BoundingBoxAnnotation;
 
-
 export type UndoRedoAction =
-  | { type: 'add'; kind: 'kp' | 'bb'; annotation: AnnotationType; group: fabric.Group}
+  | { type: 'add'; kind: 'kp' | 'bb'; annotation: AnnotationType; group: fabric.Group }
   | { type: 'edit'; kind: 'kp' | 'bb'; before: AnnotationType; after: AnnotationType; group: fabric.Group }
   | { type: 'delete'; kind: 'kp' | 'bb'; annotation: AnnotationType; group: fabric.Group };
 
@@ -31,7 +30,7 @@ export class UndoRedoHandler {
     console.log('Added edit action to undo stack:', this.undoStack);
   }
   deleteAction(kind: 'kp' | 'bb', annotation: AnnotationType, group: fabric.Group) {
-    this.undoStack.push({ type: 'add', kind, annotation, group: group});
+    this.undoStack.push({ type: 'add', kind, annotation, group: group });
     this.redoStack = [];
     console.log('Added add action to undo stack:', this.undoStack);
   }

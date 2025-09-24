@@ -9,13 +9,8 @@ import { createBoundingBoxAnnotation } from './constants';
 const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
 
 export const BoundingBoxFabricHandler = {
-  createFabricBoundingBox(
-    canvas: fabric.Canvas,
-    ann: BoundingBoxAnnotation,
-    transform?: { scale: number; offsetX: number; offsetY: number }
-  ): { group: fabric.Group } {
-    const mapPoint = (p: { x: number; y: number }) =>
-      transform ? { x: p.x * transform.scale + transform.offsetX, y: p.y * transform.scale + transform.offsetY } : p;
+  createFabricBoundingBox(canvas: fabric.Canvas, ann: BoundingBoxAnnotation, transform?: { scale: number; offsetX: number; offsetY: number }): { group: fabric.Group } {
+    const mapPoint = (p: { x: number; y: number }) => (transform ? { x: p.x * transform.scale + transform.offsetX, y: p.y * transform.scale + transform.offsetY } : p);
     const pts = ann.points.map(mapPoint);
     const poly = new fabric.Polygon(pts, fabricBBPolygonProps);
     const c = polygonCentroid(pts);
@@ -62,7 +57,7 @@ export const boundingBoxDatabaseHandler = {
         method: 'POST',
         json: body,
       });
-      console.log(result)
+      console.log(result);
       const newId = (result as { boundingBoxID: string }).boundingBoxID;
       if (!newId) throw new Error('No bounding box ID returned from server');
       ann.id = newId;

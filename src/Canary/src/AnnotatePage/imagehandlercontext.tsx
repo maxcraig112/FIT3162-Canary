@@ -15,11 +15,7 @@ export const ImageHandlerProvider: React.FC<{ children: React.ReactNode }> = ({ 
     singleton = handler;
   }
 
-  return (
-    <ImageHandlerContext.Provider value={handler}>
-      {children}
-    </ImageHandlerContext.Provider>
-  );
+  return <ImageHandlerContext.Provider value={handler}>{children}</ImageHandlerContext.Provider>;
 };
 
 export function useSharedImageHandler(): ImageHandler {

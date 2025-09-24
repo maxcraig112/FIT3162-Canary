@@ -2,7 +2,7 @@ import * as fabric from 'fabric';
 
 // Shared annotation types
 export interface KeypointAnnotation {
-  kind: "keypoint"; 
+  kind: 'keypoint';
   projectID: string;
   imageID: string;
   id: string;
@@ -13,7 +13,7 @@ export interface KeypointAnnotation {
 }
 
 export interface BoundingBoxAnnotation {
-  kind: "boundingbox";
+  kind: 'boundingbox';
   projectID: string;
   imageID: string;
   id: string;
@@ -23,18 +23,16 @@ export interface BoundingBoxAnnotation {
   // removeFromDatabase(): Promise<void>;
 }
 
-export function createKeypointAnnotation(data: Omit<KeypointAnnotation, "kind">): KeypointAnnotation {
+export function createKeypointAnnotation(data: Omit<KeypointAnnotation, 'kind'>): KeypointAnnotation {
   return {
-    kind: "keypoint",
+    kind: 'keypoint',
     ...data,
   };
 }
 
-export function createBoundingBoxAnnotation(
-  data: Omit<BoundingBoxAnnotation, "kind">
-): BoundingBoxAnnotation {
+export function createBoundingBoxAnnotation(data: Omit<BoundingBoxAnnotation, 'kind'>): BoundingBoxAnnotation {
   return {
-    kind: "boundingbox",
+    kind: 'boundingbox',
     ...data,
   };
 }
