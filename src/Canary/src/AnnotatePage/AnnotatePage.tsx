@@ -57,7 +57,7 @@ const AnnotatePage: React.FC = () => {
   const boxRef = useRef<HTMLDivElement | null>(null);
   const [zoom, setZoom] = useState(1);
   const zoomHandlerRef = useRef<ZoomHandler | null>(null);
-  
+
   useEffect(() => {
     const boxEl = boxRef.current as HTMLDivElement | null;
     const canvasEl = canvasRef.current as HTMLCanvasElement | null;
@@ -112,14 +112,6 @@ const AnnotatePage: React.FC = () => {
     else annotateHandler.setTool('none');
   }, [selectedTool]);
 
-  // Load labels when projectID changes
-  // useEffect(() => {
-  //   (async () => {
-  //     setKpOptions(getKeypointLabelNames());
-  //     setBbOptions(getBoundingBoxLabelNames());
-  //   })();
-  // }, [searchParams, projectID]);
-
   // Subscribe to label requests from handler
   useEffect(() => {
     const unsub = annotateHandler.subscribeLabelRequests((req) => {
@@ -145,6 +137,14 @@ const AnnotatePage: React.FC = () => {
   // Undo/Redo keydown handler
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      // Close label prompt on Escape
+      if (e.key === 'Escape' && labelPrompt.open) {
+        e.preventDefault();
+        annotateHandler.cancelLabel();
+        setLabelPrompt({ open: false, kind: null, x: 0, y: 0, mode: 'create' });
+        return;
+      }
+
       if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
         e.preventDefault();
         handleUndoRedo('undo');
@@ -258,7 +258,16 @@ const AnnotatePage: React.FC = () => {
                   type="number"
                   value={inputImage}
                   inputProps={{ style: { textAlign: 'center', width: 60 } }}
-                  sx={{ width: 60 }}
+                  sx={{
+                    width: 40,
+                    '& input[type=number]': {
+                      MozAppearance: 'textfield',
+                    },
+                    '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': {
+                      WebkitAppearance: 'none',
+                      margin: 0,
+                    },
+                  }}
                   onChange={(e) => {
                     setInputImage(e.target.value);
                   }}
@@ -273,7 +282,7 @@ const AnnotatePage: React.FC = () => {
                   }}
                 />
                 <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  /{imageHandler.getTotalImageCount()}
+                  / {imageHandler.getTotalImageCount()}
                 </Typography>
               </Paper>
               <IconButton aria-label="next image" onClick={handleNext}>

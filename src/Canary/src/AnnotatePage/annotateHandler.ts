@@ -23,9 +23,21 @@ let imageHandlerRef: ImageHandler | null = null;
 let currentScale = 1;
 let currentOffsetX = 0;
 let currentOffsetY = 0;
+let currentImageW = 0;
+let currentImageH = 0;
 
 function canvasToImage(p: { x: number; y: number }): { x: number; y: number } {
   return { x: (p.x - currentOffsetX) / currentScale, y: (p.y - currentOffsetY) / currentScale };
+}
+
+function isPointWithinImageCanvas(x: number, y: number): boolean {
+  if (!canvasRef) return false;
+  if (currentScale <= 0 || currentImageW <= 0 || currentImageH <= 0) return false;
+  const left = currentOffsetX;
+  const top = currentOffsetY;
+  const right = left + currentImageW * currentScale;
+  const bottom = top + currentImageH * currentScale;
+  return x >= left && x <= right && y >= top && y <= bottom;
 }
 
 const labelRequestSubs = new Set<(req: LabelRequest) => void>();
@@ -236,6 +248,11 @@ export const annotateHandler = {
           }
         }
       }
+      // Don't allow creating new annotations outside the image draw area
+      if (!isPointWithinImageCanvas(p.x, p.y)) {
+        return;
+      }
+
       removePendingMarkers();
       if (currentTool === 'kp') {
         // add a small marker and request a label
@@ -340,8 +357,10 @@ export const annotateHandler = {
     const img = await imageHandler.getFabricImage(meta.imageURL);
 
     const total = imageHandler.getTotalImageCount();
-    const iw = img.width ?? 1;
-    const ih = img.height ?? 1;
+  const iw = img.width ?? 1;
+  const ih = img.height ?? 1;
+  currentImageW = iw;
+  currentImageH = ih;
 
     // Determine available canvas size from parent container; fallback to image size
     const canvasEl = canvasRef.getElement() as HTMLCanvasElement;
