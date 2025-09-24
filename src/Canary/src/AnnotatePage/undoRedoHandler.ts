@@ -23,7 +23,7 @@ export class UndoRedoHandler {
   addAction(kind: 'kp' | 'bb', annotation: AnnotationType, group: fabric.Group) {
     this.undoStack.push({ type: 'delete', kind, annotation, group });
     this.redoStack = [];
-    console.log('Added action to undo stack:', this.undoStack);
+    console.log('Added delete action to undo stack:', this.undoStack);
   }
   editAction(kind: 'kp' | 'bb', before: AnnotationType, after: AnnotationType, group: fabric.Group) {
     this.undoStack.push({ type: 'edit', kind, before: after, after: before, group: group });
@@ -33,7 +33,7 @@ export class UndoRedoHandler {
   deleteAction(kind: 'kp' | 'bb', annotation: AnnotationType, group: fabric.Group) {
     this.undoStack.push({ type: 'add', kind, annotation, group: group});
     this.redoStack = [];
-    console.log('Added delete action to undo stack:', this.undoStack);
+    console.log('Added add action to undo stack:', this.undoStack);
   }
 
   async undo({

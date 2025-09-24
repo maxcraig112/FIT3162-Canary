@@ -134,7 +134,7 @@ func (h *KeypointHandler) UpdateKeypointPositionHandler(w http.ResponseWriter, r
 
 	if err := h.KeypointStore.UpdateKeypointPosition(h.Ctx, req); err != nil {
 		http.Error(w, "Error updating keypoint", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to update keypoint position")
+		log.Error().Err(err).Msg("Failed to update keypoint")
 		return
 	}
 

@@ -72,7 +72,7 @@ export const keypointDatabaseHandler = {
   async renameKeyPoint(ann: KeypointAnnotation, newLabelID: string): Promise<KeypointAnnotation> {
     const url = `${baseUrl}/projects/${ann.projectID}/keypoints/${ann.id}`;
     const body = {
-      keypointLabelID: getKeypointLabelIdByName(newLabelID),
+      keypointLabelID: newLabelID,
     };
     try {
       await CallAPI(url, {

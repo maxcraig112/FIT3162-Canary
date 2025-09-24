@@ -9,7 +9,7 @@ import { boundingBoxDatabaseHandler, BoundingBoxFabricHandler } from './bounding
 import { loadProjectLabels } from './labelLoader.ts';
 import { polygonCentroid, polygonFromTwoPoints } from './helper.ts';
 import { type ImageHandler } from './imageStateHandler.ts';
-import { getBoundingBoxLabelIdByName, getKeypointLabelIdByName } from './labelRegistry.ts';
+import { getBoundingBoxLabelIdByName, getBoundingBoxLabelName, getKeypointLabelIdByName, getKeypointLabelName } from './labelRegistry.ts';
 import { UndoRedoHandler } from './undoRedoHandler.ts';
 
 type ToolMode = 'kp' | 'bb' | 'none';
@@ -98,13 +98,13 @@ export const annotateHandler = {
       if (kind == 'kp') {
         const ann = meta.ann as KeypointAnnotation;
         KeyPointFabricHandler.renameFabricKeyPoint(canvasRef, group, label);
-        const updatedAnn = await keypointDatabaseHandler.renameKeyPoint(ann, label);
+        const updatedAnn = await keypointDatabaseHandler.renameKeyPoint(ann, getKeypointLabelIdByName(label));
         console.log(`Keypoint ${ann.id} renamed to label ${label}`);
         undoRedoHandler.editAction('kp', ann, updatedAnn, group);
       } else if (kind == 'bb') {
         const ann = meta.ann as BoundingBoxAnnotation;
         BoundingBoxFabricHandler.renameFabricBoundingBox(canvasRef, group, label);
-        const updatedAnn = await boundingBoxDatabaseHandler.renameBoundingBox(ann, label);
+        const updatedAnn = await boundingBoxDatabaseHandler.renameBoundingBox(ann, getBoundingBoxLabelIdByName(label));
         console.log(`Bounding box ${ann.id} renamed to label ${label}`);
         undoRedoHandler.editAction('bb', ann, updatedAnn, group);
       }
@@ -256,14 +256,16 @@ export const annotateHandler = {
             // backend delete
             keypointDatabaseHandler.deleteKeyPoint(meta.ann as KeypointAnnotation);
             KeyPointFabricHandler.deleteFabricKeyPoint(canvasRef, g);
-            undoRedoHandler.addAction('kp', meta.ann, g);
+            // Record a delete action so Undo will re-add it
+            undoRedoHandler.deleteAction('kp', meta.ann, g);
           } else {
             const idx = s.bbs.indexOf(meta.ann as BoundingBoxAnnotation);
             // TODO i don't know what this does below
             if (idx >= 0) s.bbs.splice(idx, 1);
             boundingBoxDatabaseHandler.deleteBoundingBox(meta.ann as BoundingBoxAnnotation);
             BoundingBoxFabricHandler.deleteFabricBoundingBox(canvasRef, g);
-            undoRedoHandler.addAction('bb', meta.ann, g);
+            // Record a delete action so Undo will re-add it
+            undoRedoHandler.deleteAction('bb', meta.ann, g);
           }
         }
         groupToAnnotation.delete(g);
@@ -517,12 +519,14 @@ const undoRedoAPI = {
   },
   onEdit: async (kind: 'kp' | 'bb', before: KeypointAnnotation | BoundingBoxAnnotation, after: KeypointAnnotation | BoundingBoxAnnotation, group: fabric.Group) => {
     if (kind === 'bb' && isBoundingBoxAnnotation(before) && isBoundingBoxAnnotation(after)) {
+      const labelText = getBoundingBoxLabelName(after.labelID);
       await boundingBoxDatabaseHandler.renameBoundingBox(before, after.labelID);
-      BoundingBoxFabricHandler.renameFabricBoundingBox(canvasRef, group, after.labelID);
+      BoundingBoxFabricHandler.renameFabricBoundingBox(canvasRef, group, labelText);
       groupToAnnotation.set(group, { kind: 'bb', ann: after });
     } else if (kind === 'kp' && isKeypointAnnotation(before) && isKeypointAnnotation(after)) {
+      const labelText = getKeypointLabelName(after.labelID);
       await keypointDatabaseHandler.renameKeyPoint(before, after.labelID);
-      KeyPointFabricHandler.renameFabricKeyPoint(canvasRef, group, after.labelID);
+      KeyPointFabricHandler.renameFabricKeyPoint(canvasRef, group, labelText);
       groupToAnnotation.set(group, { kind: 'kp', ann: after });
     } else {
       throw new Error('Mismatched kind/annotation in onEdit');
