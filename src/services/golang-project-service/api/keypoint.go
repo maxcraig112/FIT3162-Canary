@@ -34,7 +34,7 @@ func RegisterKeypointRoutes(r *mux.Router, h *handler.Handler) {
 		{"GET", "/projects/{projectID}/images/{imageID}/keypoints", kh.GetKeypointsByImageHandler},
 		{"GET", "/projects/{projectID}/boundingboxes/{boundingBoxID}/keypoints", kh.GetKeypointsByBoundingBoxHandler},
 		{"GET", "/projects/{projectID}/keypoints/{keypointID}", kh.GetKeypointHandler},
-		{"PATCH", "/projects/{projectID}/keypoints/{keypointID}", kh.UpdateKeypointPositionHandler},
+		{"PATCH", "/projects/{projectID}/keypoints/{keypointID}", kh.UpdateKeypointHandler},
 		{"DELETE", "/projects/{projectID}/keypoints/{keypointID}", kh.DeleteKeypointHandler},
 	}
 
@@ -120,11 +120,11 @@ func (h *KeypointHandler) GetKeypointHandler(w http.ResponseWriter, r *http.Requ
 	json.NewEncoder(w).Encode(kp)
 }
 
-func (h *KeypointHandler) UpdateKeypointPositionHandler(w http.ResponseWriter, r *http.Request) {
+func (h *KeypointHandler) UpdateKeypointHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	keypointID := vars["keypointID"]
 
-	var req firestore.UpdateKeypointPositionRequest
+	var req firestore.UpdateKeypointRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		log.Error().Err(err).Msg("Invalid update keypoint request")
@@ -132,9 +132,14 @@ func (h *KeypointHandler) UpdateKeypointPositionHandler(w http.ResponseWriter, r
 	}
 	req.KeypointID = keypointID
 
-	if err := h.KeypointStore.UpdateKeypointPosition(h.Ctx, req); err != nil {
+	err := h.KeypointStore.UpdateKeypoint(h.Ctx, req)
+	if err == fs.ErrAlreadyExists {
+		http.Error(w, "Keypoint already exists", http.StatusConflict)
+		log.Error().Err(err).Msg("Keypoint already exists")
+		return
+	} else if err != nil {
 		http.Error(w, "Error updating keypoint", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to update keypoint position")
+		log.Error().Err(err).Msg("Failed to update keypoint")
 		return
 	}
 

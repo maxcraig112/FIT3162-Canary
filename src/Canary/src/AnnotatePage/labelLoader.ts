@@ -1,52 +1,46 @@
-import { getAuthTokenFromCookie } from '../utils/cookieUtils';
 import { setBoundingBoxLabelMaps, setKeypointLabelMaps } from './labelRegistry';
 
 type KeypointLabelDTO = {
-  keyPointLabelID?: string;
-  keypointLabel?: string;
+  keyPointLabelID: string;
+  keypointLabel: string;
 };
 
 type BoundingBoxLabelDTO = {
-  boundingBoxLabelID?: string;
-  boundingBoxLabel?: string;
+  boundingBoxLabelID: string;
+  boundingBoxLabel: string;
 };
 
 export async function loadProjectLabels(projectID?: string) {
   if (!projectID) return;
   const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
-  const token = getAuthTokenFromCookie();
+  const { CallAPI } = await import('../utils/apis');
 
-  const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-
-  const [kpRes, bbRes] = await Promise.all([fetch(`${baseUrl}/projects/${projectID}/keypointlabels`, { headers }), fetch(`${baseUrl}/projects/${projectID}/boundingboxlabels`, { headers })]);
-
-  if (kpRes.ok) {
-    try {
-      const data = (await kpRes.json()) as KeypointLabelDTO[];
+  try {
+    const [kpData, bbData] = await Promise.all([
+      CallAPI<KeypointLabelDTO[]>(`${baseUrl}/projects/${projectID}/keypointlabels`),
+      CallAPI<BoundingBoxLabelDTO[]>(`${baseUrl}/projects/${projectID}/boundingboxlabels`),
+    ]);
+    if (kpData && Array.isArray(kpData)) {
       const map: Record<string, string> = {};
-      for (const d of data || []) {
-        const id = (d.keyPointLabelID ?? '').toString();
-        const name = (d.keypointLabel ?? '').toString();
+      for (const d of kpData) {
+        const id = d.keyPointLabelID.toString();
+        const name = d.keypointLabel.toString();
         if (id && name) map[id] = name;
       }
+      console.log('Loaded keypoint labels:', map);
       setKeypointLabelMaps(map);
-    } catch {
-      // ignore parse errors
     }
-  }
-
-  if (bbRes.ok) {
-    try {
-      const data = (await bbRes.json()) as BoundingBoxLabelDTO[];
+    if (bbData && Array.isArray(bbData)) {
       const map: Record<string, string> = {};
-      for (const d of data || []) {
-        const id = (d.boundingBoxLabelID ?? '').toString();
-        const name = (d.boundingBoxLabel ?? '').toString();
+      for (const d of bbData) {
+        const id = d.boundingBoxLabelID.toString();
+        const name = d.boundingBoxLabel.toString();
         if (id && name) map[id] = name;
       }
+      console.log('Loaded bounding box labels:', map);
       setBoundingBoxLabelMaps(map);
-    } catch {
-      // ignore parse errors
     }
+  } catch {
+    console.log('Failed to load project labels');
   }
 }

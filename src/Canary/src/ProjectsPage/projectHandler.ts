@@ -1,6 +1,7 @@
+const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
+
 // Rename a project (uses golang-project-service PATCH /projects/{projectID})
 export async function renameProject(projectID: string, newProjectName: string): Promise<string> {
-  const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
   const url = `${baseUrl}/projects/${projectID}`;
   // API returns updated Project object
   const data = await CallAPI<{ projectID?: string; projectName?: string }>(url, {
@@ -13,7 +14,7 @@ export async function renameProject(projectID: string, newProjectName: string): 
 // Delete a project
 export async function deleteProject(projectID: string): Promise<string> {
   const token = getAuthTokenFromCookie();
-  const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
+
   const url = `${baseUrl}/projects/${projectID}`;
   const res = await fetch(url, {
     method: 'DELETE',
@@ -41,7 +42,6 @@ import { getUserIDFromCookie, getAuthTokenFromCookie } from '../utils/cookieUtil
 // Fetch all projects
 export async function fetchProjects(): Promise<Project[]> {
   const token = getAuthTokenFromCookie();
-  const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
   const url = `${baseUrl}/projects/*`;
   return CallAPI<Project[]>(url, {
     headers: { Authorization: `Bearer ${token}` },
@@ -86,7 +86,6 @@ export function handleSortChange(value: string, setSortKey: (k: keyof Project) =
 
 // Create a new project
 export async function handleNewProject(projectName: string): Promise<string> {
-  const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
   const url = `${baseUrl}/projects`;
   const requestBody = { userID: getUserIDFromCookie(), projectName };
   const respText = await CallAPI<string>(url, {
@@ -99,7 +98,6 @@ export async function handleNewProject(projectName: string): Promise<string> {
 
 // Update project number of files (quantity)
 export async function updateProjectQuantity(projectID: string, quantity: number): Promise<string> {
-  const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
   const url = `${baseUrl}/projects/${projectID}`;
   const respText = await CallAPI<string>(url, {
     method: 'PATCH',

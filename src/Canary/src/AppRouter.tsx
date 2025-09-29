@@ -5,6 +5,7 @@ import HomePage from './HomePage/HomePage';
 import ProjectPage from './ProjectPage/ProjectPage';
 import ProjectsPage from './ProjectsPage/ProjectsPage';
 import AnnotatePage from './AnnotatePage/AnnotatePage';
+import { ImageHandlerProvider } from './AnnotatePage/imagehandlercontext';
 
 const AppRouter: React.FC = () => (
   <Routes>
@@ -12,7 +13,16 @@ const AppRouter: React.FC = () => (
     <Route path="/home" element={<HomePage />} />
     <Route path="/projects" element={<ProjectsPage />} />
     <Route path="/projects/:projectID" element={<ProjectPage />} />
-    <Route path="/annotate" element={<AnnotatePage />} />
+
+    <Route
+      path="/annotate"
+      element={
+        <ImageHandlerProvider>
+          <AnnotatePage />
+        </ImageHandlerProvider>
+      }
+    />
+
     <Route path="*" element={<Navigate to="/home" replace />} />
   </Routes>
 );

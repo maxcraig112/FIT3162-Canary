@@ -1,6 +1,10 @@
-import type React from 'react';
 import * as fabric from 'fabric';
-import { getAuthTokenFromCookie } from '../utils/cookieUtils';
+import { CallAPI } from '../utils/apis';
+import { devRewriteURL } from './helper';
+import * as React from 'react';
+import type { BoundingBoxAnnotation, KeypointAnnotation } from './constants';
+
+const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
 
 export type ImageMeta = {
   imageID: string;
@@ -9,94 +13,160 @@ export type ImageMeta = {
   batchID: string;
 };
 
-// Per-batch image list cache
-const cache = new Map<string, ImageMeta[]>();
+type ImageAnnotations = {
+  kps: KeypointAnnotation[];
+  bbs: BoundingBoxAnnotation[];
+};
 
-// Image position state (1-based index and total count)
-let currentImageNumber = 1;
-let totalImageCount = 0;
+export function useImageHandler() {
+  const [currentImageNumber, setCurrentImageNumber] = React.useState(1);
+  const [currentImageURL, setCurrentImageURL] = React.useState<string>('');
+  const [currentImageID, setCurrentImageID] = React.useState<string>('');
+  const [totalImageCount, setTotalImageCount] = React.useState(0);
 
-export function getCurrentImageNumber() {
-  return currentImageNumber;
-}
+  const batchCache = React.useRef(new Map<string, ImageMeta[]>());
+  const fabricImageCache = React.useRef(new Map<string, fabric.FabricImage>());
+  const annotationStore = React.useRef(new Map<string, ImageAnnotations>());
 
-export function getTotalImageCount() {
-  return totalImageCount;
-}
+  const getCurrentImageNumber = React.useCallback(() => currentImageNumber, [currentImageNumber]);
+  const getTotalImageCount = React.useCallback(() => totalImageCount, [totalImageCount]);
 
-export function setCurrentImageNumber(n: number) {
-  currentImageNumber = Math.max(1, Math.floor(n));
-}
-
-async function fetchImagesForBatch(batchID: string): Promise<ImageMeta[]> {
-  const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
-  const token = getAuthTokenFromCookie();
-  const url = `${baseUrl}/batch/${batchID}/images`;
-
-  const res = await fetch(url, {
-    method: 'GET',
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  const setInputImage = React.useCallback(
+    (input: string) => {
+      const num = parseInt(input, 10);
+      if (!isNaN(num)) {
+        const clamp = (n: number) => Math.max(1, Math.min(n, totalImageCount));
+        const clamped = clamp(num);
+        setCurrentImageNumber(clamped);
+      }
     },
-  });
+    [totalImageCount],
+  );
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Failed to fetch images for batch ${batchID}: ${res.status} ${res.statusText} - ${text}`);
-  }
+  const getInputImage = React.useCallback(() => currentImageNumber.toString(), [currentImageNumber]);
 
-  const data = (await res.json()) as ImageMeta[];
-  return data;
+  const nextImage = React.useCallback(() => {
+    if (totalImageCount <= 0) return currentImageNumber;
+    const newNum = currentImageNumber < totalImageCount ? currentImageNumber + 1 : 1;
+    setCurrentImageNumber(newNum);
+    return newNum;
+  }, [currentImageNumber, totalImageCount]);
+
+  const prevImage = React.useCallback(() => {
+    if (totalImageCount <= 0) return currentImageNumber;
+    const newNum = currentImageNumber > 1 ? currentImageNumber - 1 : totalImageCount;
+    setCurrentImageNumber(newNum);
+    return newNum;
+  }, [currentImageNumber, totalImageCount]);
+
+  const goToImage = React.useCallback(
+    (n: number) => {
+      const total = totalImageCount;
+      const clamped = Math.max(1, Math.min(n, total));
+      setCurrentImageNumber(clamped);
+      return clamped;
+    },
+    [totalImageCount],
+  );
+
+  const fetchImagesForBatch = React.useCallback(async (batchID: string): Promise<ImageMeta[]> => {
+    const url = `${baseUrl}/batch/${batchID}/images`;
+    try {
+      const data = await CallAPI<ImageMeta[]>(url);
+      return data;
+    } catch (err) {
+      throw new Error(`Failed to fetch images for batch ${batchID}: ${err}`);
+    }
+  }, []);
+
+  const loadImageURL = React.useCallback(
+    async (batchID: string, imageNumber: number): Promise<ImageMeta> => {
+      if (!batchID) throw new Error('batchID is required');
+
+      let images = batchCache.current.get(batchID);
+      if (!images) {
+        images = await fetchImagesForBatch(batchID);
+        batchCache.current.set(batchID, images);
+      }
+
+      setTotalImageCount(images.length);
+
+      if (images.length === 0) {
+        throw new Error('No images found for this batch');
+      }
+
+      // Clamp requested image number into range [1, images.length]
+      const clampedNumber = Math.max(1, Math.min(imageNumber, images.length));
+      if (clampedNumber !== imageNumber) {
+        setCurrentImageNumber(clampedNumber);
+      }
+      const imageMetadata = images[clampedNumber - 1];
+      if (!imageMetadata || !imageMetadata.imageURL) {
+        throw new Error('Invalid image metadata or imageURL not found');
+      }
+
+      setCurrentImageURL(imageMetadata.imageURL);
+      setCurrentImageID(imageMetadata.imageID);
+      return imageMetadata;
+    },
+    [fetchImagesForBatch],
+  );
+
+  const getFabricImage = React.useCallback(async (imageURL: string): Promise<fabric.FabricImage> => {
+    let img = fabricImageCache.current.get(imageURL);
+    if (!img) {
+      const url = devRewriteURL(imageURL);
+      img = await fabric.FabricImage.fromURL(url, {
+        crossOrigin: 'anonymous',
+      });
+      fabricImageCache.current.set(imageURL, img);
+    }
+    return img;
+  }, []);
+
+  const getKeypoints = React.useCallback((): KeypointAnnotation[] => {
+    if (!currentImageURL) return [];
+    const s = annotationStore.current.get(currentImageURL);
+    return s ? s.kps : [];
+  }, [currentImageURL]);
+
+  const getBoundingBoxes = React.useCallback((): BoundingBoxAnnotation[] => {
+    if (!currentImageURL) return [];
+    const s = annotationStore.current.get(currentImageURL);
+    return s ? s.bbs : [];
+  }, [currentImageURL]);
+
+  const getAnnotationStoreForCurrent = React.useCallback((): ImageAnnotations => {
+    if (!currentImageURL) throw new Error('currentImageURL is not set');
+    const s = annotationStore.current.get(currentImageURL) ?? { kps: [], bbs: [] };
+    return s;
+  }, [currentImageURL]);
+
+  return {
+    currentImageNumber,
+    totalImageCount,
+    getCurrentImageNumber,
+    getTotalImageCount,
+    setCurrentImageNumber,
+    setTotalImageCount,
+    nextImage,
+    prevImage,
+    goToImage,
+    fetchImagesForBatch,
+    loadImageURL,
+    getFabricImage,
+    setInputImage,
+    getInputImage,
+    getKeypoints,
+    getBoundingBoxes,
+    currentImageURL,
+    setCurrentImageURL,
+    currentImageID,
+    setCurrentImageID,
+    getAnnotationStoreForCurrent,
+    annotationStore: annotationStore.current, // expose stable ref
+  };
 }
 
-// Load and return the image URL for a given batch and image index
-export async function loadImageURL(batchID: string, imageNumber: number): Promise<{ imageURL: string; total: number; imageID?: string }> {
-  if (!batchID) throw new Error('batchID is required');
-
-  let images = cache.get(batchID);
-  if (!images) {
-    images = await fetchImagesForBatch(batchID);
-    cache.set(batchID, images);
-  }
-
-  totalImageCount = images.length;
-  if (totalImageCount === 0) {
-    throw new Error('No images found for this batch');
-  }
-
-  const imageMetadata = images[imageNumber - 1];
-  if (!imageMetadata || !imageMetadata.imageURL) {
-    throw new Error('Invalid image metadata or imageURL not found');
-  }
-  return { imageURL: imageMetadata.imageURL, total: totalImageCount, imageID: imageMetadata.imageID };
-}
-
-export function nextImage(setCurrentImage: React.Dispatch<React.SetStateAction<number>>) {
-  if (totalImageCount <= 0) return currentImageNumber;
-  currentImageNumber = currentImageNumber < totalImageCount ? currentImageNumber + 1 : 1;
-  setCurrentImage(currentImageNumber);
-}
-
-export function prevImage(setCurrentImage: React.Dispatch<React.SetStateAction<number>>) {
-  if (totalImageCount <= 0) return currentImageNumber;
-  currentImageNumber = currentImageNumber > 1 ? currentImageNumber - 1 : totalImageCount;
-  setCurrentImage(currentImageNumber);
-}
-
-// Route all GCS requests through same-origin /gcs proxy (handled by Vite dev or NGINX) to avoid CORS
-function devRewriteURL(url: string): string {
-  return url.replace(/^https?:\/\/storage\.googleapis\.com/, '/gcs');
-}
-
-// Fabric image cache and loader
-const fabricImageCache = new Map<string, fabric.FabricImage>();
-
-export async function getFabricImage(imageURL: string): Promise<fabric.FabricImage> {
-  let img = fabricImageCache.get(imageURL);
-  if (!img) {
-    const url = devRewriteURL(imageURL);
-    img = await fabric.FabricImage.fromURL(url, { crossOrigin: 'anonymous' });
-    fabricImageCache.set(imageURL, img);
-  }
-  return img;
-}
+// Convenience export for consumers that only need the instance type
+export type ImageHandler = ReturnType<typeof useImageHandler>;

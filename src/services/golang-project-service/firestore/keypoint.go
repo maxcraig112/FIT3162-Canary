@@ -39,9 +39,10 @@ type CreateKeypointRequest struct {
 	BoundingBoxID   string `json:"boundingBoxID"`
 }
 
-type UpdateKeypointPositionRequest struct {
-	KeypointID string `json:"keypointID"`
-	Position   Point  `json:"position"`
+type UpdateKeypointRequest struct {
+	KeypointID      string `json:"keypointID"`
+	KeypointLabelID string `json:"keypointLabelID"`
+	Position        *Point `json:"position"`
 }
 
 // Store wrapper
@@ -59,6 +60,7 @@ func NewKeypointStore(client fs.FirestoreClientInterface) *KeypointStore {
 func (s *KeypointStore) CreateKeypoint(ctx context.Context, req CreateKeypointRequest) (string, error) {
 	qp := []fs.QueryParameter{
 		{Path: "keypointLabelID", Op: "==", Value: req.KeypointLabelID},
+		{Path: "imageID", Op: "==", Value: req.ImageID},
 	}
 
 	if req.BoundingBoxID != "" {
@@ -167,9 +169,37 @@ func (s *KeypointStore) GetKeypoint(ctx context.Context, keypointID string) (*Ke
 	return &k, nil
 }
 
-func (s *KeypointStore) UpdateKeypointPosition(ctx context.Context, req UpdateKeypointPositionRequest) error {
-	updates := []firestore.Update{
-		{Path: "position", Value: req.Position},
+func (s *KeypointStore) UpdateKeypoint(ctx context.Context, req UpdateKeypointRequest) error {
+	kp, err := s.GetKeypoint(ctx, req.KeypointID)
+	if err == fs.ErrNotFound {
+		return fs.ErrNotFound
+	}
+
+	qp := []fs.QueryParameter{
+		{Path: "keypointLabelID", Op: "==", Value: req.KeypointLabelID},
+		{Path: "imageID", Op: "==", Value: kp.ImageID},
+	}
+
+	if kp.BoundingBoxID != "" {
+		qp = append(qp, fs.QueryParameter{Path: "boundingBoxID", Op: "==", Value: kp.BoundingBoxID})
+	} else {
+		qp = append(qp, fs.QueryParameter{Path: "boundingBoxID", Op: "==", Value: nil})
+	}
+
+	docs, err := s.genericStore.ReadCollection(ctx, qp)
+	if err != nil {
+		return err
+	}
+	if len(docs) > 0 {
+		return fs.ErrAlreadyExists
+	}
+	updates := []firestore.Update{}
+
+	if req.KeypointLabelID != "" {
+		updates = append(updates, firestore.Update{Path: "keypointLabelID", Value: req.KeypointLabelID})
+	}
+	if req.Position != nil {
+		updates = append(updates, firestore.Update{Path: "position", Value: req.Position})
 	}
 
 	return s.genericStore.UpdateDoc(ctx, req.KeypointID, updates)

@@ -2,26 +2,39 @@ import * as fabric from 'fabric';
 
 // Shared annotation types
 export interface KeypointAnnotation {
-  projectID?: string;
-  imageID?: string;
-  id?: string;
-  label: string;
-  // unique ID of the selected label (for backend requests)
-  labelID?: string;
-  // single point kept as array for shape consistency
-  points: Array<{ x: number; y: number }>;
+  kind: 'keypoint';
+  projectID: string;
+  imageID: string;
+  id: string;
+  labelID: string;
+  position: { x: number; y: number };
+  // addToDatabase(): Promise<void>;
+  // removeFromDatabase(): Promise<void>;
 }
 
 export interface BoundingBoxAnnotation {
-  projectID?: string;
-  imageID?: string;
-  id?: string;
-  label: string;
-  // unique ID of the selected label (for backend requests)
-  labelID?: string;
-  // rectangle represented as 4 points clockwise, starting top-left
+  kind: 'boundingbox';
+  projectID: string;
+  imageID: string;
+  id: string;
+  labelID: string;
   points: Array<{ x: number; y: number }>;
-  addToDatabase(): Promise<void> | void;
+  // addToDatabase(): Promise<void>;
+  // removeFromDatabase(): Promise<void>;
+}
+
+export function createKeypointAnnotation(data: Omit<KeypointAnnotation, 'kind'>): KeypointAnnotation {
+  return {
+    kind: 'keypoint',
+    ...data,
+  };
+}
+
+export function createBoundingBoxAnnotation(data: Omit<BoundingBoxAnnotation, 'kind'>): BoundingBoxAnnotation {
+  return {
+    kind: 'boundingbox',
+    ...data,
+  };
 }
 
 export type LabelRequest = {
