@@ -104,7 +104,7 @@ const AnnotatePage: React.FC = () => {
 
     render();
     // Re-render when current image number changes
-  }, [imageHandler.currentImageNumber]);
+  }, [batchID, projectID, imageHandler, imageHandler.currentImageNumber]);
 
   // Keep handler tool selection in sync with UI
   useEffect(() => {

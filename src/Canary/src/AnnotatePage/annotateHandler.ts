@@ -167,7 +167,7 @@ export const annotateHandler = {
       }
 
       if (currentTool === 'bb' && pendingBB) {
-        const { polygon, points } = pendingBB;
+        const { points } = pendingBB;
 
         // Convert pending canvas points to image-space before saving
         const imgPts = points.map((p) => canvasToImage(p));
