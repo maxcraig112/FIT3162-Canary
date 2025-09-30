@@ -564,7 +564,7 @@ const ProjectsPage: React.FC = () => {
             onClick={async () => {
               try {
                 const message = await projectHandler.handleNewProject(newProjectName);
-                console.log('Project created successfully:', message);
+                // console.log('Project created successfully:', message);
                 handleCloseModal();
                 // Refresh the projects list
                 const updatedProjects = await projectHandler.fetchProjects();

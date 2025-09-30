@@ -27,7 +27,7 @@ export async function loadProjectLabels(projectID?: string) {
         const name = d.keypointLabel.toString();
         if (id && name) map[id] = name;
       }
-      console.log('Loaded keypoint labels:', map);
+      // console.log('Loaded keypoint labels:', map);
       setKeypointLabelMaps(map);
     }
     if (bbData && Array.isArray(bbData)) {
@@ -37,10 +37,10 @@ export async function loadProjectLabels(projectID?: string) {
         const name = d.boundingBoxLabel.toString();
         if (id && name) map[id] = name;
       }
-      console.log('Loaded bounding box labels:', map);
+      // console.log('Loaded bounding box labels:', map);
       setBoundingBoxLabelMaps(map);
     }
   } catch {
-    console.log('Failed to load project labels');
+    // console.log('Failed to load project labels');
   }
 }

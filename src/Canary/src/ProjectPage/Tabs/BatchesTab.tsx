@@ -38,7 +38,7 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
   // Log batches whenever they change so you can inspect the data
   React.useEffect(() => {
     if (batches) {
-      console.log('[BatchesTab] Batches state:', batches);
+      // console.log('[BatchesTab] Batches state:', batches);
     }
   }, [batches]);
 

@@ -15,11 +15,11 @@ export async function handleLogin(email: string, password: string, setResult?: (
   try {
     const data = await postToAuthService('/login', { email, password });
     if (data && data.token) {
-      console.log(data);
+      // console.log(data);
       setCookie('auth_token', data.token);
       if (data.userID) setCookie('user_id', data.userID);
       if (setResult) setResult('Login successful');
-      console.log('Login success, token set in cookie');
+      // console.log('Login success, token set in cookie');
     } else {
       if (setResult) setResult('Login failed: No token received');
       throw new Error('No token received');
@@ -34,7 +34,7 @@ export async function handleRegister(email: string, password: string, setResult?
   try {
     const data = await postToAuthService('/register', { email, password });
     if (setResult) setResult(data?.message ? data.message : 'Register successful');
-    console.log('Register success:', data);
+    // console.log('Register success:', data);
   } catch (err) {
     if (setResult) setResult('Register failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
     console.error('Register error:', err);

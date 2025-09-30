@@ -62,7 +62,7 @@ export const keypointDatabaseHandler = {
       throw new Error(`Invalid JSON response: ${err}`);
     }
 
-    console.log('Keypoint stored:', ann);
+    // console.log('Keypoint stored:', ann);
     return ann;
   },
 
@@ -82,15 +82,15 @@ export const keypointDatabaseHandler = {
       throw new Error(`Failed to rename keypoint ${ann.id}: ${err}`);
     }
 
-    console.log(`Keypoint ${ann.id} renamed to label ${newLabelID}`);
+    // console.log(`Keypoint ${ann.id} renamed to label ${newLabelID}`);
     return { ...ann, labelID: newLabelID };
   },
 
   // Delete an existing keypoint in the database
   async deleteKeyPoint(ann: KeypointAnnotation): Promise<void> {
     const url = `${baseUrl}/projects/${ann.projectID}/keypoints/${ann.id}`;
-    console.log('Deleting keypoint:', ann);
-    console.log(`URL: ${url}`);
+    // console.log('Deleting keypoint:', ann);
+    // console.log(`URL: ${url}`);
     try {
       await CallAPI(url, {
         method: 'DELETE',
@@ -100,7 +100,7 @@ export const keypointDatabaseHandler = {
       console.error(`Failed to delete keypoint ${ann.id}:`, err);
     }
 
-    console.log('Keypoint deleted:', ann);
+    // console.log('Keypoint deleted:', ann);
   },
 
   async getAllKeyPoints(projectID: string, imageID: string) {
@@ -125,7 +125,7 @@ export const keypointDatabaseHandler = {
         return kp;
       })
       .filter((v): v is KeypointAnnotation => Boolean(v));
-    console.log(`keypoints loaded:`, normalized);
+    // console.log(`keypoints loaded:`, normalized);
     return normalized;
   },
 };

@@ -533,6 +533,19 @@ func (h *ImageHandler) CopyPrevAnnotationsHandler(w http.ResponseWriter, r *http
 		return
 	}
 
+	// remove all keypoints and bounding boxes from current image
+	if err := h.KeypointStore.DeleteKeypointsByImageID(ctx, imageID); err != nil {
+		http.Error(w, "Failed to delete keypoints for image", http.StatusInternalServerError)
+		log.Error().Err(err).Str("imageID", imageID).Msg("Failed to delete keypoints for images")
+		return
+	}
+
+	if err := h.BoundingBoxStore.DeleteBoundingBoxesByImageID(ctx, imageID); err != nil {
+		http.Error(w, "Failed to delete bounding boxes for image", http.StatusInternalServerError)
+		log.Error().Err(err).Str("imageID", imageID).Msg("Failed to delete bounding boxes for images")
+		return
+	}
+
 	// create new bounding boxes
 	// map old to new id
 	boundingBoxIdMap := make(map[string]string, len(prevBoundingBoxes))
