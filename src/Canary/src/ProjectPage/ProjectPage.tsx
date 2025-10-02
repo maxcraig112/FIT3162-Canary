@@ -235,11 +235,16 @@ const ProjectPage: React.FC = () => {
                 {loading && !projectData && <Typography variant="body1">Loading content...</Typography>}
                 {!loading && !error && (
                   <>
-                    {selectedTab === 0 && <UploadTab project={projectData} />}
-                    {selectedTab === 1 && <DatasetTab project={projectData} />}
-                    {selectedTab === 2 && <BatchesTab project={projectData} />}
-                    {selectedTab === 3 && <ExportTab project={projectData} />}
-                    {settingsTab && <SettingsTab project={projectData} />}
+                    {settingsTab ? (
+                      <SettingsTab project={projectData} />
+                    ) : (
+                      <>
+                        {selectedTab === 0 && <UploadTab project={projectData} />}
+                        {selectedTab === 1 && <DatasetTab project={projectData} />}
+                        {selectedTab === 2 && <BatchesTab project={projectData} />}
+                        {selectedTab === 3 && <ExportTab project={projectData} />}
+                      </>
+                    )}
                   </>
                 )}
               </Box>
