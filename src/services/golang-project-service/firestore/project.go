@@ -28,7 +28,6 @@ type ProjectSettings struct {
 
 type Session struct {
 	Enabled  bool   `firestore:"enabled,omitempty" json:"enabled"`
-	Name     string `firestore:"name,omitempty" json:"name"`
 	Password string `firestore:"password,omitempty" json:"password"`
 }
 

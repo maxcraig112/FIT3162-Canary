@@ -66,10 +66,8 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
   const projectID = _project?.projectID;
   const {
     sessionEnabled,
-    sessionName,
     sessionPassword,
     setSessionEnabled,
-    setSessionName,
     setSessionPassword,
     saveSessionSettings,
     saveSuccess,
@@ -84,7 +82,7 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
     addBbox,
     deleteKeypoint,
     deleteBbox,
-  } = useSettingsTab(projectID, (_project as unknown as { settings?: { session?: { enabled?: boolean; name?: string; password?: string } } } | null)?.settings ?? null);
+  } = useSettingsTab(projectID, (_project as unknown as { settings?: { session?: { enabled?: boolean; password?: string } } } | null)?.settings ?? null);
 
   return (
     <Box
@@ -168,18 +166,6 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
               mb: 2,
             }}
           >
-            <TextField
-              label="Session Name"
-              variant="outlined"
-              color="primary"
-              focused
-              autoComplete="off"
-              sx={{ minWidth: '48%' }}
-              value={sessionName}
-              onChange={(e) => setSessionName(e.target.value)}
-              InputProps={{ style: { color: '#000' } }}
-              inputProps={{ name: 'canary-session-name', autoComplete: 'off' }}
-            />
             <TextField
               label="Password"
               variant="outlined"
