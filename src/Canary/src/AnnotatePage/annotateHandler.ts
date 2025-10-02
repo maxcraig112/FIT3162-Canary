@@ -393,6 +393,26 @@ export const annotateHandler = {
 
     return { current: imageHandler.currentImageNumber, total };
   },
+  // Force a refresh of annotations for the current image (re-fetch from backend and redraw)
+  async refreshAnnotations(projectID: string) {
+    const imageHandler = imageHandlerRef;
+    if (!imageHandler || !canvasRef) return;
+    const imageID = imageHandler.currentImageID;
+    const imageURL = imageHandler.currentImageURL;
+    if (!imageID || !imageURL) return;
+    try {
+      const [kps, bbs] = await Promise.all([
+        keypointDatabaseHandler.getAllKeyPoints(projectID, imageID).catch(() => []),
+        boundingBoxDatabaseHandler.getAllBoundingBoxes(projectID, imageID).catch(() => []),
+      ]);
+      imageHandler.annotationStore.set(imageURL, { kps, bbs });
+      clearAnnotationGroups();
+      drawAnnotationsForCurrentImage(imageHandler, imageURL);
+      canvasRef.requestRenderAll();
+    } catch (e) {
+      console.warn('[Annotate] refreshAnnotations failed', e);
+    }
+  },
 };
 
 function handleBoundingBoxClick(x: number, y: number) {

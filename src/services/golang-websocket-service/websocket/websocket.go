@@ -187,7 +187,7 @@ func (h *WebSocketHub) startLabelsWatch(c *Client, sessionID string) {
 	keypointStop, err := h.KeyPointStore.WatchByImagesID(context.Background(), c.imageID, func(docs []*firestore.DocumentSnapshot) {
 		// Send only to this client
 		notif := StandardNotification{
-			Type:      "labels_snapshot",
+			Type:      "key_points_snapshot",
 			SessionID: sessionID,
 			Time:      time.Now().UTC().Format(time.RFC3339),
 		}

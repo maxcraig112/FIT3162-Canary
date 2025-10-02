@@ -5,6 +5,7 @@ import (
 
 	pkgjwt "pkg/jwt"
 
+	"websocket-service/constants"
 	wsjwt "websocket-service/jwt"
 	"websocket-service/websocket"
 
@@ -19,6 +20,24 @@ func (sh *SessionHandler) CreateSessionWebSocketHandler(w http.ResponseWriter, r
 	token := r.URL.Query().Get("token")
 	if token == "" {
 		http.Error(w, "missing token", http.StatusUnauthorized)
+		return
+	}
+
+	// Debug bypass path: allow simple token override to skip JWT validation for local tooling (e.g., wscat)
+	if constants.DebugBypassEnabled && token == constants.DebugBypassToken {
+		batchID := r.URL.Query().Get("batchID")
+		if batchID == "" {
+			batchID = constants.DebugDefaultBatchID
+		}
+		ownerID := r.URL.Query().Get("userID")
+		if ownerID == "" {
+			ownerID = constants.DebugDefaultOwnerID
+		}
+		req := websocket.CreateSessionConnectionRequest{OwnerID: ownerID, SessionID: sessionID, BatchID: batchID}
+		log.Warn().Str("sessionID", sessionID).Str("ownerID", ownerID).Msg("DEBUG BYPASS: Upgrading owner websocket without auth validation")
+		if err := sh.Hub.CreateSession(w, r, req); err != nil {
+			log.Error().Err(err).Str("sessionID", sessionID).Msg("owner websocket upgrade failed (debug bypass)")
+		}
 		return
 	}
 
@@ -55,6 +74,20 @@ func (sh *SessionHandler) JoinSessionWebSocketHandler(w http.ResponseWriter, r *
 	token := r.URL.Query().Get("token")
 	if token == "" {
 		http.Error(w, "missing token", http.StatusUnauthorized)
+		return
+	}
+
+	// Debug bypass path: allow simple token override to skip JWT validation for local tooling (e.g., wscat)
+	if constants.DebugBypassEnabled && token == constants.DebugBypassToken {
+		memberID := r.URL.Query().Get("userID")
+		if memberID == "" {
+			memberID = constants.DebugDefaultUserID
+		}
+		req := websocket.JoinSessionConnectionRequest{MemberID: memberID, SessionID: sessionID}
+		log.Warn().Str("sessionID", sessionID).Str("memberID", memberID).Msg("DEBUG BYPASS: Upgrading member websocket without auth validation")
+		if err := sh.Hub.JoinSession(w, r, req); err != nil {
+			log.Error().Err(err).Str("sessionID", sessionID).Msg("member websocket upgrade failed (debug bypass)")
+		}
 		return
 	}
 

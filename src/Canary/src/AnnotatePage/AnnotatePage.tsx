@@ -14,7 +14,7 @@ import { getCentreOfCanvas } from './helper';
 import { useAuthGuard } from '../utils/authUtil';
 // import { useSharedImageHandler } from './imagehandlercontext';
 import { useImageHandler } from './imageStateHandler';
-import { initialiseSessionWebSocket, getActiveSessionID, sendActiveImageID } from './sessionHandler';
+import { initialiseSessionWebSocket, getActiveSessionID, sendActiveImageID, closeSessionWebSocket, setNavigateAway } from './sessionHandler';
 
 const AnnotatePage: React.FC = () => {
   // Helper for undo/redo actions
@@ -118,7 +118,7 @@ const AnnotatePage: React.FC = () => {
 
     render();
     // Re-render when current image number changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally only depend on currentImageNumber
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally only depend on currentImageNumber
   }, [imageHandler.currentImageNumber]); // UNDER NO CIRCUMSTANCES ADD batchID, projectID, imageHandler
 
   // Keep handler tool selection in sync with UI
@@ -219,6 +219,21 @@ const AnnotatePage: React.FC = () => {
     }
   };
 
+  // Decide where to navigate to depending on the sessionRole
+  const NavigateAway = React.useCallback(() => {
+    if (sessionRole === 'member') {
+      navigate('/');
+    } else if (projectID) {
+      navigate(`/projects/${projectID}`);
+    } else {
+      navigate(-1);
+    }
+  }, [sessionRole, projectID, navigate]);
+
+  useEffect(() => {
+    setNavigateAway(NavigateAway);
+  }, [NavigateAway]);
+
   return (
     <Box sx={{ display: 'flex', height: '100vh', bgcolor: '#f5f5f5' }}>
       {/* Left Sidebar */}
@@ -238,11 +253,7 @@ const AnnotatePage: React.FC = () => {
               edge="start"
               sx={{ position: 'absolute', left: 8, top: 8 }}
               onClick={() => {
-                if (projectID) {
-                  navigate(`/projects/${projectID}`);
-                } else {
-                  navigate(-1);
-                }
+                closeSessionWebSocket(1000, 'navigate away');
               }}
             >
               <ExitToAppIcon />
@@ -259,7 +270,8 @@ const AnnotatePage: React.FC = () => {
               {sessionID && (
                 <Paper elevation={2} sx={{ px: 2, py: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                    Session: {sessionID}{sessionRole ? ` (${sessionRole})` : ''}
+                    Session: {sessionID}
+                    {sessionRole ? ` (${sessionRole})` : ''}
                   </Typography>
                 </Paper>
               )}

@@ -1,18 +1,15 @@
 import { websocketServiceUrl } from '../utils/apis';
 import { getCookie, clearCookie, getAuthTokenFromCookie } from '../utils/cookieUtils';
+import { annotateHandler } from './annotateHandler';
 
 declare global {
 	interface Window {
 		__canarySessionSocket?: WebSocket;
 		__canarySessionRole?: 'owner' | 'member';
 		__canarySessionInitPromise?: Promise<SessionInitResult>;
+		__canaryNavigateAway?: () => void;
 	}
 }
-
-// Cookies used:
-//  - create_session_cookie : owner token (short-lived) for creating a session websocket
-//  - join_session_cookie   : member token (short-lived) for joining a session websocket
-//  - session_id_cookie     : (optional) stores the sessionID after creation for reuse/display
 
 export interface SessionInitResult {
 	sessionID?: string;
@@ -21,10 +18,6 @@ export interface SessionInitResult {
 	error?: string;
 }
 
-// Establish a websocket connection for session collaboration.
-// If create token is present -> create session websocket.
-// Else if join token is present -> join session websocket.
-// Returns the active websocket and discovered sessionID.
 export async function initialiseSessionWebSocket(existingSessionID?: string): Promise<SessionInitResult> {
 	// If an init is already in-flight, await it
 	if (window.__canarySessionInitPromise) {
@@ -78,26 +71,66 @@ export async function initialiseSessionWebSocket(existingSessionID?: string): Pr
 	if (authToken) qs.set('auth', authToken); // server should treat this as Bearer token fallback if Authorization header absent
 	const wsUrl = `${wsBase}${path}?${qs.toString()}`;
 
+	let pendingImageID: string | undefined; // holds latest imageID if sent before socket open
+
 	const initPromise = new Promise<SessionInitResult>((resolve) => {
 		try {
 			const socket = new WebSocket(wsUrl);
 			window.__canarySessionSocket = socket; // mark early to block races
 			window.__canarySessionRole = role;
+			// Inbound messages
+			socket.onmessage = (ev) => {
+				interface WSMessage { type?: string; [k: string]: unknown }
+				let data: WSMessage | undefined;
+				try {
+					data = JSON.parse(ev.data);
+				} catch (e) {
+					console.warn('[session ws] non-JSON message', ev.data, e);
+					return;
+				}
+				// Debug log
+				console.debug('[session ws] <-', data);
+				const type = data?.type as string | undefined;
+				if (!type) return;
+				// Determine current projectID (from cookie-store flow we pass via URL query on page load)
+				let projectID: string | undefined;
+				try {
+					projectID = new URL(window.location.href).searchParams.get('projectID') || undefined;
+				} catch { /* ignore */ }
+				if (!projectID) return;
+				switch (type) {
+					case 'key_points_snapshot':
+					case 'bounding_boxes_snapshot':
+						// Re-fetch both sets for simplicity (can optimize later with diff payloads)
+						annotateHandler.refreshAnnotations(projectID);
+						break;
+					default:
+						break;
+				}
+			};
 			socket.onopen = () => {
 				// Clear one-time tokens after successful upgrade
 				if (role === 'owner') clearCookie('create_session_cookie');
 				if (role === 'member') clearCookie('join_session_cookie');
 				// Persist sessionID for page reload continuity
 				if (sessionID) document.cookie = `session_id_cookie=${sessionID}; path=/`;
+				// Flush any pending imageID
+				if (pendingImageID) {
+					try { socket.send(JSON.stringify({ type: 'setImageID', payload: { imageID: pendingImageID } })); } catch {/* ignore */}
+					pendingImageID = undefined;
+				}
 				resolve({ sessionID, socket, role });
 			};
-			socket.onclose = () => {
-				// Clean up singleton so a future attempt can reconnect
-				if (window.__canarySessionSocket === socket) {
-					delete window.__canarySessionSocket;
-					delete window.__canarySessionRole;
-				}
-			};
+				socket.onclose = () => {
+					// Clean up singleton so a future attempt can reconnect
+					if (window.__canarySessionSocket === socket) {
+						delete window.__canarySessionSocket;
+						delete window.__canarySessionRole;
+					}
+					try {
+						closeSessionWebSocket(1000, 'websocket closed');
+					} catch { /* ignore */ }
+				};
 			socket.onerror = () => {
 				resolve({ error: 'WebSocket error establishing session', sessionID });
 			};
@@ -128,5 +161,25 @@ export function sendActiveImageID(imageID: string) {
 // Helper to get the session ID from cookie (for display)
 export function getActiveSessionID(): string | undefined {
 	return getCookie('session_id_cookie') || undefined;
+}
+
+// Gracefully close and clear the current session websocket (used on navigation / unload)
+export function closeSessionWebSocket(code = 1000, reason = 'normal closure') {
+	const ws = window.__canarySessionSocket;
+	if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+		try {
+			ws.close(code, reason);
+		} catch {/* ignore */}
+	}
+	delete window.__canarySessionSocket;
+	delete window.__canarySessionRole;
+	delete window.__canarySessionInitPromise;
+	// Trigger registered navigation handler if present
+	try { window.__canaryNavigateAway?.(); } catch { /* ignore */ }
+}
+
+// Allow React layer to register a navigation callback used when the websocket is explicitly closed.
+export function setNavigateAway(fn: () => void) {
+    window.__canaryNavigateAway = fn;
 }
 
