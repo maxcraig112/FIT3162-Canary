@@ -24,9 +24,11 @@ type ListPanelProps = {
   onDelete: (v: string) => void;
   onRename?: (oldName: string, newName: string) => void;
   placeholder?: string;
+  error?: string | null;
+  onClearError?: () => void;
 };
 
-const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputChange, onAdd, items, onDelete, onRename, placeholder }) => {
+const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputChange, onAdd, items, onDelete, onRename, placeholder, error, onClearError }) => {
   // Inline rename state
   const [editingItem, setEditingItem] = React.useState<string | null>(null);
   const [editValue, setEditValue] = React.useState<string>('');
@@ -37,6 +39,7 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
   const startEditing = (name: string) => {
     setEditingItem(name);
     setEditValue(name);
+    onClearError?.();
   };
 
   const cancelEditing = () => {
@@ -71,7 +74,15 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
   const handleMenuDelete = () => {
     const target = menuFor;
     closeMenu();
-    if (target) onDelete(target);
+    if (target) {
+      onClearError?.();
+      onDelete(target);
+    }
+  };
+
+  const handleAddClick = () => {
+    onClearError?.();
+    onAdd();
   };
 
   return (
@@ -93,7 +104,11 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
           size="small"
           placeholder={placeholder || 'Add new label'}
           value={inputValue}
-          onChange={(e) => onInputChange(e.target.value)}
+          onChange={(e) => {
+            onClearError?.();
+            onInputChange(e.target.value);
+          }}
+          error={Boolean(error)}
           InputProps={{
             style: { color: '#000', fontSize: '0.875rem' }, // Smaller text
           }}
@@ -101,10 +116,15 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
             style: { fontSize: '0.875rem' }, // Smaller label text
           }}
         />
-        <Button variant="contained" onClick={onAdd} disabled={!inputValue.trim()}>
+        <Button variant="contained" onClick={handleAddClick} disabled={!inputValue.trim()}>
           Add
         </Button>
       </Box>
+      {error && (
+        <Typography variant="caption" color="error" sx={{ mb: 1 }}>
+          {error}
+        </Typography>
+      )}
       <List dense sx={{ flex: 1, overflowY: 'auto', pr: 1 }}>
         {items.map((it) => (
           <ListItem key={it} sx={{ pr: 1, py: 0 /* keep row compact */ }}>
@@ -123,7 +143,10 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
                     fullWidth
                     autoFocus
                     value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
+                    onChange={(e) => {
+                      onClearError?.();
+                      setEditValue(e.target.value);
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
@@ -209,6 +232,10 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
     addBbox,
     deleteKeypoint,
     deleteBbox,
+    keypointError,
+    bboxError,
+    clearKeypointError,
+    clearBboxError,
     renameKeypointLabel,
     renameBboxLabel,
   } = useSettingsTab(projectID, (_project as unknown as { settings?: { session?: { enabled?: boolean; name?: string; password?: string } } } | null)?.settings ?? null);
@@ -372,6 +399,8 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
           onDelete={deleteKeypoint}
           onRename={(oldName, newName) => renameKeypointLabel(oldName, newName)}
           placeholder="Add new label"
+          error={keypointError}
+          onClearError={clearKeypointError}
         />
       </Box>
 
@@ -410,6 +439,8 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
           onDelete={deleteBbox}
           onRename={(oldName, newName) => renameBboxLabel(oldName, newName)}
           placeholder="Add new label"
+          error={bboxError}
+          onClearError={clearBboxError}
         />
       </Box>
     </Box>
