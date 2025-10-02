@@ -48,19 +48,15 @@ export function useUploadTab(project: Project | null) {
   const beginUpload = useCallback(
     async (files: FileList | File[]) => {
       // Validate file types - only allow PNG, JPEG, and video files
-      const allowedTypes = [
-        'image/png',
-        'image/jpeg', 
-        'image/jpg'
-      ];
-      
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+
       const validFiles: File[] = [];
       const invalidFiles: string[] = [];
-      
+
       Array.from(files).forEach((file) => {
         const fileType = file.type.toLowerCase();
         const fileName = file.name.toLowerCase();
-        
+
         // Check for video files (allow all video types)
         if (fileType.startsWith('video/')) {
           validFiles.push(file);
@@ -72,8 +68,7 @@ export function useUploadTab(project: Project | null) {
         // Also check file extension as backup for JPEG files
         else if ((fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) && fileType.startsWith('image/')) {
           validFiles.push(file);
-        }
-        else {
+        } else {
           // Identify the problematic file type for better error messaging
           if (fileType.startsWith('image/')) {
             const format = fileType.replace('image/', '').toUpperCase();
@@ -83,14 +78,14 @@ export function useUploadTab(project: Project | null) {
           }
         }
       });
-      
+
       // Show error for invalid files
       if (invalidFiles.length > 0) {
         const fileWord = invalidFiles.length === 1 ? 'file' : 'files';
         setError(`The following ${fileWord} ${invalidFiles.length === 1 ? 'is' : 'are'} not supported: ${invalidFiles.join(', ')}. Only PNG, JPEG, and video files are allowed.`);
         return;
       }
-      
+
       const list = validFiles;
       if (!list.length) {
         setError('No supported files selected. Only PNG, JPEG, and video files are allowed.');

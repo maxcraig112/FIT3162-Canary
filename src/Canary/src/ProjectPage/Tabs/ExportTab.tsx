@@ -136,9 +136,11 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
             }}
             displayEmpty
             renderValue={(s) =>
-              s
-                ? formatLabels[s as ExportFormat] // show "PASCAL VOC" instead of "pascal-voc"
-                : <Typography sx={{ color: '#777' }}>Select format…</Typography>
+              s ? (
+                formatLabels[s as ExportFormat] // show "PASCAL VOC" instead of "pascal-voc"
+              ) : (
+                <Typography sx={{ color: '#777' }}>Select format…</Typography>
+              )
             }
             IconComponent={ExpandMoreIcon}
             sx={selectSx}

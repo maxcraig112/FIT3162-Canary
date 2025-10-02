@@ -24,8 +24,9 @@ export const darkTheme = createTheme({
       styleOverrides: {
         root: {
           opacity: 1,
-          '& svg': { // unchecked icon color
-            color: '#000000', 
+          '& svg': {
+            // unchecked icon color
+            color: '#000000',
           },
           '&.Mui-checked svg': {
             color: '#00bcd4',

@@ -88,17 +88,17 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
       }}
     >
       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-        <TextField 
-          fullWidth 
-          size="small" 
-          placeholder={placeholder || 'Add new label'} 
-          value={inputValue} 
-          onChange={(e) => onInputChange(e.target.value)} 
-          InputProps={{ 
-            style: { color: '#000', fontSize: '0.875rem' } // Smaller text
+        <TextField
+          fullWidth
+          size="small"
+          placeholder={placeholder || 'Add new label'}
+          value={inputValue}
+          onChange={(e) => onInputChange(e.target.value)}
+          InputProps={{
+            style: { color: '#000', fontSize: '0.875rem' }, // Smaller text
           }}
           InputLabelProps={{
-            style: { fontSize: '0.875rem' } // Smaller label text
+            style: { fontSize: '0.875rem' }, // Smaller label text
           }}
         />
         <Button variant="contained" onClick={onAdd} disabled={!inputValue.trim()}>
@@ -143,23 +143,13 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
                     }}
                   />
                 ) : (
-                  <Typography
-                    variant="body2"
-                    color="#000"
-                    noWrap
-                    sx={{ m: 0, lineHeight: (t) => t.typography.body2.lineHeight }}
-                  >
+                  <Typography variant="body2" color="#000" noWrap sx={{ m: 0, lineHeight: (t) => t.typography.body2.lineHeight }}>
                     {it}
                   </Typography>
                 )}
               </Box>
               <Box sx={{ width: 40, display: 'flex', justifyContent: 'flex-end' }}>
-                <IconButton
-                  edge="end"
-                  aria-label={`options ${it}`}
-                  onClick={(e) => openMenu(e, it)}
-                  sx={{ color: '#000', visibility: editingItem === it ? 'hidden' : 'visible' }}
-                >
+                <IconButton edge="end" aria-label={`options ${it}`} onClick={(e) => openMenu(e, it)} sx={{ color: '#000', visibility: editingItem === it ? 'hidden' : 'visible' }}>
                   <MoreVertIcon />
                 </IconButton>
               </Box>
@@ -186,8 +176,12 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
           },
         }}
       >
-        <MenuItem onClick={handleMenuRename} sx={{ color: '#000' }}>Rename</MenuItem>
-        <MenuItem onClick={handleMenuDelete} sx={{ color: '#d32f2f' }}>Delete</MenuItem>
+        <MenuItem onClick={handleMenuRename} sx={{ color: '#000' }}>
+          Rename
+        </MenuItem>
+        <MenuItem onClick={handleMenuDelete} sx={{ color: '#d32f2f' }}>
+          Delete
+        </MenuItem>
       </Menu>
     </Paper>
   );
@@ -399,8 +393,8 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
           <br />
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
             <Typography variant="body2" sx={{ color: '#000', textAlign: 'center' }}>
-              Bounding Boxes are used to identify specific areas of interest within an image, defined by a rectangle area. In the annotate page, they are defined as two points (the top right and bottom
-              left of the desired area).
+              Bounding Boxes are used to identify specific areas of interest within an image, defined by a rectangle area. In the annotate page, they are defined as two points (the top right and
+              bottom left of the desired area).
               <br />
               <br />
               WARNING: deleting a tag that is currently in use will remove it from all annotations.
