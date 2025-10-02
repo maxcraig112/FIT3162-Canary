@@ -212,6 +212,109 @@ export function useSettingsTab(projectID?: string, initialSettings?: ProjectSett
     [canUseApi, bbMap, projectID, loadBoundingBoxLabels],
   );
 
+  // --- New: rename helpers ---
+
+  const renameKeypointLabel = useCallback(
+    async (oldName: string, newNameRaw: string) => {
+      const newName = newNameRaw.trim();
+      if (!oldName || !newName || oldName === newName) return;
+
+      // Optimistic local update
+      const prevKpLabels = keypointLabels;
+      const prevKpMap = kpMap;
+      const id = kpMap[oldName];
+
+      // If duplicate exists, abort
+      if (prevKpLabels.includes(newName)) return;
+
+      const applyLocal = () => {
+        setKeypointLabels((prev) => prev.map((n) => (n === oldName ? newName : n)));
+        setKpMap((prev) => {
+          const next = { ...prev };
+          if (id) {
+            delete next[oldName];
+            next[newName] = id;
+          }
+          return next;
+        });
+      };
+
+      const rollbackLocal = () => {
+        setKeypointLabels(prevKpLabels);
+        setKpMap(prevKpMap);
+      };
+
+      applyLocal();
+
+      if (!canUseApi || !projectID || !id) {
+        // No API, keep local
+        return;
+      }
+
+      try {
+        const url = `${projectServiceUrl()}/projects/${projectID}/keypointlabel/${id}`;
+        await CallAPI<string>(url, {
+          method: 'PATCH',
+          json: { keypointLabel: newName },
+          parseJson: false,
+        });
+        await loadKeypointLabels(); // ensure sync with server state/ids
+      } catch {
+        rollbackLocal();
+      }
+    },
+    [canUseApi, projectID, keypointLabels, kpMap, loadKeypointLabels],
+  );
+
+  const renameBboxLabel = useCallback(
+    async (oldName: string, newNameRaw: string) => {
+      const newName = newNameRaw.trim();
+      if (!oldName || !newName || oldName === newName) return;
+
+      const prevBbLabels = bboxLabels;
+      const prevBbMap = bbMap;
+      const id = bbMap[oldName];
+
+      if (prevBbLabels.includes(newName)) return;
+
+      const applyLocal = () => {
+        setBboxLabels((prev) => prev.map((n) => (n === oldName ? newName : n)));
+        setBbMap((prev) => {
+          const next = { ...prev };
+          if (id) {
+            delete next[oldName];
+            next[newName] = id;
+          }
+          return next;
+        });
+      };
+
+      const rollbackLocal = () => {
+        setBboxLabels(prevBbLabels);
+        setBbMap(prevBbMap);
+      };
+
+      applyLocal();
+
+      if (!canUseApi || !projectID || !id) {
+        return;
+      }
+
+      try {
+        const url = `${projectServiceUrl()}/projects/${projectID}/boundingboxlabel/${id}`;
+        await CallAPI<string>(url, {
+          method: 'PATCH',
+          json: { boundingBoxLabel: newName },
+          parseJson: false,
+        });
+        await loadBoundingBoxLabels();
+      } catch {
+        rollbackLocal();
+      }
+    },
+    [canUseApi, projectID, bboxLabels, bbMap, loadBoundingBoxLabels],
+  );
+
   return {
     // sessions
     sessionEnabled,
@@ -233,5 +336,8 @@ export function useSettingsTab(projectID?: string, initialSettings?: ProjectSett
     addBbox,
     deleteKeypoint,
     deleteBbox,
+    // New exports for rename
+    renameKeypointLabel,
+    renameBboxLabel,
   } as const;
 }

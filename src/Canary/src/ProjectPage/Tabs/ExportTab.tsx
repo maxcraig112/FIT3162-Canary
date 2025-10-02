@@ -7,6 +7,11 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 type ExportFormat = 'coco' | 'pascal-voc';
 type AnnotationType = 'bbox' | 'keypoint';
 
+const formatLabels: Record<ExportFormat, string> = {
+  coco: 'COCO',
+  'pascal-voc': 'PASCAL VOC',
+};
+
 export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) => {
   /* ---------- state ---------- */
   const [format, setFormat] = useState<ExportFormat | ''>('');
@@ -130,13 +135,17 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
               setAnnotationType((prev) => (f === 'pascal-voc' && prev === 'keypoint' ? '' : prev));
             }}
             displayEmpty
-            renderValue={(s) => (s ? s.toUpperCase() : <Typography sx={{ color: '#777' }}>Select format…</Typography>)}
+            renderValue={(s) =>
+              s
+                ? formatLabels[s as ExportFormat] // show "PASCAL VOC" instead of "pascal-voc"
+                : <Typography sx={{ color: '#777' }}>Select format…</Typography>
+            }
             IconComponent={ExpandMoreIcon}
             sx={selectSx}
           >
             <MenuItem value="">Select format…</MenuItem>
-            <MenuItem value="coco">COCO</MenuItem>
-            <MenuItem value="pascal-voc">PASCAL VOC</MenuItem>
+            <MenuItem value="coco">{formatLabels.coco}</MenuItem>
+            <MenuItem value="pascal-voc">{formatLabels['pascal-voc']}</MenuItem>
           </Select>
         </FormControl>
 
@@ -164,7 +173,7 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
             }}
           >
             <MenuItem disabled={keypointDisabled} value="keypoint">
-              Key-point
+              Keypoint
             </MenuItem>
             <MenuItem value="bbox">Bounding box</MenuItem>
           </Select>
