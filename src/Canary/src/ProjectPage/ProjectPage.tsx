@@ -14,15 +14,9 @@ import BarChartOutlined from '@mui/icons-material/BarChartOutlined';
 import IosShareOutlined from '@mui/icons-material/IosShareOutlined';
 import SettingsOutlined from '@mui/icons-material/SettingsOutlined';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
+import type { Project } from '../utils/interfaces';
 
-export interface Project {
-  projectID: string;
-  projectName: string;
-  userID: string;
-  numberOfBatches: number;
-  lastUpdated: string;
-  settings?: unknown;
-}
+
 
 const ProjectPage: React.FC = () => {
   const navigate = useNavigate();

@@ -6,9 +6,10 @@ import { CANARY_BUTTON_COLOR, CANARY_BUTTON_TEXT_COLOR } from '../assets/constan
 import { useNavigate } from 'react-router-dom';
 
 import { handleProjectsPage } from './homeHandlers';
-import { clearCookie } from '../utils/cookieUtils';
+import { clearCookie, setCookie } from '../utils/cookieUtils';
 import canaryImg from '../images/canary.jpg';
 import { useAuthGuard } from '../utils/authUtil';
+import { joinSession } from '../utils/intefaces/session';
 
 const HomePage: React.FC = () => {
   // validate the user authentication, otherwise redirect to login
@@ -23,8 +24,20 @@ const HomePage: React.FC = () => {
   function handleOpenJoin() {
     setJoinOpen(true);
   }
-  function handleCloseJoin() {
+  async function handleCloseJoin() {
     setJoinOpen(false);
+    setSessionID('');
+    setSessionPassword('');
+  }
+
+  async function handleJoinSession() {
+    setJoinOpen(false);
+    const result = await joinSession(sessionID, sessionPassword);
+    if (result.ok) {
+      setCookie('join_session_cookie', result.data.token);
+    } else {
+      alert(`Failed to join session: ${result.error}`);
+    }
     setSessionID('');
     setSessionPassword('');
   }
@@ -157,7 +170,7 @@ const HomePage: React.FC = () => {
                 </Typography>
                 <TextField label="Session ID" variant="outlined" value={sessionID} onChange={(e) => setSessionID(e.target.value)} fullWidth autoComplete="off" />
                 <TextField label="Password" variant="outlined" type="password" value={sessionPassword} onChange={(e) => setSessionPassword(e.target.value)} fullWidth autoComplete="off" />
-                <Button variant="contained" sx={{ fontWeight: 700, fontSize: '1.2rem', borderRadius: 3, py: 1, backgroundColor: CANARY_BUTTON_COLOR, color: CANARY_BUTTON_TEXT_COLOR }}>
+                <Button variant="contained" sx={{ fontWeight: 700, fontSize: '1.2rem', borderRadius: 3, py: 1, backgroundColor: CANARY_BUTTON_COLOR, color: CANARY_BUTTON_TEXT_COLOR }} onClick={handleJoinSession}>
                   Join
                 </Button>
               </Paper>

@@ -1,19 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CallAPI } from '../../utils/apis';
-
-export interface Batch {
-  batchID: string;
-  batchName: string;
-  projectID: string;
-  numberOfTotalFiles: number;
-  lastUpdated?: string; // optional timestamp if backend provides
-  previewURL?: string; // first image URL for blurred background
-  isComplete?: boolean;
-}
-
-function projectServiceUrl() {
-  return import.meta.env.VITE_PROJECT_SERVICE_URL as string;
-}
+// If you need stronger typing for the navigate function you can import from react-router-dom.
+// We keep it generic here to avoid coupling this logic file to router implementation details.
+type NavigateFn = (path: string) => void;
+import { CallAPI, projectServiceUrl } from '../../utils/apis';
+import type { Batch } from '../../utils/intefaces/interfaces';
+import { getProject } from '../../utils/intefaces/project';
+import { createSession } from '../../utils/intefaces/session';
+import { setCookie } from '../../utils/cookieUtils';
 
 export async function fetchBatches(projectID: string): Promise<Batch[]> {
   const url = `${projectServiceUrl()}/projects/${projectID}/batches`;
@@ -230,6 +223,27 @@ export function useBatchesTab(projectID?: string) {
     }
   }, [menuBatchId]);
 
+  // Batch selection (navigate to annotate) centralised so we can add pre-navigation logic (e.g. analytics, session checks, prefetch) later
+  const openBatch = useCallback(
+    async (batch: Batch, navigate: NavigateFn) => {
+      if (!batch) return;
+      const navigateURL = `/annotate?batchID=${encodeURIComponent(batch.batchID)}&projectID=${encodeURIComponent(projectID ?? batch.projectID)}`;
+
+      const project = await getProject(projectID!);
+      if (!project.settings || !project.settings.session) {
+        // Sessions aren't enabled by default
+        navigate(navigateURL);
+      } else if (project.settings.session.enabled) {
+        const result = await createSession(batch.batchID);
+        if (result.ok) {
+          setCookie('create_session_cookie', result.data.token);
+        }
+      }
+      navigate(navigateURL);
+    },
+    [projectID],
+  );
+
   return {
     // data
     batches,
@@ -255,6 +269,8 @@ export function useBatchesTab(projectID?: string) {
     closeDelete,
     confirmDelete,
     deleting,
+    // selection
+    openBatch,
     // utils
     reload: load,
   };

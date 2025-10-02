@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { CallAPI } from '../../utils/apis';
-
-function projectServiceUrl() {
-  return import.meta.env.VITE_PROJECT_SERVICE_URL as string;
-}
+import { CallAPI, projectServiceUrl } from '../../utils/apis';
 
 type KeypointLabelDTO = {
   keyPointLabelID?: string;

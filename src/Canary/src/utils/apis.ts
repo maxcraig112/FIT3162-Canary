@@ -1,7 +1,19 @@
 import { getAuthTokenFromCookie } from './cookieUtils';
 
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
+export function authServiceUrl() {
+  return import.meta.env.VITE_AUTH_SERVICE_URL as string;
+}
+
+export function projectServiceUrl() {
+  return import.meta.env.VITE_PROJECT_SERVICE_URL as string;
+}
+
+export function websocketServiceUrl() {
+  return import.meta.env.VITE_WEBSOCKET_SERVICE_URL as string;
+}
+
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 export interface CallAPIOptions extends RequestInit {
   method?: HttpMethod;
   json?: unknown; // if provided, will be JSON.stringified and content-type set

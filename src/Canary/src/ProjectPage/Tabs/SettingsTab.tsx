@@ -12,7 +12,7 @@ import ListItemText from '@mui/material/ListItemText';
 import IconButton from '@mui/material/IconButton';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useSettingsTab } from './settingsTabHandler';
-import type { Project } from '../ProjectPage';
+import type { Project } from '../../utils/intefaces/interfaces';
 
 type ListPanelProps = {
   title: string;

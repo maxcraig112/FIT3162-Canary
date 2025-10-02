@@ -98,7 +98,7 @@ func Run() {
 	}
 
 	go func() {
-		log.Info().Str("port", port).Msg("Project service running")
+		log.Info().Str("port", port).Msg("Websocket service running")
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatal().Err(err).Msg("Failed to listen on port")
 		}

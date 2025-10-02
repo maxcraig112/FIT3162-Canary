@@ -7,6 +7,7 @@ import (
 
 	"pkg/handler"
 
+	fs "pkg/gcp/firestore"
 	"websocket-service/firestore"
 	wsjwt "websocket-service/jwt"
 	"websocket-service/websocket"
@@ -66,17 +67,32 @@ func (sh *SessionHandler) CreateSessionHandler(w http.ResponseWriter, r *http.Re
 		log.Error().Err(err).Msgf("Failed to get project ID from batch ID %s", batchID)
 		return
 	}
-	userID, err := sh.ProjectStore.GetUserIDFromProjectID(r.Context(), projectID)
+	project, err := sh.ProjectStore.GetProject(r.Context(), projectID)
 	if err != nil {
-		http.Error(w, "Failed to get user ID", http.StatusInternalServerError)
-		log.Error().Err(err).Msgf("Failed to get user ID from project ID %s", projectID)
+		http.Error(w, "Failed to get project", http.StatusInternalServerError)
+		log.Error().Err(err).Msgf("Failed to get project ID from batch ID %s", batchID)
 		return
 	}
+	userID := project.UserID
+
 	if userID != req.UserID {
 		http.Error(w, "User is not authorized to create session from batch", http.StatusForbidden)
 		log.Warn().Msgf("User %s is not authorized to create session from batch %s", userID, batchID)
 		return
 	}
+
+	if project.Settings == nil || !project.Settings.Session.Enabled {
+		http.Error(w, "Project does not have sessions enabled", http.StatusForbidden)
+		log.Warn().Msgf("Project %s does not have sessions enabled", projectID)
+		return
+	}
+	if project.Settings.Session.Password == "" {
+		http.Error(w, "Project session password is not set", http.StatusForbidden)
+		log.Warn().Msgf("Project %s session password is not set", projectID)
+		return
+	}
+
+	req.Password = project.Settings.Session.Password
 
 	if exists := sh.SessionStore.DoesSessionWithBatchExist(r.Context(), batchID); exists {
 		http.Error(w, "Session already exists for this batch", http.StatusConflict)
@@ -103,6 +119,7 @@ func (sh *SessionHandler) CreateSessionHandler(w http.ResponseWriter, r *http.Re
 		"token":     token,
 		"expiresIn": int(ttl.Seconds()),
 	})
+	log.Info().Str("userID", req.UserID).Str("sessionID", sessionID).Str("batchID", batchID).Msg("Created new session")
 }
 
 // JoinSessionHandler returns a short-lived token for joining; websocket upgrade is separate.
@@ -115,7 +132,35 @@ func (sh *SessionHandler) JoinSessionHandler(w http.ResponseWriter, r *http.Requ
 		log.Error().Msg("Missing userID query parameter for join session")
 		return
 	}
-	req := firestore.JoinSessionRequest{UserID: userIDParam, SessionID: sessionID}
+	// Decode full join request body (expects at least password)
+	var req firestore.JoinSessionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid join session body", http.StatusBadRequest)
+		log.Error().Err(err).Str("sessionID", sessionID).Msg("Failed to decode join session body")
+		return
+	}
+	// Override path/query controlled fields
+	req.UserID = userIDParam
+	req.SessionID = sessionID
+	if req.Password == "" {
+		http.Error(w, "Missing password", http.StatusBadRequest)
+		log.Warn().Str("sessionID", sessionID).Str("userID", req.UserID).Msg("Join session password missing")
+		return
+	}
+
+	// Retrieve session to validate password
+	session, err := sh.SessionStore.GetSession(r.Context(), sessionID)
+	if err != nil || session == nil {
+		http.Error(w, "Session not found", http.StatusNotFound)
+		log.Warn().Str("sessionID", sessionID).Err(err).Msg("Session not found while joining")
+		return
+	}
+
+	if session.Password != "" && session.Password != req.Password {
+		http.Error(w, "Invalid session password", http.StatusForbidden)
+		log.Warn().Str("sessionID", sessionID).Str("userID", req.UserID).Msg("Invalid session password")
+		return
+	}
 
 	if isInSession, err := sh.SessionStore.IsUserInSession(r.Context(), req); err != nil {
 		http.Error(w, "Failed to check user in session", http.StatusInternalServerError)
@@ -127,7 +172,12 @@ func (sh *SessionHandler) JoinSessionHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := sh.SessionStore.AddMemberToSession(r.Context(), req); err != nil {
+	err = sh.SessionStore.AddMemberToSession(r.Context(), req)
+	if err == fs.ErrNotFound {
+		http.Error(w, "Session not found", http.StatusNotFound)
+		log.Warn().Str("sessionID", sessionID).Msg("Session not found when adding member")
+		return
+	} else if err != nil {
 		http.Error(w, "Failed to add member to session", http.StatusInternalServerError)
 		log.Error().Str("userID", req.UserID).Str("sessionID", sessionID).Err(err).Msg("Failed to add member to session in Firestore")
 		return
@@ -144,4 +194,5 @@ func (sh *SessionHandler) JoinSessionHandler(w http.ResponseWriter, r *http.Requ
 		"token":     token,
 		"expiresIn": int(ttl.Seconds()),
 	})
+	log.Info().Str("userID", req.UserID).Str("sessionID", sessionID).Msg("User joined session")
 }

@@ -3,7 +3,6 @@
 import * as fabric from 'fabric';
 import type { LabelRequest } from './constants';
 import { createBoundingBoxAnnotation, createKeypointAnnotation, fabricBBColour } from './constants';
-import type { KeypointAnnotation, BoundingBoxAnnotation } from './constants';
 import { KeyPointFabricHandler, keypointDatabaseHandler } from './keypointHandler.ts';
 import { boundingBoxDatabaseHandler, BoundingBoxFabricHandler } from './boundingBoxHandler.ts';
 import { loadProjectLabels } from './labelLoader.ts';
@@ -11,6 +10,7 @@ import { polygonCentroid, polygonFromTwoPoints } from './helper.ts';
 import { type ImageHandler } from './imageStateHandler.ts';
 import { getBoundingBoxLabelIdByName, getBoundingBoxLabelName, getKeypointLabelIdByName, getKeypointLabelName } from './labelRegistry.ts';
 import { UndoRedoHandler } from './undoRedoHandler.ts';
+import type { BoundingBoxAnnotation, KeypointAnnotation } from '../utils/intefaces/interfaces.ts';
 
 type ToolMode = 'kp' | 'bb' | 'none';
 let currentTool: ToolMode = 'none';

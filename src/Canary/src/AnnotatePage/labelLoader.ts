@@ -1,3 +1,4 @@
+import { projectServiceUrl } from '../utils/apis';
 import { setBoundingBoxLabelMaps, setKeypointLabelMaps } from './labelRegistry';
 
 type KeypointLabelDTO = {
@@ -12,13 +13,12 @@ type BoundingBoxLabelDTO = {
 
 export async function loadProjectLabels(projectID?: string) {
   if (!projectID) return;
-  const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
   const { CallAPI } = await import('../utils/apis');
 
   try {
     const [kpData, bbData] = await Promise.all([
-      CallAPI<KeypointLabelDTO[]>(`${baseUrl}/projects/${projectID}/keypointlabels`),
-      CallAPI<BoundingBoxLabelDTO[]>(`${baseUrl}/projects/${projectID}/boundingboxlabels`),
+      CallAPI<KeypointLabelDTO[]>(`${projectServiceUrl()}/projects/${projectID}/keypointlabels`),
+      CallAPI<BoundingBoxLabelDTO[]>(`${projectServiceUrl()}/projects/${projectID}/boundingboxlabels`),
     ]);
     if (kpData && Array.isArray(kpData)) {
       const map: Record<string, string> = {};

@@ -1,8 +1,7 @@
-import { CallAPI } from '../utils/apis';
-import { type Project } from './ProjectPage'; // gross
+import { CallAPI, projectServiceUrl } from '../utils/apis';
+import type { Project } from '../utils/intefaces/interfaces';
 
 export async function fetchProjectByID(projectID: string): Promise<Project> {
-  const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
-  const url = `${baseUrl}/projects/${projectID}`;
+  const url = `${projectServiceUrl()}/projects/${projectID}`;
   return CallAPI<Project>(url);
 }
