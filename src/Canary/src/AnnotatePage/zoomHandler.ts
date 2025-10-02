@@ -18,7 +18,7 @@ export class ZoomHandler {
     return this.zoom;
   }
 
-  setZoom(zoom: number, center?: { x: number; y: number }, keepPosition = true) {
+  setZoom(zoom: number, center: { x: number; y: number }, keepPosition = true) {
     zoom = Math.max(this.minZoom, Math.min(this.maxZoom, zoom));
     this.zoom = zoom;
     const vt = this.canvas.viewportTransform || [1, 0, 0, 1, 0, 0];
@@ -40,19 +40,19 @@ export class ZoomHandler {
     this.canvas.requestRenderAll();
   }
 
-  zoomIn(center?: { x: number; y: number }) {
+  zoomIn(center: { x: number; y: number }) {
     this.setZoom(this.zoom * 1.25, center, true);
   }
 
-  zoomOut(center?: { x: number; y: number }) {
+  zoomOut(center: { x: number; y: number }) {
     this.setZoom(this.zoom / 1.25, center, true);
   }
 
   resetZoom() {
-    this.setZoom(1, undefined, false);
+    this.setZoom(1, { x: 0, y: 0 }, false);
   }
 
-  attachWheelListener(onZoom?: (zoom: number) => void) {
+  attachWheelListener(onZoom: (zoom: number) => void) {
     const el = this.canvas.upperCanvasEl;
     el.addEventListener(
       'wheel',
