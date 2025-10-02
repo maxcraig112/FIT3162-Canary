@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	fs "pkg/gcp/firestore"
 	"pkg/handler"
 	"project-service/firestore"
 
@@ -68,7 +69,11 @@ func (h *KeypointLabelHandler) UpdateKeypointLabelHandler(w http.ResponseWriter,
 	}
 
 	err = h.KeypointLabelStore.UpdateKeypointLabelName(h.Ctx, req)
-	if err != nil {
+	if err == fs.ErrAlreadyExists {
+		http.Error(w, "Keypoint label already exists", http.StatusConflict)
+		log.Error().Err(err).Msg("Keypoint label already exists")
+		return
+	} else if err != nil {
 		http.Error(w, "Error updating keypoint label", http.StatusInternalServerError)
 		log.Error().Err(err).Str("projectID", projectID).Msg("Error updating keypoint label")
 		return
@@ -124,7 +129,11 @@ func (h *KeypointLabelHandler) CreateKeypointLabelHandler(w http.ResponseWriter,
 	// add projectID to request
 	req.ProjectID = projectID
 	keypointLabelID, err := h.KeypointLabelStore.CreateKeypointLabel(h.Ctx, req)
-	if err != nil {
+	if err == fs.ErrAlreadyExists {
+		http.Error(w, "Keypoint label already exists", http.StatusConflict)
+		log.Error().Err(err).Msg("Keypoint label already exists")
+		return
+	} else if err != nil {
 		http.Error(w, "Error creating keypoint label", http.StatusInternalServerError)
 		log.Error().Err(err).Str("projectID", projectID).Msg("Error creating keypoint label")
 		return

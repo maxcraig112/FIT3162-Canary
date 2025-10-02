@@ -58,10 +58,23 @@ func (s *KeypointLabelStore) GetKeypointLabelsByProjectID(ctx context.Context, p
 	return keypointLabels, nil
 }
 
-func (s *KeypointLabelStore) CreateKeypointLabel(ctx context.Context, createKeypointLabelReq CreateKeypointLabelRequest) (string, error) {
+func (s *KeypointLabelStore) CreateKeypointLabel(ctx context.Context, req CreateKeypointLabelRequest) (string, error) {
 	keypointLabel := KeypointLabel{
-		KeypointLabel: createKeypointLabelReq.KeypointLabel,
-		ProjectID:     createKeypointLabelReq.ProjectID,
+		KeypointLabel: req.KeypointLabel,
+		ProjectID:     req.ProjectID,
+	}
+
+	qp := []fs.QueryParameter{
+		{Path: "keypointLabel", Op: "==", Value: req.KeypointLabel},
+		{Path: "projectID", Op: "==", Value: req.ProjectID},
+	}
+
+	docs, err := s.genericStore.ReadCollection(ctx, qp)
+	if err != nil {
+		return "", err
+	}
+	if len(docs) > 0 {
+		return "", fs.ErrAlreadyExists
 	}
 
 	return s.genericStore.CreateDoc(ctx, keypointLabel)
@@ -71,12 +84,31 @@ func (s *KeypointLabelStore) DeleteKeypointLabel(ctx context.Context, keypointLa
 	return s.genericStore.DeleteDoc(ctx, keypointLabelID)
 }
 
-func (s *KeypointLabelStore) UpdateKeypointLabelName(ctx context.Context, updateKeypointLabelReq UpdateKeypointLabelRequest) error {
-	updateParams := []firestore.Update{
-		{Path: "keypointLabel", Value: updateKeypointLabelReq.KeypointLabel},
+func (s *KeypointLabelStore) UpdateKeypointLabelName(ctx context.Context, req UpdateKeypointLabelRequest) error {
+
+	kpl, err := s.GetKeypointLabel(ctx, req.KeypointLabelID)
+	if err == fs.ErrNotFound {
+		return fs.ErrNotFound
 	}
 
-	return s.genericStore.UpdateDoc(ctx, updateKeypointLabelReq.KeypointLabelID, updateParams)
+	qp := []fs.QueryParameter{
+		{Path: "keypointLabel", Op: "==", Value: req.KeypointLabel},
+		{Path: "projectID", Op: "==", Value: kpl.ProjectID},
+	}
+
+	docs, err := s.genericStore.ReadCollection(ctx, qp)
+	if err != nil {
+		return err
+	}
+	if len(docs) > 0 {
+		return fs.ErrAlreadyExists
+	}
+
+	updateParams := []firestore.Update{
+		{Path: "keypointLabel", Value: req.KeypointLabel},
+	}
+
+	return s.genericStore.UpdateDoc(ctx, req.KeypointLabelID, updateParams)
 }
 
 func (s *KeypointLabelStore) GetKeypointLabel(ctx context.Context, keypointLabelID string) (KeypointLabel, error) {
