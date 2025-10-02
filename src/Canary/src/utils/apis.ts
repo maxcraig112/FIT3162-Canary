@@ -1,4 +1,5 @@
 import { getAuthTokenFromCookie } from './cookieUtils';
+import { getCookie } from './cookieUtils';
 
 
 export function authServiceUrl() {
@@ -42,6 +43,12 @@ export async function CallAPI<T = unknown>(url: string, options: CallAPIOptions 
   if (auth) {
     const token = getAuthTokenFromCookie();
     if (token) headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  // Attach session ID header for collaborative session-aware requests if cookie present.
+  const sessionID = getCookie('session_id_cookie');
+  if (sessionID) {
+    headers.set('X-Session-Id', sessionID);
   }
 
   const resp = await fetch(url, { method, headers, body, ...rest });

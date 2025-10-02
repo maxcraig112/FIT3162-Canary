@@ -21,6 +21,13 @@ func (sh *SessionHandler) CreateSessionWebSocketHandler(w http.ResponseWriter, r
 		http.Error(w, "missing token", http.StatusUnauthorized)
 		return
 	}
+
+	if r.Header.Get("Authorization") == "" {
+		if qpAuth := r.URL.Query().Get("auth"); qpAuth != "" {
+			r.Header.Set("Authorization", "Bearer "+qpAuth)
+		}
+	}
+
 	claims, err := wsjwt.ValidateShortLivedSessionToken(token)
 	if err != nil || claims.SessionID != sessionID || claims.Purpose != "session-join" {
 		http.Error(w, "invalid token", http.StatusUnauthorized)
@@ -50,11 +57,19 @@ func (sh *SessionHandler) JoinSessionWebSocketHandler(w http.ResponseWriter, r *
 		http.Error(w, "missing token", http.StatusUnauthorized)
 		return
 	}
+
+	if r.Header.Get("Authorization") == "" {
+		if qpAuth := r.URL.Query().Get("auth"); qpAuth != "" {
+			r.Header.Set("Authorization", "Bearer "+qpAuth)
+		}
+	}
+
 	claims, err := wsjwt.ValidateShortLivedSessionToken(token)
 	if err != nil || claims.SessionID != sessionID || claims.Purpose != "session-join" {
 		http.Error(w, "invalid token", http.StatusUnauthorized)
 		return
 	}
+
 	if err := pkgjwt.ValidateJWT(r, claims.UserID); err != nil {
 		http.Error(w, "auth failed", http.StatusUnauthorized)
 		return

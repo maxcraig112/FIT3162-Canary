@@ -237,6 +237,7 @@ export function useBatchesTab(projectID?: string) {
         const result = await createSession(batch.batchID);
         if (result.ok) {
           setCookie('create_session_cookie', result.data.token);
+          setCookie('session_id_cookie', result.data.sessionID);
         }
       }
       navigate(navigateURL);

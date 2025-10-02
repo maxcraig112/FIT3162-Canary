@@ -16,15 +16,17 @@ const (
 type Session struct {
 	OwnerID     string    `firestore:"ownerID,omitempty" json:"ownerID"`
 	BatchID     string    `firestore:"batchID,omitempty" json:"batchID"`
+	ProjectID   string    `firestore:"projectID,omitempty" json:"projectID"`
 	Password    string    `firestore:"password,omitempty" json:"password"`
 	Members     []string  `firestore:"members,omitempty" json:"members"`
 	LastUpdated time.Time `firestore:"lastUpdated,omitempty" json:"lastUpdated"`
 }
 
 type CreateSessionRequest struct {
-	UserID   string `json:"userID"`
-	BatchID  string `json:"batchID"`
-	Password string `json:"password,omitempty"`
+	UserID    string `json:"userID"`
+	BatchID   string `json:"batchID"`
+	ProjectID string `json:"projectID"`
+	Password  string `json:"password,omitempty"`
 }
 
 type JoinSessionRequest struct {
@@ -46,10 +48,11 @@ func (s *SessionStore) GenericClient() fs.FirestoreClientInterface { return s.ge
 
 func (s *SessionStore) CreateNewSession(ctx context.Context, req CreateSessionRequest) (string, error) {
 	session := Session{
-		OwnerID:  req.UserID,
-		BatchID:  req.BatchID,
-		Password: req.Password,
-		Members:  []string{},
+		OwnerID:   req.UserID,
+		BatchID:   req.BatchID,
+		ProjectID: req.ProjectID,
+		Password:  req.Password,
+		Members:   []string{},
 	}
 	return s.genericStore.CreateDoc(ctx, session)
 }

@@ -14,6 +14,7 @@ import { getCentreOfCanvas } from './helper';
 import { useAuthGuard } from '../utils/authUtil';
 // import { useSharedImageHandler } from './imagehandlercontext';
 import { useImageHandler } from './imageStateHandler';
+import { initialiseSessionWebSocket, getActiveSessionID, sendActiveImageID } from './sessionHandler';
 
 const AnnotatePage: React.FC = () => {
   // Helper for undo/redo actions
@@ -50,6 +51,8 @@ const AnnotatePage: React.FC = () => {
     y: number;
     mode?: 'create' | 'edit';
   }>({ open: false, kind: null, x: 0, y: 0, mode: 'create' });
+  const [sessionID, setSessionID] = useState<string | undefined>(getActiveSessionID());
+  const [sessionRole, setSessionRole] = useState<'owner' | 'member' | undefined>();
   const [labelValue, setLabelValue] = useState('');
   const [kpOptions, setKpOptions] = useState<string[]>([]);
   const [bbOptions, setBbOptions] = useState<string[]>([]);
@@ -77,11 +80,23 @@ const AnnotatePage: React.FC = () => {
     zoomHandlerRef.current = new ZoomHandler({ canvas: getCanvas()! });
     zoomHandlerRef.current.attachWheelListener((newZoom) => setZoom(newZoom));
     setZoom(zoomHandlerRef.current.getZoom());
+    // Attempt session websocket init (if cookies present)
+    initialiseSessionWebSocket(getActiveSessionID()).then((res) => {
+      if (res.sessionID) setSessionID(res.sessionID);
+      if (res.role) setSessionRole(res.role);
+    });
     return () => {
       annotateHandler.disposeCanvas();
       zoomHandlerRef.current = null;
     };
   }, []);
+
+  // Notify websocket of current image ID whenever it changes and session active
+  useEffect(() => {
+    if (imageHandler.currentImageID) {
+      sendActiveImageID(imageHandler.currentImageID);
+    }
+  }, [imageHandler.currentImageID]);
 
   // Render when batchID or currentImage changes
   useEffect(() => {
@@ -103,7 +118,8 @@ const AnnotatePage: React.FC = () => {
 
     render();
     // Re-render when current image number changes
-  }, [imageHandler.currentImageNumber]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally only depend on currentImageNumber
+  }, [imageHandler.currentImageNumber]); // UNDER NO CIRCUMSTANCES ADD batchID, projectID, imageHandler
 
   // Keep handler tool selection in sync with UI
   useEffect(() => {
@@ -240,6 +256,13 @@ const AnnotatePage: React.FC = () => {
                 gap: 1,
               }}
             >
+              {sessionID && (
+                <Paper elevation={2} sx={{ px: 2, py: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                    Session: {sessionID}{sessionRole ? ` (${sessionRole})` : ''}
+                  </Typography>
+                </Paper>
+              )}
               <IconButton aria-label="previous image" onClick={handlePrev}>
                 <KeyboardArrowLeft />
               </IconButton>

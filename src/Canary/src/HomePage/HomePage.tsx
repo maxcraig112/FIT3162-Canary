@@ -35,6 +35,9 @@ const HomePage: React.FC = () => {
     const result = await joinSession(sessionID, sessionPassword);
     if (result.ok) {
       setCookie('join_session_cookie', result.data.token);
+      setCookie('session_id_cookie', result.data.sessionID);
+      const navigateURL = `/annotate?batchID=${encodeURIComponent(result.data.batchID)}&projectID=${encodeURIComponent(result.data.projectID)}`;
+      navigate(navigateURL);
     } else {
       alert(`Failed to join session: ${result.error}`);
     }

@@ -92,6 +92,7 @@ func (sh *SessionHandler) CreateSessionHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	req.ProjectID = projectID
 	req.Password = project.Settings.Session.Password
 
 	if exists := sh.SessionStore.DoesSessionWithBatchExist(r.Context(), batchID); exists {
@@ -191,6 +192,8 @@ func (sh *SessionHandler) JoinSessionHandler(w http.ResponseWriter, r *http.Requ
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"sessionID": sessionID,
+		"batchID":   session.BatchID,
+		"projectID": session.ProjectID,
 		"token":     token,
 		"expiresIn": int(ttl.Seconds()),
 	})

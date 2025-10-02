@@ -4,6 +4,8 @@ import { getUserIDFromCookie } from '../cookieUtils';
 // Shape returned by the Go service for both create & join.
 export interface SessionTokenResponse {
 	sessionID: string;
+    batchID: string;
+    projectID: string;
 	token: string;        // short-lived JWT for websocket upgrade
 	expiresIn: number;    // seconds until expiry
 }

@@ -14,7 +14,7 @@ import BarChartOutlined from '@mui/icons-material/BarChartOutlined';
 import IosShareOutlined from '@mui/icons-material/IosShareOutlined';
 import SettingsOutlined from '@mui/icons-material/SettingsOutlined';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
-import type { Project } from '../utils/interfaces';
+import type { Project } from '../utils/intefaces/interfaces';
 
 
 
@@ -68,7 +68,6 @@ const ProjectPage: React.FC = () => {
   }
 
   function handleSettingsClick() {
-    setSelectedTab(-1);
     setSettingsTab(true);
   }
 
