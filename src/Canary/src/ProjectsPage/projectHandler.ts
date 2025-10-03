@@ -80,9 +80,9 @@ export function handleSortChange(value: string, setSortKey: (k: keyof Project) =
 }
 
 // Create a new project
-export async function handleNewProject(projectName: string): Promise<string> {
+export async function handleNewProject(projectName: string, createDefaultLabels: boolean = false): Promise<string> {
   const url = `${projectServiceUrl()}/projects`;
-  const requestBody = { userID: getUserIDFromCookie(), projectName };
+  const requestBody = { userID: getUserIDFromCookie(), projectName, createDefaultLabels };
   const respText = await CallAPI<string>(url, {
     method: 'POST',
     json: requestBody,
