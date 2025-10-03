@@ -104,6 +104,17 @@ export async function initialiseSessionWebSocket(existingSessionID?: string): Pr
 						// Re-fetch both sets for simplicity (can optimize later with diff payloads)
 						annotateHandler.refreshAnnotations(projectID);
 						break;
+					case 'member_joined':
+					case 'member_left': {
+						try {
+							interface MemberEvent { memberID?: string; time?: string }
+							const md = data as MemberEvent;
+							if (md.memberID) {
+								window.dispatchEvent(new CustomEvent('canary-session-member-event', { detail: { type, memberID: md.memberID, time: md.time } }));
+							}
+						} catch { /* ignore */ }
+						break;
+					}
 					default:
 						break;
 				}
@@ -114,6 +125,7 @@ export async function initialiseSessionWebSocket(existingSessionID?: string): Pr
 				if (role === 'member') clearCookie('join_session_cookie');
 				// Persist sessionID for page reload continuity
 				if (sessionID) document.cookie = `session_id_cookie=${sessionID}; path=/`;
+				clearCookie('session_id_cookie');
 				// Flush any pending imageID
 				if (pendingImageID) {
 					try { socket.send(JSON.stringify({ type: 'setImageID', payload: { imageID: pendingImageID } })); } catch {/* ignore */}
