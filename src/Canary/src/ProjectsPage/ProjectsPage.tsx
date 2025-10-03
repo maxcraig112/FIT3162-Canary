@@ -552,10 +552,10 @@ const ProjectsPage: React.FC = () => {
           <FormControlLabel
             control={<Checkbox checked={createDefaultLabels} onChange={(e) => setCreateDefaultLabels(e.target.checked)} />}
             label="Create default labels"
-            sx={{ 
+            sx={{
               mb: 3,
-              color: 'black'
-             }}
+              color: 'black',
+            }}
           />
           <Button
             variant="contained"
