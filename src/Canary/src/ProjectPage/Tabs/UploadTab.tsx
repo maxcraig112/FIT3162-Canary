@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { Box, Button, Typography, LinearProgress, Alert, Fade, Stack, TextField } from '@mui/material';
-import type { Project } from '../ProjectPage';
 import { useUploadTab } from './uploadTabHandler';
+import type { Project } from '../../utils/intefaces/interfaces';
 
 interface UploadTabProps {
   project: Project | null;
