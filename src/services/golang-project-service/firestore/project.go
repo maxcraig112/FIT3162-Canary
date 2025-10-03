@@ -14,21 +14,20 @@ const (
 )
 
 type Project struct {
-	ProjectID       string          `firestore:"projectID,omitempty" json:"projectID"`
-	ProjectName     string          `firestore:"projectName,omitempty" json:"projectName"`
-	UserID          string          `firestore:"userID,omitempty" json:"userID"`
-	NumberOfBatches int64           `firestore:"numberOfBatches,omitempty" json:"numberOfBatches"`
-	LastUpdated     time.Time       `firestore:"lastUpdated,omitempty" json:"lastUpdated"`
-	Settings        ProjectSettings `firestore:"settings,omitempty" json:"settings"`
+	ProjectID       string           `firestore:"projectID,omitempty" json:"projectID"`
+	ProjectName     string           `firestore:"projectName,omitempty" json:"projectName"`
+	UserID          string           `firestore:"userID,omitempty" json:"userID"`
+	NumberOfBatches int64            `firestore:"numberOfBatches,omitempty" json:"numberOfBatches"`
+	LastUpdated     time.Time        `firestore:"lastUpdated,omitempty" json:"lastUpdated"`
+	Settings        *ProjectSettings `firestore:"settings,omitempty" json:"settings"`
 }
 
 type ProjectSettings struct {
-	Session Session `firestore:"session,omitempty" json:"session"`
+	Session *SessionSettings `firestore:"session,omitempty" json:"session"`
 }
 
-type Session struct {
+type SessionSettings struct {
 	Enabled  bool   `firestore:"enabled,omitempty" json:"enabled"`
-	Name     string `firestore:"name,omitempty" json:"name"`
 	Password string `firestore:"password,omitempty" json:"password"`
 }
 
@@ -123,7 +122,7 @@ func (s *ProjectStore) UpdateProject(ctx context.Context, projectID string, req 
 	if req.ProjectName != "" {
 		updateParams = append(updateParams, firestore.Update{Path: "projectName", Value: req.ProjectName})
 	}
-	if req.Settings != (ProjectSettings{}) { // check if not empty
+	if req.Settings != nil {
 		updateParams = append(updateParams, firestore.Update{Path: "settings", Value: req.Settings})
 	}
 

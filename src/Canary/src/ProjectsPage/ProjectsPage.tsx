@@ -6,16 +6,7 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import * as projectHandler from './projectHandler';
 import { useNavigate } from 'react-router-dom';
 import { useAuthGuard } from '../utils/authUtil';
-
-// Project type based on Go struct
-export interface Project {
-  projectID: string;
-  projectName: string;
-  userID: string;
-  numberOfBatches: number;
-  lastUpdated: string;
-  settings?: unknown;
-}
+import type { Project } from '../utils/intefaces/interfaces';
 
 const ProjectsPage: React.FC = () => {
   // validate the user authentication, otherwise redirect to login

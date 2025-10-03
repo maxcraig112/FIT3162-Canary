@@ -1,10 +1,8 @@
 import * as fabric from 'fabric';
 import { createKeypointAnnotation, fabricGroupProps, fabricKPMarkerProps, fabricKPProps } from './constants';
-import type { KeypointAnnotation } from './constants';
 import { getKeypointLabelName } from './labelRegistry';
-import { CallAPI } from '../utils/apis';
-
-const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
+import { CallAPI, projectServiceUrl } from '../utils/apis';
+import type { KeypointAnnotation } from '../utils/intefaces/interfaces';
 
 export const KeyPointFabricHandler = {
   createFabricKeyPoint(canvas: fabric.Canvas, ann: KeypointAnnotation, transform?: { scale: number; offsetX: number; offsetY: number }): { group: fabric.Group } {
@@ -45,7 +43,7 @@ export const KeyPointFabricHandler = {
 export const keypointDatabaseHandler = {
   // Create a key point in the database and get its ID
   async createdKeyPoint(ann: KeypointAnnotation): Promise<KeypointAnnotation> {
-    const url = `${baseUrl}/projects/${ann.projectID}/images/${ann.imageID}/keypoints`;
+    const url = `${projectServiceUrl()}/projects/${ann.projectID}/images/${ann.imageID}/keypoints`;
     const requestBody = {
       position: ann.position,
       keypointLabelID: ann.labelID,
@@ -68,7 +66,7 @@ export const keypointDatabaseHandler = {
 
   // Rename an existing keypoint's label in the database
   async renameKeyPoint(ann: KeypointAnnotation, newLabelID: string): Promise<KeypointAnnotation> {
-    const url = `${baseUrl}/projects/${ann.projectID}/keypoints/${ann.id}`;
+    const url = `${projectServiceUrl()}/projects/${ann.projectID}/keypoints/${ann.id}`;
     const body = {
       keypointLabelID: newLabelID,
     };
@@ -88,7 +86,7 @@ export const keypointDatabaseHandler = {
 
   // Delete an existing keypoint in the database
   async deleteKeyPoint(ann: KeypointAnnotation): Promise<void> {
-    const url = `${baseUrl}/projects/${ann.projectID}/keypoints/${ann.id}`;
+    const url = `${projectServiceUrl()}/projects/${ann.projectID}/keypoints/${ann.id}`;
     console.log('Deleting keypoint:', ann);
     console.log(`URL: ${url}`);
     try {
@@ -104,7 +102,7 @@ export const keypointDatabaseHandler = {
   },
 
   async getAllKeyPoints(projectID: string, imageID: string) {
-    const url = `${baseUrl}/projects/${projectID}/images/${imageID}/keypoints`;
+    const url = `${projectServiceUrl()}/projects/${projectID}/images/${imageID}/keypoints`;
     let raw: unknown;
     try {
       raw = await CallAPI(url, { method: 'GET' });

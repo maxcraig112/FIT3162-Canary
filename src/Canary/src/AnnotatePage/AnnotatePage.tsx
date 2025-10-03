@@ -14,6 +14,8 @@ import { getCentreOfCanvas } from './helper';
 import { useAuthGuard } from '../utils/authUtil';
 // import { useSharedImageHandler } from './imagehandlercontext';
 import { useImageHandler } from './imageStateHandler';
+import { initialiseSessionWebSocket, getActiveSessionID, sendActiveImageID, closeSessionWebSocket, setNavigateAway } from './sessionHandler';
+import Fade from '@mui/material/Fade';
 
 const AnnotatePage: React.FC = () => {
   // Helper for undo/redo actions
@@ -50,9 +52,12 @@ const AnnotatePage: React.FC = () => {
     y: number;
     mode?: 'create' | 'edit';
   }>({ open: false, kind: null, x: 0, y: 0, mode: 'create' });
+  const [sessionID, setSessionID] = useState<string | undefined>(getActiveSessionID());
+  const [sessionRole, setSessionRole] = useState<'owner' | 'member' | undefined>();
   const [labelValue, setLabelValue] = useState('');
   const [kpOptions, setKpOptions] = useState<string[]>([]);
   const [bbOptions, setBbOptions] = useState<string[]>([]);
+  const [memberNotices, setMemberNotices] = useState<{ id: string; memberID: string; type: 'member_joined' | 'member_left' }[]>([]);
 
   const boxRef = useRef<HTMLDivElement | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -77,11 +82,23 @@ const AnnotatePage: React.FC = () => {
     zoomHandlerRef.current = new ZoomHandler({ canvas: getCanvas()! });
     zoomHandlerRef.current.attachWheelListener((newZoom) => setZoom(newZoom));
     setZoom(zoomHandlerRef.current.getZoom());
+    // Attempt session websocket init (if cookies present)
+    initialiseSessionWebSocket(getActiveSessionID()).then((res) => {
+      if (res.sessionID) setSessionID(res.sessionID);
+      if (res.role) setSessionRole(res.role);
+    });
     return () => {
       annotateHandler.disposeCanvas();
       zoomHandlerRef.current = null;
     };
   }, []);
+
+  // Notify websocket of current image ID whenever it changes and session active
+  useEffect(() => {
+    if (imageHandler.currentImageID) {
+      sendActiveImageID(imageHandler.currentImageID);
+    }
+  }, [imageHandler.currentImageID]);
 
   // Render when batchID or currentImage changes
   useEffect(() => {
@@ -103,7 +120,8 @@ const AnnotatePage: React.FC = () => {
 
     render();
     // Re-render when current image number changes
-  }, [imageHandler.currentImageNumber]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally only depend on currentImageNumber
+  }, [imageHandler.currentImageNumber]); // UNDER NO CIRCUMSTANCES ADD batchID, projectID, imageHandler
 
   // Keep handler tool selection in sync with UI
   useEffect(() => {
@@ -203,6 +221,37 @@ const AnnotatePage: React.FC = () => {
     }
   };
 
+  // Decide where to navigate to depending on the sessionRole
+  const NavigateAway = React.useCallback(() => {
+    if (sessionRole === 'member') {
+      navigate('/');
+    } else if (projectID) {
+      navigate(`/projects/${projectID}`);
+    } else {
+      navigate(-1);
+    }
+  }, [sessionRole, projectID, navigate]);
+
+  useEffect(() => {
+    setNavigateAway(NavigateAway);
+  }, [NavigateAway]);
+
+  // Listen for member join/left events dispatched by sessionHandler and show ephemeral notices
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<{ type: 'member_joined' | 'member_left'; memberID: string }>; // time optional
+      if (!ce.detail?.memberID) return;
+      const id = `${ce.detail.type}-${ce.detail.memberID}-${Date.now()}`;
+      setMemberNotices((prev) => [...prev, { id, memberID: ce.detail.memberID, type: ce.detail.type }]);
+      // Auto-remove after 3s
+      setTimeout(() => {
+        setMemberNotices((prev) => prev.filter((n) => n.id !== id));
+      }, 3000);
+    };
+    window.addEventListener('canary-session-member-event', handler as EventListener);
+    return () => window.removeEventListener('canary-session-member-event', handler as EventListener);
+  }, []);
+
   return (
     <Box sx={{ display: 'flex', height: '100vh', bgcolor: '#f5f5f5' }}>
       {/* Left Sidebar */}
@@ -222,11 +271,7 @@ const AnnotatePage: React.FC = () => {
               edge="start"
               sx={{ position: 'absolute', left: 8, top: 8 }}
               onClick={() => {
-                if (projectID) {
-                  navigate(`/projects/${projectID}`);
-                } else {
-                  navigate(-1);
-                }
+                closeSessionWebSocket(1000, 'navigate away');
               }}
             >
               <ExitToAppIcon />
@@ -240,6 +285,14 @@ const AnnotatePage: React.FC = () => {
                 gap: 1,
               }}
             >
+              {sessionID && (
+                <Paper elevation={2} sx={{ px: 2, py: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                    Session: {sessionID}
+                    {sessionRole ? ` (${sessionRole})` : ''}
+                  </Typography>
+                </Paper>
+              )}
               <IconButton aria-label="previous image" onClick={handlePrev}>
                 <KeyboardArrowLeft />
               </IconButton>
@@ -323,6 +376,25 @@ const AnnotatePage: React.FC = () => {
           }}
           ref={boxRef}
         >
+          {/* Ephemeral member join/leave notifications */}
+          <Box sx={{ position: 'absolute', top: 8, left: 8, display: 'flex', flexDirection: 'column', gap: 1, zIndex: 10 }}>
+            {memberNotices.map((n) => (
+              <Fade in key={n.id} timeout={{ enter: 200, exit: 300 }}>
+                <Paper elevation={4} sx={{
+                  px: 1.5,
+                  py: 0.5,
+                  bgcolor: n.type === 'member_joined' ? '#2e7d32' : '#c62828',
+                  color: '#fff',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  borderRadius: 1,
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.25)'
+                }}>
+                  {n.type === 'member_joined' ? 'Member joined: ' : 'Member left: '}{n.memberID}
+                </Paper>
+              </Fade>
+            ))}
+          </Box>
           {/* Width/height are set programmatically in useEffect to match container; rely on style for initial sizing */}
           <canvas
             ref={canvasRef}

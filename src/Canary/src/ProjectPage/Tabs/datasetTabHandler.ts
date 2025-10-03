@@ -1,19 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CallAPI } from '../../utils/apis';
-
-export interface Batch {
-  batchID: string;
-  batchName: string;
-  projectID: string;
-  numberOfTotalFiles: number;
-  lastUpdated?: string; // optional timestamp if backend provides
-  previewURL?: string; // first image URL for blurred background
-  isComplete?: boolean;
-}
-
-function projectServiceUrl() {
-  return import.meta.env.VITE_PROJECT_SERVICE_URL as string;
-}
+import { CallAPI, projectServiceUrl } from '../../utils/apis';
+import type { Batch } from '../../utils/intefaces/interfaces';
 
 export async function fetchBatches(projectID: string): Promise<Batch[]> {
   const url = `${projectServiceUrl()}/projects/${projectID}/batches`;

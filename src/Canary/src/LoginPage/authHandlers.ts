@@ -1,11 +1,10 @@
 import { setCookie } from '../utils/cookieUtils';
-import { CallAPI } from '../utils/apis';
+import { authServiceUrl, CallAPI } from '../utils/apis';
 
 type AuthResponse = { token?: string; userID?: string; message?: string };
-const authServiceURL = import.meta.env.VITE_AUTH_SERVICE_URL;
 
 async function postToAuthService(endpoint: string, payload: object) {
-  return CallAPI<AuthResponse>(`${authServiceURL}${endpoint}`, {
+  return CallAPI<AuthResponse>(`${authServiceUrl()}${endpoint}`, {
     method: 'POST',
     json: payload,
   });

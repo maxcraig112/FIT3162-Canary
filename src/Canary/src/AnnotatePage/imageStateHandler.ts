@@ -1,10 +1,8 @@
 import * as fabric from 'fabric';
-import { CallAPI } from '../utils/apis';
+import { CallAPI, projectServiceUrl } from '../utils/apis';
 import { devRewriteURL } from './helper';
 import * as React from 'react';
-import type { BoundingBoxAnnotation, KeypointAnnotation } from './constants';
-
-const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
+import type { BoundingBoxAnnotation, KeypointAnnotation } from '../utils/intefaces/interfaces';
 
 export type ImageMeta = {
   imageID: string;
@@ -70,7 +68,7 @@ export function useImageHandler() {
   );
 
   const fetchImagesForBatch = React.useCallback(async (batchID: string): Promise<ImageMeta[]> => {
-    const url = `${baseUrl}/batch/${batchID}/images`;
+    const url = `${projectServiceUrl()}/batch/${batchID}/images`;
     try {
       const data = await CallAPI<ImageMeta[]>(url);
       return data;

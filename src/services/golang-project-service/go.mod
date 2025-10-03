@@ -8,9 +8,11 @@ replace pkg => ../../pkg
 
 require (
 	cloud.google.com/go/firestore v1.18.0
+	github.com/aidezone/golang-coco v0.0.0-20221230041736-bc882eac9ac9
 	github.com/gorilla/mux v1.8.1
 	github.com/joho/godotenv v1.5.1
 	github.com/rs/zerolog v1.34.0
+	github.com/samber/lo v1.51.0
 	github.com/u2takey/ffmpeg-go v0.5.0
 	pkg v0.0.0-00010101000000-000000000000
 )
@@ -29,7 +31,6 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.27.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.51.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.51.0 // indirect
-	github.com/aidezone/golang-coco v0.0.0-20221230041736-bc882eac9ac9 // indirect
 	github.com/aws/aws-sdk-go v1.38.20 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cncf/xds/go v0.0.0-20250326154945-ae57f3c0d45f // indirect

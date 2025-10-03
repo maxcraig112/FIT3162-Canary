@@ -1,8 +1,10 @@
-const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
+import { CallAPI, projectServiceUrl } from '../utils/apis';
+import { getUserIDFromCookie, getAuthTokenFromCookie } from '../utils/cookieUtils';
+import type { Project } from '../utils/intefaces/interfaces';
 
 // Rename a project (uses golang-project-service PATCH /projects/{projectID})
 export async function renameProject(projectID: string, newProjectName: string): Promise<string> {
-  const url = `${baseUrl}/projects/${projectID}`;
+  const url = `${projectServiceUrl()}/projects/${projectID}`;
   // API returns updated Project object
   const data = await CallAPI<{ projectID?: string; projectName?: string }>(url, {
     method: 'PATCH',
@@ -15,7 +17,7 @@ export async function renameProject(projectID: string, newProjectName: string): 
 export async function deleteProject(projectID: string): Promise<string> {
   const token = getAuthTokenFromCookie();
 
-  const url = `${baseUrl}/projects/${projectID}`;
+  const url = `${projectServiceUrl()}/projects/${projectID}`;
   const res = await fetch(url, {
     method: 'DELETE',
     headers: {
@@ -35,17 +37,10 @@ export async function deleteProject(projectID: string): Promise<string> {
   }
 }
 
-import type { Project } from './ProjectsPage';
-import { CallAPI } from '../utils/apis';
-import { getUserIDFromCookie, getAuthTokenFromCookie } from '../utils/cookieUtils';
-
 // Fetch all projects
 export async function fetchProjects(): Promise<Project[]> {
-  const token = getAuthTokenFromCookie();
-  const url = `${baseUrl}/projects/*`;
-  return CallAPI<Project[]>(url, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const url = `${projectServiceUrl()}/projects/*`;
+  return CallAPI<Project[]>(url);
 }
 
 export function filterProjects(projects: Project[], search: string): Project[] {
@@ -86,7 +81,7 @@ export function handleSortChange(value: string, setSortKey: (k: keyof Project) =
 
 // Create a new project
 export async function handleNewProject(projectName: string): Promise<string> {
-  const url = `${baseUrl}/projects`;
+  const url = `${projectServiceUrl()}/projects`;
   const requestBody = { userID: getUserIDFromCookie(), projectName };
   const respText = await CallAPI<string>(url, {
     method: 'POST',
@@ -98,7 +93,7 @@ export async function handleNewProject(projectName: string): Promise<string> {
 
 // Update project number of files (quantity)
 export async function updateProjectQuantity(projectID: string, quantity: number): Promise<string> {
-  const url = `${baseUrl}/projects/${projectID}`;
+  const url = `${projectServiceUrl()}/projects/${projectID}`;
   const respText = await CallAPI<string>(url, {
     method: 'PATCH',
     json: { quantity },

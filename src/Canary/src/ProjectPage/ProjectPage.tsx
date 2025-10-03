@@ -14,15 +14,9 @@ import BarChartOutlined from '@mui/icons-material/BarChartOutlined';
 import IosShareOutlined from '@mui/icons-material/IosShareOutlined';
 import SettingsOutlined from '@mui/icons-material/SettingsOutlined';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
+import type { Project } from '../utils/intefaces/interfaces';
 
-export interface Project {
-  projectID: string;
-  projectName: string;
-  userID: string;
-  numberOfBatches: number;
-  lastUpdated: string;
-  settings?: unknown;
-}
+
 
 const ProjectPage: React.FC = () => {
   const navigate = useNavigate();
@@ -74,7 +68,6 @@ const ProjectPage: React.FC = () => {
   }
 
   function handleSettingsClick() {
-    setSelectedTab(-1);
     setSettingsTab(true);
   }
 
@@ -264,11 +257,16 @@ const ProjectPage: React.FC = () => {
                 {loading && !projectData && <Typography variant="body1">Loading content...</Typography>}
                 {!loading && !error && (
                   <>
-                    {selectedTab === 0 && <UploadTab project={projectData} />}
-                    {selectedTab === 1 && <DatasetTab project={projectData} />}
-                    {selectedTab === 2 && <BatchesTab project={projectData} />}
-                    {selectedTab === 3 && <ExportTab project={projectData} />}
-                    {settingsTab && <SettingsTab project={projectData} />}
+                    {settingsTab ? (
+                      <SettingsTab project={projectData} />
+                    ) : (
+                      <>
+                        {selectedTab === 0 && <UploadTab project={projectData} />}
+                        {selectedTab === 1 && <DatasetTab project={projectData} />}
+                        {selectedTab === 2 && <BatchesTab project={projectData} />}
+                        {selectedTab === 3 && <ExportTab project={projectData} />}
+                      </>
+                    )}
                   </>
                 )}
               </Box>

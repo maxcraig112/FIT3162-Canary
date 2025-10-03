@@ -3,7 +3,6 @@
 import * as fabric from 'fabric';
 import type { LabelRequest } from './constants';
 import { createBoundingBoxAnnotation, createKeypointAnnotation, fabricBBColour } from './constants';
-import type { KeypointAnnotation, BoundingBoxAnnotation } from './constants';
 import { KeyPointFabricHandler, keypointDatabaseHandler } from './keypointHandler.ts';
 import { boundingBoxDatabaseHandler, BoundingBoxFabricHandler } from './boundingBoxHandler.ts';
 import { loadProjectLabels } from './labelLoader.ts';
@@ -11,6 +10,7 @@ import { polygonCentroid, polygonFromTwoPoints } from './helper.ts';
 import { type ImageHandler } from './imageStateHandler.ts';
 import { getBoundingBoxLabelIdByName, getBoundingBoxLabelName, getKeypointLabelIdByName, getKeypointLabelName } from './labelRegistry.ts';
 import { UndoRedoHandler } from './undoRedoHandler.ts';
+import type { BoundingBoxAnnotation, KeypointAnnotation } from '../utils/intefaces/interfaces.ts';
 
 type ToolMode = 'kp' | 'bb' | 'none';
 let currentTool: ToolMode = 'none';
@@ -392,6 +392,26 @@ export const annotateHandler = {
     canvasRef.requestRenderAll();
 
     return { current: imageHandler.currentImageNumber, total };
+  },
+  // Force a refresh of annotations for the current image (re-fetch from backend and redraw)
+  async refreshAnnotations(projectID: string) {
+    const imageHandler = imageHandlerRef;
+    if (!imageHandler || !canvasRef) return;
+    const imageID = imageHandler.currentImageID;
+    const imageURL = imageHandler.currentImageURL;
+    if (!imageID || !imageURL) return;
+    try {
+      const [kps, bbs] = await Promise.all([
+        keypointDatabaseHandler.getAllKeyPoints(projectID, imageID).catch(() => []),
+        boundingBoxDatabaseHandler.getAllBoundingBoxes(projectID, imageID).catch(() => []),
+      ]);
+      imageHandler.annotationStore.set(imageURL, { kps, bbs });
+      clearAnnotationGroups();
+      drawAnnotationsForCurrentImage(imageHandler, imageURL);
+      canvasRef.requestRenderAll();
+    } catch (e) {
+      console.warn('[Annotate] refreshAnnotations failed', e);
+    }
   },
 };
 

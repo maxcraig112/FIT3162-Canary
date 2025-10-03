@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { CallAPI } from '../../utils/apis';
-
-function projectServiceUrl() {
-  return import.meta.env.VITE_PROJECT_SERVICE_URL as string;
-}
+import { CallAPI, projectServiceUrl } from '../../utils/apis';
 
 type KeypointLabelDTO = {
   keyPointLabelID?: string;
@@ -17,12 +13,11 @@ type BoundingBoxLabelDTO = {
   projectID?: string;
 };
 
-type ProjectSettingsDTO = { session?: { enabled?: boolean; name?: string; password?: string } };
+type ProjectSettingsDTO = { session?: { enabled?: boolean; password?: string } };
 
 export function useSettingsTab(projectID?: string, initialSettings?: ProjectSettingsDTO | null) {
   // Session settings state
   const [sessionEnabled, setSessionEnabled] = useState<boolean>(false);
-  const [sessionName, setSessionName] = useState<string>('');
   const [sessionPassword, setSessionPassword] = useState<string>('');
   const [keypointLabels, setKeypointLabels] = useState<string[]>([]);
   const [bboxLabels, setBboxLabels] = useState<string[]>([]);
@@ -89,7 +84,6 @@ export function useSettingsTab(projectID?: string, initialSettings?: ProjectSett
     const s = initialSettings?.session;
     if (s) {
       setSessionEnabled(Boolean(s.enabled));
-      setSessionName(s.name ?? '');
       setSessionPassword(s.password ?? '');
     }
   }, [initialSettings]);
@@ -151,14 +145,13 @@ export function useSettingsTab(projectID?: string, initialSettings?: ProjectSett
         settings: {
           session: {
             enabled: sessionEnabled,
-            name: sessionName,
             password: sessionPassword,
           },
         },
       },
     });
     setSaveSuccess('Session settings saved');
-  }, [projectID, sessionEnabled, sessionName, sessionPassword]);
+  }, [projectID, sessionEnabled, sessionPassword]);
 
   const clearSaveSuccess = useCallback(() => setSaveSuccess(null), []);
 
@@ -318,10 +311,8 @@ export function useSettingsTab(projectID?: string, initialSettings?: ProjectSett
   return {
     // sessions
     sessionEnabled,
-    sessionName,
     sessionPassword,
     setSessionEnabled,
-    setSessionName,
     setSessionPassword,
     keypointLabels,
     bboxLabels,

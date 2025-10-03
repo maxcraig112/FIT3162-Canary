@@ -21,6 +21,7 @@ type Stores struct {
 	KeypointLabelStore    *firestore.KeypointLabelStore
 	BoundingBoxStore      *firestore.BoundingBoxStore
 	BoundingBoxLabelStore *firestore.BoundingBoxLabelStore
+	SessionStore          *firestore.SessionStore
 }
 
 type Buckets struct {
@@ -36,6 +37,7 @@ func InitialiseStores(h *handler.Handler) Stores {
 		KeypointLabelStore:    firestore.NewKeypointLabelStore(h.Clients.Firestore),
 		BoundingBoxStore:      firestore.NewBoundingBoxStore(h.Clients.Firestore),
 		BoundingBoxLabelStore: firestore.NewBoundingBoxLabelStore(h.Clients.Firestore),
+		SessionStore:          firestore.NewSessionStore(h.Clients.Firestore),
 	}
 }
 
