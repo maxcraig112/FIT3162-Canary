@@ -173,7 +173,11 @@ const HomePage: React.FC = () => {
                 </Typography>
                 <TextField label="Session ID" variant="outlined" value={sessionID} onChange={(e) => setSessionID(e.target.value)} fullWidth autoComplete="off" />
                 <TextField label="Password" variant="outlined" type="password" value={sessionPassword} onChange={(e) => setSessionPassword(e.target.value)} fullWidth autoComplete="off" />
-                <Button variant="contained" sx={{ fontWeight: 700, fontSize: '1.2rem', borderRadius: 3, py: 1, backgroundColor: CANARY_BUTTON_COLOR, color: CANARY_BUTTON_TEXT_COLOR }} onClick={handleJoinSession}>
+                <Button
+                  variant="contained"
+                  sx={{ fontWeight: 700, fontSize: '1.2rem', borderRadius: 3, py: 1, backgroundColor: CANARY_BUTTON_COLOR, color: CANARY_BUTTON_TEXT_COLOR }}
+                  onClick={handleJoinSession}
+                >
                   Join
                 </Button>
               </Paper>

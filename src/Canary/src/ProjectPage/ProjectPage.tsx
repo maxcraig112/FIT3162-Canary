@@ -16,8 +16,6 @@ import SettingsOutlined from '@mui/icons-material/SettingsOutlined';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import type { Project } from '../utils/intefaces/interfaces';
 
-
-
 const ProjectPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();

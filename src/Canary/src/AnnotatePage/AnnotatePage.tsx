@@ -380,17 +380,21 @@ const AnnotatePage: React.FC = () => {
           <Box sx={{ position: 'absolute', top: 8, left: 8, display: 'flex', flexDirection: 'column', gap: 1, zIndex: 10 }}>
             {memberNotices.map((n) => (
               <Fade in key={n.id} timeout={{ enter: 200, exit: 300 }}>
-                <Paper elevation={4} sx={{
-                  px: 1.5,
-                  py: 0.5,
-                  bgcolor: n.type === 'member_joined' ? '#2e7d32' : '#c62828',
-                  color: '#fff',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  borderRadius: 1,
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.25)'
-                }}>
-                  {n.type === 'member_joined' ? 'Member joined: ' : 'Member left: '}{n.memberID}
+                <Paper
+                  elevation={4}
+                  sx={{
+                    px: 1.5,
+                    py: 0.5,
+                    bgcolor: n.type === 'member_joined' ? '#2e7d32' : '#c62828',
+                    color: '#fff',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    borderRadius: 1,
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+                  }}
+                >
+                  {n.type === 'member_joined' ? 'Member joined: ' : 'Member left: '}
+                  {n.memberID}
                 </Paper>
               </Fade>
             ))}

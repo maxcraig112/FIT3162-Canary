@@ -1,7 +1,6 @@
 import { getAuthTokenFromCookie } from './cookieUtils';
 import { getCookie } from './cookieUtils';
 
-
 export function authServiceUrl() {
   return import.meta.env.VITE_AUTH_SERVICE_URL as string;
 }
