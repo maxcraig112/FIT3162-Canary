@@ -120,6 +120,29 @@ func (h *ProjectHandler) CreateProjectHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Create default keypoint labels
+	defaultKeypointLabels := []string{"Left Eye", "Right Eye", "Beak", "Left Wing Tip", "Right Wing Tip"}
+	for _, label := range defaultKeypointLabels {
+		_, err := h.KeypointLabelStore.CreateKeypointLabel(h.Ctx, firestore.CreateKeypointLabelRequest{
+			KeypointLabel: label,
+			ProjectID:     projectID,
+		})
+		if err != nil {
+			log.Error().Err(err).Str("projectID", projectID).Str("label", label).Msg("Error creating default keypoint label")
+			// Continue creating other labels even if one fails
+		}
+	}
+
+	// Create default bounding box label
+	_, err = h.BoundingBoxLabelStore.CreateBoundingBoxLabel(h.Ctx, firestore.CreateBoundingBoxLabelRequest{
+		BoundingBoxLabel: "Bird",
+		ProjectID:        projectID,
+	})
+	if err != nil {
+		log.Error().Err(err).Str("projectID", projectID).Msg("Error creating default bounding box label")
+		// Continue even if bounding box label creation fails
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	log.Info().Str("projectID", projectID).Msg("Project created successfully")
