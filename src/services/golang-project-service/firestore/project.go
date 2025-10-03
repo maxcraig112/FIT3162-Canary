@@ -32,8 +32,9 @@ type SessionSettings struct {
 }
 
 type CreateProjectRequest struct {
-	UserID      string `json:"userID"`
-	ProjectName string `json:"projectName"`
+	UserID              string `json:"userID"`
+	ProjectName         string `json:"projectName"`
+	CreateDefaultLabels bool   `json:"createDefaultLabels"`
 }
 
 type RenameProjectRequest struct {

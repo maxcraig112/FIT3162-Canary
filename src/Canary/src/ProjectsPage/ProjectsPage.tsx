@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Toolbar, AppBar, Button, TextField, Paper, IconButton, InputAdornment, Modal, Menu, MenuItem } from '@mui/material';
+import { Box, Typography, Toolbar, AppBar, Button, TextField, Paper, IconButton, InputAdornment, Modal, Menu, MenuItem, Checkbox, FormControlLabel } from '@mui/material';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import SearchIcon from '@mui/icons-material/Search';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -21,6 +21,7 @@ const ProjectsPage: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [modalOpen, setModalOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
+  const [createDefaultLabels, setCreateDefaultLabels] = useState(true); // checkbox for default labels
   // Renacame modal state
   const [renameModalOpen, setRenameModalOpen] = useState(false);
   const [renameProjectId, setRenameProjectId] = useState<string | null>(null);
@@ -548,13 +549,21 @@ const ProjectsPage: React.FC = () => {
             Create New Project
           </Typography>
           <TextField variant="outlined" label="Project Name" value={newProjectName} onChange={(e) => setNewProjectName(e.target.value)} size="medium" fullWidth sx={{ mb: 3 }} autoFocus />
+          <FormControlLabel
+            control={<Checkbox checked={createDefaultLabels} onChange={(e) => setCreateDefaultLabels(e.target.checked)} />}
+            label="Create default labels"
+            sx={{ 
+              mb: 3,
+              color: 'black'
+             }}
+          />
           <Button
             variant="contained"
             color="primary"
             fullWidth
             onClick={async () => {
               try {
-                const message = await projectHandler.handleNewProject(newProjectName);
+                const message = await projectHandler.handleNewProject(newProjectName, createDefaultLabels);
                 console.log('Project created successfully:', message);
                 handleCloseModal();
                 // Refresh the projects list
