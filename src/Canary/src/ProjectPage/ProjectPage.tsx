@@ -26,8 +26,8 @@ const ProjectPage: React.FC = () => {
   const [projectData, setProjectData] = useState<Project | null>(passedProject || null);
 
   const [loading, setLoading] = useState<boolean>(!passedProject);
-  const [selectedTab, setSelectedTab] = useState(0);
-  const [settingsTab, setSettingsTab] = useState(false);
+  const [selectedTab, setSelectedTab] = useState(0); // 0..3 for the main tabs
+  const [settingsTab, setSettingsTab] = useState(false); // separate flag for settings so layout stays identical
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -60,13 +60,66 @@ const ProjectPage: React.FC = () => {
     navigate('/projects');
   }
 
+  // Map tab index <-> view string
+  const indexToView: Record<number, string> = {
+    0: 'upload',
+    1: 'datasets',
+    2: 'batches',
+    3: 'export',
+  };
+
+  function viewToIndex(view: string | null): number | null {
+    if (!view) return null;
+    switch (view.toLowerCase()) {
+      case 'upload':
+        return 0;
+      case 'datasets':
+        return 1;
+      case 'batches':
+        return 2;
+      case 'export':
+        return 3;
+      default:
+        return null;
+    }
+  }
+
+  // Sync component state with the query parameter (?view=...)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const view = params.get('view');
+    if (view === 'settings') {
+      setSettingsTab(true);
+      return; // leave selectedTab as-is (so no main tab appears selected intentionally)
+    }
+    const idx = viewToIndex(view);
+    if (idx !== null) {
+      setSelectedTab(idx);
+      setSettingsTab(false);
+    } else if (!view) {
+      // default state if no view specified -> upload
+      setSelectedTab(0);
+      setSettingsTab(false);
+    }
+  }, [location.search]);
+
+  function navigateWithView(view: string) {
+    // Preserve current pathname (projectID path) but update view param
+    const newUrl = `${location.pathname}?view=${view}`;
+    if (location.search !== `?view=${view}`) {
+      navigate(newUrl, { replace: false });
+    }
+  }
+
   function handleTabChange(_: React.SyntheticEvent, newValue: number) {
     setSelectedTab(newValue);
     setSettingsTab(false);
+    navigateWithView(indexToView[newValue]);
   }
 
   function handleSettingsClick() {
     setSettingsTab(true);
+    navigateWithView('settings');
   }
 
   const title = projectData?.projectName || (error ? 'Error' : loading ? 'Loading project...' : 'Project');
@@ -166,10 +219,10 @@ const ProjectPage: React.FC = () => {
                   '& .Mui-selected': { fontWeight: 700 },
                 }}
               >
-                <Tab icon={<CloudUploadOutlined />} iconPosition="start" label="Upload" />
-                <Tab icon={<GpsFixedOutlined />} iconPosition="start" label="Datasets" />
-                <Tab icon={<BarChartOutlined />} iconPosition="start" label="Batches" />
-                <Tab icon={<IosShareOutlined />} iconPosition="start" label="Export" />
+                <Tab icon={<CloudUploadOutlined />} iconPosition="start" label="Upload" aria-label="Upload" />
+                <Tab icon={<GpsFixedOutlined />} iconPosition="start" label="Datasets" aria-label="Datasets" />
+                <Tab icon={<BarChartOutlined />} iconPosition="start" label="Batches" aria-label="Batches" />
+                <Tab icon={<IosShareOutlined />} iconPosition="start" label="Export" aria-label="Export" />
               </Tabs>
             </Box>
             <Divider sx={{ my: 2 }} />

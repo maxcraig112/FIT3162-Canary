@@ -103,5 +103,5 @@ export async function updateProjectQuantity(projectID: string, quantity: number)
 }
 
 export function handleProjectPage(projectID: string, navigate: (path: string) => void) {
-  navigate(`/projects/${projectID}`);
+  navigate(`/projects/${projectID}?view=batches`);
 }

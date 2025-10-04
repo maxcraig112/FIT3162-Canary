@@ -226,7 +226,7 @@ const AnnotatePage: React.FC = () => {
     if (sessionRole === 'member') {
       navigate('/');
     } else if (projectID) {
-      navigate(`/projects/${projectID}`);
+      navigate(`/projects/${projectID}?view=batches`);
     } else {
       navigate(-1);
     }
