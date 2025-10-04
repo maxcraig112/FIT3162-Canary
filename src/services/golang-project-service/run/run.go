@@ -27,7 +27,9 @@ func setupHandlers(ctx context.Context, r *mux.Router, clients *gcp.Clients) {
 	authMw := jwt.AuthMiddleware(clients)
 
 	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("OK"))
+		if _, err := w.Write([]byte("OK")); err != nil {
+			log.Error().Err(err).Msg("Failed to write health response")
+		}
 	}).Methods("GET")
 
 	h := handler.NewHandler(ctx, clients, authMw)

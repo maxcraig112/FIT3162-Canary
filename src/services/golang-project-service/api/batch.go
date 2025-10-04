@@ -73,7 +73,11 @@ func (h *BatchHandler) UpdateBatchHandler(w http.ResponseWriter, r *http.Request
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("batchID", batchID).Msg("Updated batch successfully")
-	json.NewEncoder(w).Encode(batch)
+	if err := json.NewEncoder(w).Encode(batch); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		log.Error().Err(err).Str("batchID", batchID).Msg("Failed to encode updated batch response")
+		return
+	}
 }
 
 func (h *BatchHandler) LoadBatchHandler(w http.ResponseWriter, r *http.Request) {

@@ -167,7 +167,11 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", "attachment; filename=keypoints.zip")
 	zipWriter := zip.NewWriter(w)
-	defer zipWriter.Close()
+	defer func() {
+		if err := zipWriter.Close(); err != nil {
+			log.Error().Err(err).Msg("Error closing zip writer")
+		}
+	}()
 
 	now := time.Now()
 	cocoDS := CorrectKeypointDetection{
@@ -201,13 +205,18 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 
 	for i, img := range images {
 		// write image to zip
-		rc, err := h.Buckets.ImageBucket.StreamImage(h.Ctx, img.ImageName)
+		rc, err := h.ImageBucket.StreamImage(h.Ctx, img.ImageName)
 		if err != nil {
 			http.Error(w, "Error downloading image", http.StatusInternalServerError)
 			log.Error().Err(err).Str("projectID", projectID).Str("batchID", img.BatchID).Str("filename", img.ImageName).Msg("Failed to download image")
 			return
 		}
-		defer rc.Close()
+		defer func() {
+			if err := rc.Close(); err != nil {
+				log.Error().Err(err).Str("projectID", projectID).Str("batchID", img.BatchID).Str("filename", img.ImageName).Msg("Failed to close image reader")
+			}
+		}()
+
 		img_path := fmt.Sprintf("images/%d.jpg", i+1)
 		fw, err := zipWriter.Create(img_path)
 		if err != nil {
@@ -340,7 +349,11 @@ func (h *ExportHandler) exportBoundingBoxCOCOHandler(w http.ResponseWriter, r *h
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", "attachment; filename=bounding_boxes.zip")
 	zipWriter := zip.NewWriter(w)
-	defer zipWriter.Close()
+	defer func() {
+		if err := zipWriter.Close(); err != nil {
+			log.Error().Err(err).Msg("Error closing zip writer")
+		}
+	}()
 
 	now := time.Now()
 	cocoDS := coco.ObjectDetection{
@@ -380,13 +393,17 @@ func (h *ExportHandler) exportBoundingBoxCOCOHandler(w http.ResponseWriter, r *h
 
 	for i, img := range images {
 		// write image to zip
-		rc, err := h.Buckets.ImageBucket.StreamImage(h.Ctx, img.ImageName)
+		rc, err := h.ImageBucket.StreamImage(h.Ctx, img.ImageName)
 		if err != nil {
 			http.Error(w, "Error downloading image", http.StatusInternalServerError)
 			log.Error().Err(err).Str("projectID", projectID).Str("batchID", img.BatchID).Str("filename", img.ImageName).Msg("Failed to download image")
 			return
 		}
-		defer rc.Close()
+		defer func() {
+			if err := rc.Close(); err != nil {
+				log.Error().Err(err).Str("projectID", projectID).Str("batchID", img.BatchID).Str("filename", img.ImageName).Msg("Failed to close image reader")
+			}
+		}()
 		img_path := fmt.Sprintf("images/%d.jpg", i+1)
 		fw, err := zipWriter.Create(img_path)
 		if err != nil {
@@ -507,7 +524,11 @@ func (h *ExportHandler) exportBoundingBoxPascalVOCHandler(w http.ResponseWriter,
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", "attachment; filename=bounding_boxes.zip")
 	zipWriter := zip.NewWriter(w)
-	defer zipWriter.Close()
+	defer func() {
+		if err := zipWriter.Close(); err != nil {
+			log.Error().Err(err).Msg("Error closing zip writer")
+		}
+	}()
 
 	for i, img := range images {
 		err := h.exportImage(zipWriter, i+1, img, bbLabelMap)
@@ -557,11 +578,15 @@ func (h *ExportHandler) exportBoundingBoxPascalVOCHandler(w http.ResponseWriter,
 
 func (h *ExportHandler) exportImage(zipWriter *zip.Writer, i int, img firestore.Image, bbLabelMap map[string]string) error {
 	// write image to zip
-	rc, err := h.Buckets.ImageBucket.StreamImage(h.Ctx, img.ImageName)
+	rc, err := h.ImageBucket.StreamImage(h.Ctx, img.ImageName)
 	if err != nil {
 		return err
 	}
-	defer rc.Close()
+	defer func() {
+		if err := rc.Close(); err != nil {
+			log.Error().Err(err).Str("batchID", img.BatchID).Str("imageID", img.ImageID).Msg("Failed to close image reader")
+		}
+	}()
 
 	img_path := fmt.Sprintf("JPEGImages/%d.jpg", i)
 	fw, err := zipWriter.Create(img_path)

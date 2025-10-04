@@ -39,6 +39,12 @@ tasks:
     cmds:
      - npm run dev
 
+  lintPkgService:
+    desc: Lint the Go package service with golangci-lint
+    dir: src/pkg
+    cmds:
+      - golangci-lint run
+
   lintAuthService:
     desc: Lint the Go authentication service with golangci-lint
     dir: src/services/golang-auth-service
@@ -66,6 +72,7 @@ tasks:
   lintAll:
     desc: Lint all Go services with golangci-lint
     cmds:
+      - task: lintPkgService
       - task: lintAuthService
       - task: lintProjectService
       - task: lintWebsocketService

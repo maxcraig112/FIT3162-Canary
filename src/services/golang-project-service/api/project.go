@@ -82,7 +82,9 @@ func (h *ProjectHandler) LoadProjectsHandler(w http.ResponseWriter, r *http.Requ
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		log.Info().Str("userID", userID).Msg("Successfully returned projects by User ID")
-		json.NewEncoder(w).Encode(projects)
+		if err := json.NewEncoder(w).Encode(projects); err != nil {
+			log.Error().Err(err).Str("userID", userID).Msg("Failed to encode projects response")
+		}
 		return
 	} else {
 		project, err := h.ProjectStore.GetProject(h.Ctx, projectID)
@@ -103,7 +105,9 @@ func (h *ProjectHandler) LoadProjectsHandler(w http.ResponseWriter, r *http.Requ
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		log.Info().Str("projectID", projectID).Msg("Successfully returned project with Project ID")
-		json.NewEncoder(w).Encode(project)
+		if err := json.NewEncoder(w).Encode(project); err != nil {
+			log.Error().Err(err).Str("projectID", projectID).Msg("Failed to encode project response")
+		}
 	}
 
 }
@@ -257,5 +261,7 @@ func (h *ProjectHandler) UpdateProjectHandler(w http.ResponseWriter, r *http.Req
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("projectID", projectID).Msg("Updated project settings successfully")
-	json.NewEncoder(w).Encode(project)
+	if err := json.NewEncoder(w).Encode(project); err != nil {
+		log.Error().Err(err).Str("projectID", projectID).Msg("Failed to encode update project response")
+	}
 }

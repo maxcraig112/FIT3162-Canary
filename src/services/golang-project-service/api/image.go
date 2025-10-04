@@ -227,11 +227,15 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 	}
 	if len(summaryParts) == 0 {
 		log.Warn().Str("batchID", batchID).Msg("Upload handler completed with no media persisted")
-		w.Write([]byte("No media uploaded"))
+		if _, err := w.Write([]byte("No media uploaded")); err != nil {
+			log.Error().Err(err).Str("batchID", batchID).Msg("Failed to write no media uploaded response")
+		}
 		return
 	}
 	log.Info().Str("batchID", batchID).Msg(fmt.Sprintf("Uploaded and stored metadata for %s", strings.Join(summaryParts, " and ")))
-	w.Write([]byte("Upload successful"))
+	if _, err := w.Write([]byte("Upload successful")); err != nil {
+		log.Error().Err(err).Str("batchID", batchID).Msg("Failed to write upload successful response")
+	}
 }
 
 func generateImageData(batchID string, form *multipart.Form) (bucket.ObjectMap, error) {
@@ -372,13 +376,17 @@ func generateVideoData(batchID string, form *multipart.Form) (bucket.ObjectMap, 
 
 			cfg, _, err := image.DecodeConfig(frameFile)
 			if err != nil {
-				frameFile.Close()
+				if cerr := frameFile.Close(); cerr != nil {
+					log.Error().Err(cerr).Msg("Failed closing frame file after decode error")
+				}
 				return nil, cleanup, fmt.Errorf("failed to decode frame config: %w", err)
 			}
 			width, height := cfg.Width, cfg.Height
 			_, err = frameFile.Seek(0, 0)
 			if err != nil {
-				frameFile.Close()
+				if cerr := frameFile.Close(); cerr != nil {
+					log.Error().Err(cerr).Msg("Failed closing frame file after seek error")
+				}
 				return nil, cleanup, fmt.Errorf("failed to reset frame file: %w", err)
 			}
 

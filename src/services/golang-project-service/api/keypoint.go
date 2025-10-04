@@ -55,7 +55,9 @@ func (h *KeypointHandler) GetKeypointsByBoundingBoxHandler(w http.ResponseWriter
 
 	w.Header().Set("Content-Type", "application/json")
 	log.Info().Str("boundingBoxID", boundingBoxID).Msg("Loaded keypoints successfully")
-	json.NewEncoder(w).Encode(keypoints)
+	if err := json.NewEncoder(w).Encode(keypoints); err != nil {
+		log.Error().Err(err).Str("boundingBoxID", boundingBoxID).Msg("Failed to encode keypoints response")
+	}
 }
 
 func (h *KeypointHandler) CreateKeypointHandler(w http.ResponseWriter, r *http.Request) {
@@ -85,7 +87,9 @@ func (h *KeypointHandler) CreateKeypointHandler(w http.ResponseWriter, r *http.R
 
 	w.WriteHeader(http.StatusCreated)
 	log.Info().Str("keypointID", id).Msg("Keypoint created successfully")
-	json.NewEncoder(w).Encode(map[string]string{"keypointID": id})
+	if err := json.NewEncoder(w).Encode(map[string]string{"keypointID": id}); err != nil {
+		log.Error().Err(err).Str("keypointID", id).Msg("Failed to encode create keypoint response")
+	}
 }
 
 func (h *KeypointHandler) GetKeypointsByImageHandler(w http.ResponseWriter, r *http.Request) {
@@ -101,7 +105,9 @@ func (h *KeypointHandler) GetKeypointsByImageHandler(w http.ResponseWriter, r *h
 
 	w.Header().Set("Content-Type", "application/json")
 	log.Info().Str("imageID", imageID).Msg("Loaded keypoints successfully")
-	json.NewEncoder(w).Encode(keypoints)
+	if err := json.NewEncoder(w).Encode(keypoints); err != nil {
+		log.Error().Err(err).Str("imageID", imageID).Msg("Failed to encode keypoints by image response")
+	}
 }
 
 func (h *KeypointHandler) GetKeypointHandler(w http.ResponseWriter, r *http.Request) {
@@ -117,7 +123,9 @@ func (h *KeypointHandler) GetKeypointHandler(w http.ResponseWriter, r *http.Requ
 
 	w.Header().Set("Content-Type", "application/json")
 	log.Info().Str("keypointID", keypointID).Msg("Loaded keypoint successfully")
-	json.NewEncoder(w).Encode(kp)
+	if err := json.NewEncoder(w).Encode(kp); err != nil {
+		log.Error().Err(err).Str("keypointID", keypointID).Msg("Failed to encode keypoint response")
+	}
 }
 
 func (h *KeypointHandler) UpdateKeypointHandler(w http.ResponseWriter, r *http.Request) {
@@ -145,7 +153,9 @@ func (h *KeypointHandler) UpdateKeypointHandler(w http.ResponseWriter, r *http.R
 
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("keypointID", keypointID).Msg("Keypoint position updated successfully")
-	w.Write([]byte("Keypoint position updated"))
+	if _, err := w.Write([]byte("Keypoint position updated")); err != nil {
+		log.Error().Err(err).Str("keypointID", keypointID).Msg("Failed to write update keypoint response")
+	}
 }
 
 func (h *KeypointHandler) DeleteKeypointHandler(w http.ResponseWriter, r *http.Request) {
@@ -160,5 +170,7 @@ func (h *KeypointHandler) DeleteKeypointHandler(w http.ResponseWriter, r *http.R
 
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("keypointID", keypointID).Msg("Keypoint deleted successfully")
-	w.Write([]byte("Keypoint deleted"))
+	if _, err := w.Write([]byte("Keypoint deleted")); err != nil {
+		log.Error().Err(err).Str("keypointID", keypointID).Msg("Failed to write delete keypoint response")
+	}
 }
