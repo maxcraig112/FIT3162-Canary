@@ -12,6 +12,13 @@ import (
 	"google.golang.org/api/iterator"
 )
 
+type ObjectList []ObjectData
+
+type ObjectData struct {
+	ImageName string
+	ImageData ImageData
+}
+
 var signedURLDuration = 60 * time.Minute
 
 type ObjectMap map[string]ImageData
@@ -53,21 +60,24 @@ func (b *GenericBucket) CreateObject(ctx context.Context, objectName string, dat
 }
 
 // CreateObjectsBatch uploads multiple objects and returns their URLs.
-func (b *GenericBucket) CreateObjectsBatch(ctx context.Context, objects ObjectMap) (map[string]ImageData, error) {
-	urls := make(map[string]ImageData, len(objects))
+func (b *GenericBucket) CreateObjectsBatch(ctx context.Context, objects ObjectList) (ObjectList, error) {
+	objectDatas := make([]ObjectData, len(objects))
 
-	for name, imageData := range objects {
-		err := b.CreateObject(ctx, name, imageData.ObjectReader)
+	for i := range len(objects) {
+		err := b.CreateObject(ctx, objects[i].ImageName, objects[i].ImageData.ObjectReader)
 		if err != nil {
-			return nil, fmt.Errorf("failed to upload %s: %w", name, err)
+			return nil, fmt.Errorf("failed to upload %s: %w", objects[i].ImageName, err)
 		}
-		urls[name] = ImageData{
-			Width:  imageData.Width,
-			Height: imageData.Height,
+		objectDatas[i] = ObjectData{
+			ImageName: objects[i].ImageName,
+			ImageData: ImageData{
+				Width:  objects[i].ImageData.Width,
+				Height: objects[i].ImageData.Height,
+			},
 		}
 	}
 
-	return urls, nil
+	return objectDatas, nil
 }
 
 func (b *GenericBucket) DeleteObject(ctx context.Context, objectName string) error {
