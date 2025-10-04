@@ -9,4 +9,5 @@ runtime_sa_email      = "277166024460-compute@developer.gserviceaccount.com"
 client_sa_name         = "gh-client"
 
 bucket_name = "canary-project-images"
+bucket_sa_name = "bucket-signer"
 notification_email_address = "maxcraig112@gmail.com"

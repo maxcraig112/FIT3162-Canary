@@ -4,10 +4,15 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
+	"time"
 
 	"cloud.google.com/go/storage"
+	"golang.org/x/oauth2/google"
 	"google.golang.org/api/iterator"
 )
+
+var signedURLDuration = 60 * time.Minute
 
 type ObjectMap map[string]ImageData
 
@@ -110,4 +115,24 @@ func (b *GenericBucket) StreamObject(ctx context.Context, objectName string) (io
 		return nil, fmt.Errorf("failed to create reader for object %s: %w", objectName, err)
 	}
 	return rc, nil
+}
+
+func (b *GenericBucket) GetSignedURL(ctx context.Context, objectName string) (string, error) {
+	keyJSON := os.Getenv("BUCKET_JSON_KEY")
+	conf, err := google.JWTConfigFromJSON([]byte(keyJSON))
+	if err != nil {
+		return "", fmt.Errorf("failed to parse service account key JSON: %w", err)
+	}
+
+	url, err := storage.SignedURL(b.bucket.BucketName(), objectName, &storage.SignedURLOptions{
+		Scheme:         storage.SigningSchemeV4,
+		Method:         "GET",
+		GoogleAccessID: os.Getenv("BUCKET_SIGNER_SA"),
+		PrivateKey:     conf.PrivateKey,
+		Expires:        time.Now().Add(signedURLDuration),
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to generate signed URL for object %s: %w", objectName, err)
+	}
+	return url, nil
 }

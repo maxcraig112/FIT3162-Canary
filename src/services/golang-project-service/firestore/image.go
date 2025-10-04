@@ -65,6 +65,7 @@ func (s *ImageStore) GetImagesByBatchID(ctx context.Context, batchID string) ([]
 		if err := doc.DataTo(&i); err != nil {
 			return nil, err
 		}
+
 		i.BatchID = batchID
 		i.ImageID = doc.Ref.ID
 		images = append(images, i)

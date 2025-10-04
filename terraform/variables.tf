@@ -38,6 +38,11 @@ variable "bucket_name" {
   type        = string
 }
 
+variable "bucket_sa_name" {
+  description = "The Service Account ID for the Bucket URL Signer."
+  type        = string
+}
+
 variable "notification_email_address" {
   description = "The email address to receive GCS bucket size alerts."
   type        = string

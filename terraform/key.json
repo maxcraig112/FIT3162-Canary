@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "canary-462412",
+  "private_key_id": "777f6e1dcd9cc5d3e68427ca76dced64f239e35c",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCrra312HE1L0Yd\nmlkT/hhsvDG3pRx1/UzW/xFrExeIzh1pV7OtPX0KiRKUrY/6/8kQuVMfA96G4LFJ\nUWs1CZM+Eu1xAo/IHwPipZAQhxUvel/usfedQcfih9ZszMnQb6lrtjQa7zUDaocc\nwB948VqRrBXmNPOf8JvO4zHs/XCO5xf/BXFMB5aEzfSaxeSfE87Hxj8+28xEXCXg\nRGTj4vHuocCxcqjUO/PZe1Vue0XL9LNo92++iOptdDblBF5bTO5A9aYTauqJ/FOy\nvdEhKWmU9nqhLX52LYp8q/5RegomuQCDQcVhWQP9PnNIjfYAGKU16LWi0i5Y8OR6\nWc/2b/qTAgMBAAECggEAKsYIkDa/qgEfxpNku0r1Oe4/suJD74/PO8fsRpHIrNCx\n2kO8JB8sTtotE3cU5vQg2/ZYo+MaZ9+GvF45SEsc8PvVRfFd8n3rwWX/uWZ2nFAw\no6+aooc3rpSqk4wIglK30vrgC4/q1PGPPVYO4Vq89ot6H1O1GXXg1BCeKU5R44B+\n1CQHwCdIoLqLSApyv49zdGkOq3yGgc5X/HXjD6wMFKRbhIdamzP2GOt656Ybhk6x\n2LVDAFREG4SjTD9U5JM63OLfsCj9ALvjPDJ80LIC30KUqfrKpn86nlCRrlRJXjSn\nzAYDBMHK0yBngQJfSyPvlfJPdgO5KCMhFX39WvSZXQKBgQDbH4YW3x3AVLOuDaOn\n/ZrSVTkLKi1MTKVOA4tEXamCZW54f5SD5Ic0Rb6BFFDb576T01ukrlArZSzgzHP2\nD0GwxhjuWwDWYEhSOtu7C0LIxtyAq7ILFg3T1I9EN8n+ZQaeorcT0YMi3X/dFvjf\nyc/MWWZ3v7g6lRS6bt9h9TgZ9QKBgQDIkhjL7JpuM+DcuQVgcn9z/sbBq0pTH3/x\nFWDDz5afVeUJtCGe6UDh5fnV9Qqrq5gl+YoEz+/uI/5jkrXQLH9kdDH9Xq2OBn3o\nrgwqhuVPZGqEGwoypNXIFQxx/5GGgCt23gdHbrnsjftESueKgRTK0MyAp7O0aXqk\nl0Na2tTFZwKBgQDB/k2zUALB9PtCe/bI0mBQGH0xIj0KUM0EnWSduSJKPEyqR6EP\nh7IfmCOJmZfgqHHz4+o9iMmXMbKirr93N5ibzTXjSBQctw8wJcXE+bo9kLlE/Tza\nTcMeKBBSf+XH4F8U8M+Ory0fH+SEs0LQtZXPv9JU8BpFWxkH2QLRcc0iRQKBgC2S\nnJXBRfmiSgZ8987JVVJa4nhg3jty3dQ+gkUbpuK/VpJU3orH/xkU8yZ9ThZhn+mJ\nAKZFRQP8I7ImRK9vXObLTAyA9bhemz9CRLto+TOH4nfv2OpW78hNmA1S/5LrDnUs\nz8SYUSCBxkTnLCMZX0sSFFVrRXbJvLcnM4OyU0QjAoGBAJZiCxtA+Dds3/kZGkLk\nk61Lk1xsHXaFRo8jBXOoxbOk3KcriHUXQk4Wqzu68gQzd1aQ5AeRLfm9fpdz7khk\n+Y7NCIHGXPzJuAmZuf4EaN+6FC2x87gPm9y7Vbgr49qlEoNsT8viTBzr2Swr3suw\ncVCnm6xbsrzUVun9+7Bq4Sky\n-----END PRIVATE KEY-----\n",
+  "client_email": "bucket-signer@canary-462412.iam.gserviceaccount.com",
+  "client_id": "115158593082807304540",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/bucket-signer%40canary-462412.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

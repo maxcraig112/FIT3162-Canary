@@ -71,6 +71,7 @@ export function useImageHandler() {
     const url = `${projectServiceUrl()}/batch/${batchID}/images`;
     try {
       const data = await CallAPI<ImageMeta[]>(url);
+      console.log(data)
       return data;
     } catch (err) {
       throw new Error(`Failed to fetch images for batch ${batchID}: ${err}`);
