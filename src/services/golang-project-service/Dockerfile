@@ -1,12 +1,17 @@
 # syntax=docker/dockerfile:1
 
 # -------- Build stage --------
-FROM golang:1.23-alpine AS builder
+FROM golang:1.23 AS builder
 
 WORKDIR /workspace
 
-# Install gcc, musl-dev (headers), git, and certs for CGO + go mod
-RUN apk add --no-cache ca-certificates git build-base
+# Install build tooling for CGO (gcc etc.) and git/ca-certs
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        ca-certificates \
+        git \
+        pkg-config \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy the entire repository
 COPY . .
@@ -22,7 +27,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # Build the service with CGO enabled
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o /out/project-service ./
+    CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/project-service ./
 
 # -------- Runtime stage --------
 FROM gcr.io/distroless/base-debian12:nonroot AS runtime
