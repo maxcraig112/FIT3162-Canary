@@ -1,12 +1,10 @@
 import * as fabric from 'fabric';
 import { fabricBBPolygonProps, fabricBBProps, fabricGroupProps, fabricBBMarkerProps } from './constants';
-import type { BoundingBoxAnnotation } from './constants';
 import { getBoundingBoxLabelName } from './labelRegistry';
 import { polygonCentroid } from './helper';
-import { CallAPI } from '../utils/apis';
+import { CallAPI, projectServiceUrl } from '../utils/apis';
 import { createBoundingBoxAnnotation } from './constants';
-
-const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
+import type { BoundingBoxAnnotation } from '../utils/intefaces/interfaces';
 
 export const BoundingBoxFabricHandler = {
   createFabricBoundingBox(canvas: fabric.Canvas, ann: BoundingBoxAnnotation, transform?: { scale: number; offsetX: number; offsetY: number }): { group: fabric.Group } {
@@ -47,7 +45,7 @@ export const BoundingBoxFabricHandler = {
 export const boundingBoxDatabaseHandler = {
   // Create a bounding box in the database and get its ID
   async createBoundingBox(ann: BoundingBoxAnnotation): Promise<BoundingBoxAnnotation> {
-    const url = `${baseUrl}/projects/${ann.projectID}/images/${ann.imageID}/boundingboxes`;
+    const url = `${projectServiceUrl()}/projects/${ann.projectID}/images/${ann.imageID}/boundingboxes`;
     const body = {
       box: getBox(ann),
       boundingBoxLabelID: ann.labelID,
@@ -70,7 +68,7 @@ export const boundingBoxDatabaseHandler = {
   },
 
   async renameBoundingBox(ann: BoundingBoxAnnotation, newLabelID: string): Promise<BoundingBoxAnnotation> {
-    const url = `${baseUrl}/projects/${ann.projectID}/boundingboxes/${ann.id}`;
+    const url = `${projectServiceUrl()}/projects/${ann.projectID}/boundingboxes/${ann.id}`;
     const body = {
       box: getBox(ann),
       boundingBoxLabelID: newLabelID,
@@ -90,7 +88,7 @@ export const boundingBoxDatabaseHandler = {
   },
 
   async deleteBoundingBox(ann: BoundingBoxAnnotation): Promise<void> {
-    const url = `${baseUrl}/projects/${ann.projectID}/boundingboxes/${ann.id}`;
+    const url = `${projectServiceUrl()}/projects/${ann.projectID}/boundingboxes/${ann.id}`;
     try {
       await CallAPI(url, {
         method: 'DELETE',
@@ -104,7 +102,7 @@ export const boundingBoxDatabaseHandler = {
   },
 
   async getAllBoundingBoxes(projectID: string, imageID: string) {
-    const url = `${baseUrl}/projects/${projectID}/images/${imageID}/boundingboxes`;
+    const url = `${projectServiceUrl()}/projects/${projectID}/images/${imageID}/boundingboxes`;
     let raw;
     try {
       raw = await CallAPI(url, {

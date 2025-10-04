@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o /out/auth-service ./
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/auth-service ./
 
 # -------- Runtime stage --------
 FROM gcr.io/distroless/base-debian12:nonroot AS runtime

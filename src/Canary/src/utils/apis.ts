@@ -1,7 +1,19 @@
 import { getAuthTokenFromCookie } from './cookieUtils';
+import { getCookie } from './cookieUtils';
+
+export function authServiceUrl() {
+  return import.meta.env.VITE_AUTH_SERVICE_URL as string;
+}
+
+export function projectServiceUrl() {
+  return import.meta.env.VITE_PROJECT_SERVICE_URL as string;
+}
+
+export function websocketServiceUrl() {
+  return import.meta.env.VITE_WEBSOCKET_SERVICE_URL as string;
+}
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-
 export interface CallAPIOptions extends RequestInit {
   method?: HttpMethod;
   json?: unknown; // if provided, will be JSON.stringified and content-type set
@@ -30,6 +42,12 @@ export async function CallAPI<T = unknown>(url: string, options: CallAPIOptions 
   if (auth) {
     const token = getAuthTokenFromCookie();
     if (token) headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  // Attach session ID header for collaborative session-aware requests if cookie present.
+  const sessionID = getCookie('session_id_cookie');
+  if (sessionID) {
+    headers.set('X-Session-Id', sessionID);
   }
 
   const resp = await fetch(url, { method, headers, body, ...rest });

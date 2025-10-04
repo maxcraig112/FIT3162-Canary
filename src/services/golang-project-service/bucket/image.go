@@ -39,3 +39,7 @@ func (b *ImageBucket) DownloadImage(ctx context.Context, imageName string) ([]by
 func (b *ImageBucket) StreamImage(ctx context.Context, imageName string) (io.ReadCloser, error) {
 	return b.genericBucket.StreamObject(ctx, imageName)
 }
+
+func (b *ImageBucket) GetSignedURL(ctx context.Context, imageName string) (string, error) {
+	return b.genericBucket.GetSignedURL(ctx, imageName)
+}

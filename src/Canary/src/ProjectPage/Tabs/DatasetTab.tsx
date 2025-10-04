@@ -2,13 +2,12 @@ import React from 'react';
 import { Box, Paper, IconButton, Menu, MenuItem, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
 // Using Box + CSS grid for precise gaps and alignment
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import type { Project } from '../ProjectPage';
 import { useDatasetTab } from './datasetTabHandler';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import type { Project } from '../../utils/intefaces/interfaces';
 
 export const DatasetTab: React.FC<{ project: Project | null }> = () => {
   const { projectID } = useParams<{ projectID: string }>();
-  const navigate = useNavigate();
   const {
     batches,
     loading,
@@ -92,7 +91,6 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
                     },
                     overflow: 'hidden', // clip blurred bg to card
                   }}
-                  onClick={() => navigate(`/annotate?batchID=${encodeURIComponent(b.batchID)}&projectID=${encodeURIComponent(projectID ?? b.projectID)}`)}
                 >
                   {/* blurred background preview */}
                   {b.previewURL && (

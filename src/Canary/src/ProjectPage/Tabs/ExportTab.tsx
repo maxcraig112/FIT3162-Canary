@@ -1,11 +1,17 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Box, Stack, FormControl, Select, MenuItem, Button, Alert, Typography } from '@mui/material';
-import type { Project } from '../ProjectPage';
 import { getAuthTokenFromCookie } from '../../utils/cookieUtils';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import type { Project } from '../../utils/intefaces/interfaces';
+import { projectServiceUrl } from '../../utils/apis';
 
 type ExportFormat = 'coco' | 'pascal-voc';
 type AnnotationType = 'bbox' | 'keypoint';
+
+const formatLabels: Record<ExportFormat, string> = {
+  coco: 'COCO',
+  'pascal-voc': 'PASCAL VOC',
+};
 
 export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) => {
   /* ---------- state ---------- */
@@ -14,8 +20,6 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-
-  const baseUrl = useMemo(() => import.meta.env.VITE_PROJECT_SERVICE_URL as string, []);
 
   /* ---------- helpers ---------- */
   const bothSelectsDisabled = !format;
@@ -44,11 +48,11 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
     try {
       let url;
       if (format === 'pascal-voc' && annotationType === 'bbox') {
-        url = `${baseUrl}/project/${encodeURIComponent(project.projectID)}/boundingboxes/export/pascal_voc`;
+        url = `${projectServiceUrl()}/project/${encodeURIComponent(project.projectID)}/boundingboxes/export/pascal_voc`;
       } else if (format === 'coco' && annotationType === 'bbox') {
-        url = `${baseUrl}/project/${encodeURIComponent(project.projectID)}/boundingboxes/export/coco`;
+        url = `${projectServiceUrl()}/project/${encodeURIComponent(project.projectID)}/boundingboxes/export/coco`;
       } else if (format === 'coco' && annotationType === 'keypoint') {
-        url = `${baseUrl}/project/${encodeURIComponent(project.projectID)}/keypoints/export/coco`;
+        url = `${projectServiceUrl()}/project/${encodeURIComponent(project.projectID)}/keypoints/export/coco`;
       }
       if (!url) {
         throw new Error('Invalid format or annotation type.');
@@ -130,13 +134,19 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
               setAnnotationType((prev) => (f === 'pascal-voc' && prev === 'keypoint' ? '' : prev));
             }}
             displayEmpty
-            renderValue={(s) => (s ? s.toUpperCase() : <Typography sx={{ color: '#777' }}>Select format…</Typography>)}
+            renderValue={(s) =>
+              s ? (
+                formatLabels[s as ExportFormat] // show "PASCAL VOC" instead of "pascal-voc"
+              ) : (
+                <Typography sx={{ color: '#777' }}>Select format…</Typography>
+              )
+            }
             IconComponent={ExpandMoreIcon}
             sx={selectSx}
           >
             <MenuItem value="">Select format…</MenuItem>
-            <MenuItem value="coco">COCO</MenuItem>
-            <MenuItem value="pascal-voc">PASCAL VOC</MenuItem>
+            <MenuItem value="coco">{formatLabels.coco}</MenuItem>
+            <MenuItem value="pascal-voc">{formatLabels['pascal-voc']}</MenuItem>
           </Select>
         </FormControl>
 
@@ -164,7 +174,7 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
             }}
           >
             <MenuItem disabled={keypointDisabled} value="keypoint">
-              Key-point
+              Keypoint
             </MenuItem>
             <MenuItem value="bbox">Bounding box</MenuItem>
           </Select>

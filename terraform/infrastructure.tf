@@ -10,11 +10,12 @@ resource "google_storage_bucket" "canary_project_images" {
 }
 
 # Grant public read access to objects in the bucket
-resource "google_storage_bucket_iam_member" "canary_project_images_public_read" {
-  bucket = google_storage_bucket.canary_project_images.name
-  role   = "roles/storage.objectViewer"
-  member = "allUsers"
-}
+# This is removed because we are using signed URLs
+# resource "google_storage_bucket_iam_member" "canary_project_images_public_read" {
+#   bucket = google_storage_bucket.canary_project_images.name
+#   role   = "roles/storage.objectViewer"
+#   member = "allUsers"
+# }
 
 resource "google_firestore_database" "default" {
   name     = "default"

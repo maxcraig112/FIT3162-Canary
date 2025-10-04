@@ -1,5 +1,5 @@
 import * as fabric from 'fabric';
-import type { KeypointAnnotation, BoundingBoxAnnotation } from './constants';
+import type { BoundingBoxAnnotation, KeypointAnnotation } from '../utils/intefaces/interfaces';
 export type AnnotationType = KeypointAnnotation | BoundingBoxAnnotation;
 
 export type UndoRedoAction =

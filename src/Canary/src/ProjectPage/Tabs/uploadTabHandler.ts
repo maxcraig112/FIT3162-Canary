@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
-import { CallAPI } from '../../utils/apis';
-import type { Project } from '../ProjectPage';
+import { CallAPI, projectServiceUrl } from '../../utils/apis';
+import type { Project } from '../../utils/intefaces/interfaces';
 
 export function useUploadTab(project: Project | null) {
   const [uploading, setUploading] = useState(false);
@@ -10,8 +10,7 @@ export function useUploadTab(project: Project | null) {
   const [batchName, setBatchName] = useState<string>('');
 
   const createBatch = useCallback(async (projectID: string, nameHint?: string): Promise<{ batchID: string; batchName: string }> => {
-    const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
-    const url = `${baseUrl}/batch`;
+    const url = `${projectServiceUrl()}/batch`;
     const finalName = (nameHint && nameHint.trim()) || `Upload ${new Date().toLocaleString()}`;
 
     const data = await CallAPI<{
@@ -47,9 +46,48 @@ export function useUploadTab(project: Project | null) {
 
   const beginUpload = useCallback(
     async (files: FileList | File[]) => {
-      const list = Array.from(files).filter((f) => /^(image|video)\//i.test(f.type || ''));
+      // Validate file types - only allow PNG, JPEG, and video files
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+
+      const validFiles: File[] = [];
+      const invalidFiles: string[] = [];
+
+      Array.from(files).forEach((file) => {
+        const fileType = file.type.toLowerCase();
+        const fileName = file.name.toLowerCase();
+
+        // Check for video files (allow all video types)
+        if (fileType.startsWith('video/')) {
+          validFiles.push(file);
+        }
+        // Check for specifically allowed image types
+        else if (allowedTypes.includes(fileType)) {
+          validFiles.push(file);
+        }
+        // Also check file extension as backup for JPEG files
+        else if ((fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) && fileType.startsWith('image/')) {
+          validFiles.push(file);
+        } else {
+          // Identify the problematic file type for better error messaging
+          if (fileType.startsWith('image/')) {
+            const format = fileType.replace('image/', '').toUpperCase();
+            invalidFiles.push(`${file.name} (${format} format not supported)`);
+          } else {
+            invalidFiles.push(`${file.name} (unsupported file type)`);
+          }
+        }
+      });
+
+      // Show error for invalid files
+      if (invalidFiles.length > 0) {
+        const fileWord = invalidFiles.length === 1 ? 'file' : 'files';
+        setError(`The following ${fileWord} ${invalidFiles.length === 1 ? 'is' : 'are'} not supported: ${invalidFiles.join(', ')}. Only PNG, JPEG, and video files are allowed.`);
+        return;
+      }
+
+      const list = validFiles;
       if (!list.length) {
-        setError('No image or video files selected.');
+        setError('No supported files selected. Only PNG, JPEG, and video files are allowed.');
         return;
       }
       if (!project?.projectID) {
@@ -63,8 +101,7 @@ export function useUploadTab(project: Project | null) {
 
       try {
         const { batchID, batchName: finalBatchName } = await createBatch(project.projectID, batchName);
-        const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
-        const url = `${baseUrl}/batch/${encodeURIComponent(batchID)}/images`;
+        const url = `${projectServiceUrl()}/batch/${encodeURIComponent(batchID)}/images`;
 
         const formData = new FormData();
         list.forEach((f) => {

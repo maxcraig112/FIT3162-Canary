@@ -1,27 +1,5 @@
 import * as fabric from 'fabric';
-
-// Shared annotation types
-export interface KeypointAnnotation {
-  kind: 'keypoint';
-  projectID: string;
-  imageID: string;
-  id: string;
-  labelID: string;
-  position: { x: number; y: number };
-  // addToDatabase(): Promise<void>;
-  // removeFromDatabase(): Promise<void>;
-}
-
-export interface BoundingBoxAnnotation {
-  kind: 'boundingbox';
-  projectID: string;
-  imageID: string;
-  id: string;
-  labelID: string;
-  points: Array<{ x: number; y: number }>;
-  // addToDatabase(): Promise<void>;
-  // removeFromDatabase(): Promise<void>;
-}
+import type { BoundingBoxAnnotation, KeypointAnnotation } from '../utils/intefaces/interfaces';
 
 export function createKeypointAnnotation(data: Omit<KeypointAnnotation, 'kind'>): KeypointAnnotation {
   return {

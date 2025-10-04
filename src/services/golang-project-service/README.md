@@ -1,39 +1,39 @@
 # Project Requests
 
-| Method | Endpoint                            | Description                                   | JSON/Form Data                                                            |
-| ------ | ----------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------- |
-| GET    | /projects                           | Returns all projects owned by a user as JSON. | None                                                                      |
-| GET    | /projects/{projectID}               | Returns a specific owned by a user as JSON.   | None                                                                      |
-| POST   | /projects                           | Creates a new project.                        | { "userID": "string", "projectName": "string" }                           |
-| DELETE | /projects/{projectID}               | Deletes a project.                            | None                                                                      |
-| PATCH   | /projects/{projectID}      | Updates project settings or name.                     | Project |
+| Method | Endpoint              | Description                                   | JSON/Form Data                                  |
+| ------ | --------------------- | --------------------------------------------- | ----------------------------------------------- |
+| GET    | /projects             | Returns all projects owned by a user as JSON. | None                                            |
+| GET    | /projects/{projectID} | Returns a specific owned by a user as JSON.   | None                                            |
+| POST   | /projects             | Creates a new project.                        | { "userID": "string", "projectName": "string" } |
+| DELETE | /projects/{projectID} | Deletes a project.                            | None                                            |
+| PATCH  | /projects/{projectID} | Updates project settings or name.             | Project                                         |
 
 # Batch Requests
 
-| Method | Endpoint                                | Description                                            | JSON/Form Data                                   |
-| ------ | --------------------------------------- | ------------------------------------------------------ | ------------------------------------------------ |
-| POST   | /batch                                  | Creates a new batch.                                   | { "projectID": "string", "batchName": "string" } |
-| PUT    | /batch/{batchID}                        | Renames a batch.                                       | { "newBatchName": "string" }                     |
-| DELETE | /batch/{batchID}                        | Deletes a batch.                                       | None                                             |
-| GET    | /projects/{projectID}/batches           | Returns all batches associated with a project as JSON. | None                                             |
-| DELETE | /projects/{projectID}/batches        | Deletes all batches associated with a project.         | None                                             |
+| Method | Endpoint                      | Description                                            | JSON/Form Data                                   |
+| ------ | ----------------------------- | ------------------------------------------------------ | ------------------------------------------------ |
+| POST   | /batch                        | Creates a new batch.                                   | { "projectID": "string", "batchName": "string" } |
+| PUT    | /batch/{batchID}              | Renames a batch.                                       | { "newBatchName": "string" }                     |
+| DELETE | /batch/{batchID}              | Deletes a batch.                                       | None                                             |
+| GET    | /projects/{projectID}/batches | Returns all batches associated with a project as JSON. | None                                             |
+| DELETE | /projects/{projectID}/batches | Deletes all batches associated with a project.         | None                                             |
 
 # Image Requests
 
-| Method | Endpoint                | Description                                                                                                                                           | JSON/Form Data      |
-| ------ | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
-| GET    | /batch/{batchID}/images | Returns all image metadata for a batch as JSON.                                                                                                       | None                |
+| Method | Endpoint                | Description                                                                                                                                 | JSON/Form Data      |
+| ------ | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| GET    | /batch/{batchID}/images | Returns all image metadata for a batch as JSON.                                                                                             | None                |
 | POST   | /batch/{batchID}/images | Uploads multiple images to a batch. Multipart form-data field (files). Images are saved to the bucket and metadata is created in Firestore. | Multipart form-data |
-| DELETE   | /batch/{batchID}/images | Deletes all images associated with a batch |
+| DELETE | /batch/{batchID}/images | Deletes all images associated with a batch                                                                                                  |                     |
 
 # Keypoint Label Requests
 
-| Method | Endpoint                                                      | Description                                         | JSON/Form Data                                                   |
-| ------ | ------------------------------------------------------------- | --------------------------------------------------- | ---------------------------------------------------------------- |
-| POST   | /projects/{projectID}/keypointlabels                          | Creates a new keypoint label.                       | { "keypointLabel": "string" }                                  |
-| GET    | /projects/{projectID}/keypointlabels                          | Lists all keypoint labels for the project as JSON.  | None                                                             |
-| PATCH  | /projects/{projectID}/keypointlabel/{keypointLabelID}         | Renames/updates a keypoint label.                   | { "keyPointLabelID": "string", "keypointLabel": "string" }    |
-| DELETE | /projects/{projectID}/keypointlabel/{keypointLabelID}         | Deletes a keypoint label.                           | None                                                             |
+| Method | Endpoint                                              | Description                                        | JSON/Form Data                                             |
+| ------ | ----------------------------------------------------- | -------------------------------------------------- | ---------------------------------------------------------- |
+| POST   | /projects/{projectID}/keypointlabels                  | Creates a new keypoint label.                      | { "keypointLabel": "string" }                              |
+| GET    | /projects/{projectID}/keypointlabels                  | Lists all keypoint labels for the project as JSON. | None                                                       |
+| PATCH  | /projects/{projectID}/keypointlabel/{keypointLabelID} | Renames/updates a keypoint label.                  | { "keyPointLabelID": "string", "keypointLabel": "string" } |
+| DELETE | /projects/{projectID}/keypointlabel/{keypointLabelID} | Deletes a keypoint label.                          | None                                                       |
 
 Response model (GET):
 
@@ -41,13 +41,13 @@ Response model (GET):
 
 # Keypoint Requests
 
-| Method | Endpoint                                                              | Description                                             | JSON/Form Data                                                                 |
-| ------ | --------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| POST   | /projects/{projectID}/images/{imageID}/keypoints                      | Creates a keypoint for an image.                        | { "position": { "x": number, "y": number }, "keypointLabelID": "string" } |
-| GET    | /projects/{projectID}/images/{imageID}/keypoints                      | Lists keypoints for an image as JSON.                   | None                                                                             |
-| GET    | /projects/{projectID}/keypoints/{keypointID}                          | Gets a single keypoint by ID as JSON.                   | None                                                                             |
-| PATCH  | /projects/{projectID}/keypoints/{keypointID}                          | Updates keypoint position and/or label.                 | { "position": { "x": number, "y": number }, "keypointLabelID": "string" } |
-| DELETE | /projects/{projectID}/keypoints/{keypointID}                          | Deletes a keypoint.                                     | None                                                                             |
+| Method | Endpoint                                         | Description                             | JSON/Form Data                                                            |
+| ------ | ------------------------------------------------ | --------------------------------------- | ------------------------------------------------------------------------- |
+| POST   | /projects/{projectID}/images/{imageID}/keypoints | Creates a keypoint for an image.        | { "position": { "x": number, "y": number }, "keypointLabelID": "string" } |
+| GET    | /projects/{projectID}/images/{imageID}/keypoints | Lists keypoints for an image as JSON.   | None                                                                      |
+| GET    | /projects/{projectID}/keypoints/{keypointID}     | Gets a single keypoint by ID as JSON.   | None                                                                      |
+| PATCH  | /projects/{projectID}/keypoints/{keypointID}     | Updates keypoint position and/or label. | { "position": { "x": number, "y": number }, "keypointLabelID": "string" } |
+| DELETE | /projects/{projectID}/keypoints/{keypointID}     | Deletes a keypoint.                     | None                                                                      |
 
 Response model (GET):
 
@@ -56,4 +56,18 @@ Response model (GET):
 Notes:
 
 - For POST keypoints, imageID is taken from the URL path; you only need to provide position and keypointLabelID in the body.
-- All routes are protected by JWT auth middleware; include Authorization: Bearer <token>.
+- All routes are protected by JWT auth middleware; include Authorization: Bearer `<token>`.
+
+# Signed Google URLs
+
+Image URLs are signed with a 60 minute expiry before they are sent to the user. These are signed by a service account in `terraform/bucket_sa.tf`. which is then referenced in the CRUD operations. As well, a json key is stored in google secret manager, which is loaded when the service starts. This has been generated manually using the following command
+
+```
+gcloud iam service-accounts keys create key.json  --iam-account=bucket-signer@canary-462412.iam.gserviceaccount.com
+```
+
+If for some reason the key gets exposed or needs to be regenerated, make sure to delete the old key by listing it with this command, and updating the version in secret manager
+
+```
+gcloud iam service-accounts keys list --iam-account=bucket-signer@canary-462412.iam.gserviceaccount.com
+```

@@ -1,11 +1,10 @@
 import { setCookie } from '../utils/cookieUtils';
-import { CallAPI } from '../utils/apis';
+import { authServiceUrl, CallAPI } from '../utils/apis';
 
 type AuthResponse = { token?: string; userID?: string; message?: string };
-const authServiceURL = import.meta.env.VITE_AUTH_SERVICE_URL;
 
 async function postToAuthService(endpoint: string, payload: object) {
-  return CallAPI<AuthResponse>(`${authServiceURL}${endpoint}`, {
+  return CallAPI<AuthResponse>(`${authServiceUrl()}${endpoint}`, {
     method: 'POST',
     json: payload,
   });
@@ -15,7 +14,6 @@ export async function handleLogin(email: string, password: string, setResult?: (
   try {
     const data = await postToAuthService('/login', { email, password });
     if (data && data.token) {
-      // console.log(data);
       setCookie('auth_token', data.token);
       if (data.userID) setCookie('user_id', data.userID);
       if (setResult) setResult('Login successful');

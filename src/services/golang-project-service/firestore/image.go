@@ -68,6 +68,7 @@ func (s *ImageStore) GetImagesByBatchID(ctx context.Context, batchID string) ([]
 		if err := doc.DataTo(&i); err != nil {
 			return nil, err
 		}
+
 		i.BatchID = batchID
 		i.ImageID = doc.Ref.ID
 		images = append(images, i)
@@ -107,7 +108,6 @@ func (s *ImageStore) CreateImageMetadata(ctx context.Context, batchID string, im
 			}
 		}
 		imageBatch = append(imageBatch, Image{
-			ImageURL:    objectData.ImageData.URL,
 			ImageName:   objectData.ImageName,
 			Height:      objectData.ImageData.Height,
 			Width:       objectData.ImageData.Width,

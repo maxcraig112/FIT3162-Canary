@@ -111,11 +111,24 @@ func (h *WebSocketHub) CreateSession(w http.ResponseWriter, r *http.Request, req
 		h.Sessions[req.SessionID] = s
 	}
 
-	// Assign owner only if not already set
+	// If an owner already exists we may be in a dev hot-reload or reconnect scenario.
+	// If the same user is reconnecting, replace the old connection gracefully; otherwise reject.
 	if s.Owner != nil {
+		if s.Owner.id != req.OwnerID {
+			h.mu.Unlock()
+			_ = conn.Close()
+			return http.ErrUseLastResponse
+		}
+		// Same owner userID: swap connections (close old after swap to avoid race)
+		oldOwner := s.Owner
+		newOwner := &Client{conn: conn, out: make(chan any, 16), id: req.OwnerID}
+		s.Owner = newOwner
+		s.BatchID = req.BatchID // keep batchID consistent
 		h.mu.Unlock()
-		_ = conn.Close()
-		return http.ErrUseLastResponse
+		oldOwner.Close()
+		h.startWebhookWriter(newOwner, "owner", req.SessionID)
+		h.startWebhookReader(newOwner, req.SessionID)
+		return nil
 	}
 
 	owner := &Client{conn: conn, out: make(chan any, 16), id: req.OwnerID}
@@ -174,7 +187,7 @@ func (h *WebSocketHub) startLabelsWatch(c *Client, sessionID string) {
 	keypointStop, err := h.KeyPointStore.WatchByImagesID(context.Background(), c.imageID, func(docs []*firestore.DocumentSnapshot) {
 		// Send only to this client
 		notif := StandardNotification{
-			Type:      "labels_snapshot",
+			Type:      "key_points_snapshot",
 			SessionID: sessionID,
 			Time:      time.Now().UTC().Format(time.RFC3339),
 		}

@@ -88,6 +88,15 @@ func (h *ImageHandler) LoadImagesHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	// Implement Signed URLs
+	for i := range images {
+		signedURL, err := h.ImageBucket.GetSignedURL(ctx, images[i].ImageName)
+		if err != nil {
+			log.Error().Err(err).Str("imageName", images[i].ImageName).Msg("Failed to get signed URL for image")
+		}
+		images[i].ImageURL = signedURL
+	}
+
 	// Respond with image metadata as JSON
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -581,8 +590,9 @@ func (h *ImageHandler) CopyPrevAnnotationsHandler(w http.ResponseWriter, r *http
 		}
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	log.Info().Str("imageID", imageID).Msg("Successfully copied annotations from previous image")
-	w.Write([]byte("Successfully copied annotations from previous image"))
-
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+	})
 }

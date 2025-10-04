@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAuthTokenFromCookie, getUserIDFromCookie } from './cookieUtils';
-import { CallAPI } from './apis';
+import { authServiceUrl, CallAPI } from './apis';
 
 export function useAuthGuard() {
   const navigate = useNavigate();
@@ -20,8 +20,7 @@ export function useAuthGuard() {
 }
 
 async function verifyJWT(_token: string, userID: string): Promise<boolean> {
-  const baseUrl = import.meta.env.VITE_AUTH_SERVICE_URL;
-  const url = `${baseUrl}/auth/${userID}`;
+  const url = `${authServiceUrl()}/auth/${userID}`;
   const requestBody = {
     userID: userID,
   };
