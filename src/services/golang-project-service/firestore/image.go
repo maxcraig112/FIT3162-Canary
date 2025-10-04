@@ -124,8 +124,7 @@ func (s *ImageStore) CreateImageMetadata(ctx context.Context, batchID string, im
 		imageInterfaces[i] = img
 	}
 
-	ids, err = s.genericStore.CreateDocsBatch(ctx, imageInterfaces, ids)
-	if err != nil {
+	if _, err = s.genericStore.CreateDocsBatch(ctx, imageInterfaces, ids); err != nil {
 		return nil, err
 	}
 	return imageBatch, nil
