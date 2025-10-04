@@ -86,7 +86,7 @@ export const annotateHandler = {
   setImageHandler(instance: ImageHandler) {
     imageHandlerRef = instance;
   },
-  
+
   setTool(tool: string) {
     switch (tool) {
       case 'kp':
@@ -393,19 +393,19 @@ export const annotateHandler = {
   },
 
   copyPrevAnnotations(imageID: string, batchID: string, projectID: string) {
-  imageDatabaseHandler.copyPrevAnnotations(imageID)
-    .then(() => {
-      // Call refreshAnnotations instead of renderToCanvas
-      annotateHandler.refreshAnnotations(projectID)
-        .catch((err) => console.warn('[Annotate] refreshAnnotations failed', err));
-    })
-    .catch((err) => console.error('[Annotate] copyPrevAnnotations failed', err));
-},
+    imageDatabaseHandler
+      .copyPrevAnnotations(imageID)
+      .then(() => {
+        // Call refreshAnnotations instead of renderToCanvas
+        annotateHandler.refreshAnnotations(projectID).catch((err) => console.warn('[Annotate] refreshAnnotations failed', err));
+      })
+      .catch((err) => console.error('[Annotate] copyPrevAnnotations failed', err));
+  },
 
   hasPrevAnnotations(imageID: string) {
     return imageDatabaseHandler.hasPrevAnnotations(imageID);
   },
-  
+
   // Force a refresh of annotations for the current image (re-fetch from backend and redraw)
   async refreshAnnotations(projectID: string) {
     const imageHandler = imageHandlerRef;

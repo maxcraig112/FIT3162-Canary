@@ -506,29 +506,14 @@ const AnnotatePage: React.FC = () => {
         }}
       >
         {/* Toggle-only group */}
-        <ToggleButtonGroup
-          orientation="vertical"
-          value={selectedTool}
-          exclusive
-          onChange={handleToolChange}
-          aria-label="tool selection"
-          sx={{ alignItems: 'center', gap: 2 }}
-        >
-          <ToggleButton
-            value="kp"
-            aria-label="keypoint"
-            sx={{ width: 100, height: 100, flexDirection: 'column' }}
-          >
+        <ToggleButtonGroup orientation="vertical" value={selectedTool} exclusive onChange={handleToolChange} aria-label="tool selection" sx={{ alignItems: 'center', gap: 2 }}>
+          <ToggleButton value="kp" aria-label="keypoint" sx={{ width: 100, height: 100, flexDirection: 'column' }}>
             <MyLocation fontSize="large" />
             <Typography variant="body2" sx={{ mt: 0.5 }}>
               KP
             </Typography>
           </ToggleButton>
-          <ToggleButton
-            value="bb"
-            aria-label="bounding-box"
-            sx={{ width: 100, height: 100, flexDirection: 'column' }}
-          >
+          <ToggleButton value="bb" aria-label="bounding-box" sx={{ width: 100, height: 100, flexDirection: 'column' }}>
             <SelectAll fontSize="large" />
             <Typography variant="body2" sx={{ mt: 0.5 }}>
               BB
@@ -567,7 +552,6 @@ const AnnotatePage: React.FC = () => {
           </Button>
         </Box>
       </Paper>
-
     </Box>
   );
 };
