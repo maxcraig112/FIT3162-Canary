@@ -58,11 +58,16 @@ Notes:
 - For POST keypoints, imageID is taken from the URL path; you only need to provide position and keypointLabelID in the body.
 - All routes are protected by JWT auth middleware; include Authorization: Bearer `<token>`.
 
-
 # Signed Google URLs
 
-Image URLs are signed with an 60 minute expiry before they are sent to the user. These are signed by a service account in `terraform/bucket_sa.tf`. which is then referenced in the CRUD operations. As well, a json key is stored in google secret manager, which is loaded when the service starts, and is used. This has been generated manually using the following command
+Image URLs are signed with a 60 minute expiry before they are sent to the user. These are signed by a service account in `terraform/bucket_sa.tf`. which is then referenced in the CRUD operations. As well, a json key is stored in google secret manager, which is loaded when the service starts. This has been generated manually using the following command
 
 ```
 gcloud iam service-accounts keys create key.json  --iam-account=bucket-signer@canary-462412.iam.gserviceaccount.com
+```
+
+If for some reason the key gets exposed or needs to be regenerated, make sure to delete the old key by listing it with this command, and updating the version in secret manager
+
+```
+gcloud iam service-accounts keys list --iam-account=bucket-signer@canary-462412.iam.gserviceaccount.com
 ```
