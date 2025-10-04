@@ -82,20 +82,8 @@ func Run() {
 		}
 	}()
 
-	// Ensure JWT secret is available: prefer env JWT_SECRET; otherwise fetch via GSM if available
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		if clients.GSM == nil {
-			log.Fatal().Msg("JWT_SECRET not set and GSM disabled. Set USE_GSM=true or provide JWT_SECRET in .env")
-		}
-		projectID := os.Getenv("GCP_PROJECT_ID")
-		secretName := os.Getenv("JWT_SECRET_NAME")
-		var err error
-		secret, err = clients.GSM.GetSecret(ctx, projectID, secretName)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to retrieve JWT Secret from GSM")
-		}
-		_ = os.Setenv("JWT_SECRET", secret)
+	if err := initialiseSecrets(ctx, clients); err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize secrets")
 	}
 
 	r := mux.NewRouter()
@@ -124,4 +112,28 @@ func Run() {
 		log.Fatal().Err(err).Msg("Server forced to shutdown")
 	}
 	log.Info().Msg("Server exited")
+}
+
+func initialiseSecrets(ctx context.Context, clients *gcp.Clients) error {
+	if clients.GSM == nil {
+		log.Fatal().Msg("GSM disabled. Set USE_GSM=true in .env")
+	}
+
+	projectID := os.Getenv("GCP_PROJECT_ID")
+	secretName := os.Getenv("JWT_SECRET_NAME")
+
+	secret, err := clients.GSM.GetSecret(ctx, projectID, secretName)
+	if err != nil {
+		return err
+	}
+	_ = os.Setenv("JWT_SECRET", secret)
+
+	// Load Bucket Signer JSON
+	bucketSignerSecretName := os.Getenv("BUCKET_JSON_KEY_NAME")
+	bucketJSONSecret, err := clients.GSM.GetSecret(ctx, projectID, bucketSignerSecretName)
+	if err != nil {
+		return err
+	}
+	_ = os.Setenv("BUCKET_JSON_KEY", bucketJSONSecret)
+	return nil
 }

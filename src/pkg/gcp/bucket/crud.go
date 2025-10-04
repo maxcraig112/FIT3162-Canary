@@ -4,10 +4,15 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
+	"time"
 
 	"cloud.google.com/go/storage"
+	"golang.org/x/oauth2/google"
 	"google.golang.org/api/iterator"
 )
+
+var signedURLDuration = 60 * time.Minute
 
 type ObjectMap map[string]ImageData
 
@@ -28,22 +33,23 @@ func NewGenericBucket(bucket BucketClientInterface) *GenericBucket {
 }
 
 // CreateObject uploads a single object and returns its URL.
-func (b *GenericBucket) CreateObject(ctx context.Context, objectName string, data io.Reader) (string, error) {
+func (b *GenericBucket) CreateObject(ctx context.Context, objectName string, data io.Reader) error {
 	wc := b.bucket.Object(objectName).NewWriter(ctx)
 	if _, err := io.Copy(wc, data); err != nil {
 		err := wc.Close()
 		if err != nil {
-			return "", fmt.Errorf("failed to close bucket writer: %w", err)
+			return fmt.Errorf("failed to close bucket writer: %w", err)
 		}
-		return "", fmt.Errorf("failed to write object: %w", err)
+		return fmt.Errorf("failed to write object: %w", err)
 	}
 	if err := wc.Close(); err != nil {
-		return "", fmt.Errorf("failed to close writer: %w", err)
+		return fmt.Errorf("failed to close writer: %w", err)
 	}
 	// This is the private URL which we cannot use
 	// url := fmt.Sprintf("https://storage.cloud.google.com/%s/%s", b.bucket.BucketName(), objectName)
-	url := fmt.Sprintf("https://storage.googleapis.com/%s/%s", b.bucket.BucketName(), objectName)
-	return url, nil
+	// This is the public URL
+	// url := fmt.Sprintf("https://storage.googleapis.com/%s/%s", b.bucket.BucketName(), objectName)
+	return nil
 }
 
 // CreateObjectsBatch uploads multiple objects and returns their URLs.
@@ -51,14 +57,13 @@ func (b *GenericBucket) CreateObjectsBatch(ctx context.Context, objects ObjectMa
 	urls := make(map[string]ImageData, len(objects))
 
 	for name, imageData := range objects {
-		url, err := b.CreateObject(ctx, name, imageData.ObjectReader)
+		err := b.CreateObject(ctx, name, imageData.ObjectReader)
 		if err != nil {
 			return nil, fmt.Errorf("failed to upload %s: %w", name, err)
 		}
 		urls[name] = ImageData{
 			Width:  imageData.Width,
 			Height: imageData.Height,
-			URL:    url,
 		}
 	}
 
@@ -110,4 +115,24 @@ func (b *GenericBucket) StreamObject(ctx context.Context, objectName string) (io
 		return nil, fmt.Errorf("failed to create reader for object %s: %w", objectName, err)
 	}
 	return rc, nil
+}
+
+func (b *GenericBucket) GetSignedURL(ctx context.Context, objectName string) (string, error) {
+	keyJSON := os.Getenv("BUCKET_JSON_KEY")
+	conf, err := google.JWTConfigFromJSON([]byte(keyJSON))
+	if err != nil {
+		return "", fmt.Errorf("failed to parse service account key JSON: %w", err)
+	}
+
+	url, err := storage.SignedURL(b.bucket.BucketName(), objectName, &storage.SignedURLOptions{
+		Scheme:         storage.SigningSchemeV4,
+		Method:         "GET",
+		GoogleAccessID: os.Getenv("BUCKET_SIGNER_SA"),
+		PrivateKey:     conf.PrivateKey,
+		Expires:        time.Now().Add(signedURLDuration),
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to generate signed URL for object %s: %w", objectName, err)
+	}
+	return url, nil
 }
