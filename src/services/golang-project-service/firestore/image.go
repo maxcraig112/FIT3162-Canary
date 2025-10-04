@@ -84,7 +84,6 @@ func (s *ImageStore) CreateImageMetadata(ctx context.Context, batchID string, im
 	imageBatch := []Image{}
 	for imageName, imageData := range imageInfo {
 		imageBatch = append(imageBatch, Image{
-			ImageURL:    imageData.URL,
 			ImageName:   imageName,
 			Height:      imageData.Height,
 			Width:       imageData.Width,
