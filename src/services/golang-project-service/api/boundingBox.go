@@ -63,7 +63,11 @@ func (h *BoundingBoxHandler) CreateBoundingBoxHandler(w http.ResponseWriter, r *
 
 	w.WriteHeader(http.StatusCreated)
 	log.Info().Str("boundingBoxID", id).Msg("Bounding box created successfully")
-	json.NewEncoder(w).Encode(map[string]string{"boundingBoxID": id})
+	if err := json.NewEncoder(w).Encode(map[string]string{"boundingBoxID": id}); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		log.Error().Err(err).Str("boundingBoxID", id).Msg("Failed to encode bounding box response")
+		return
+	}
 }
 
 func (h *BoundingBoxHandler) GetBoundingBoxesByImageHandler(w http.ResponseWriter, r *http.Request) {

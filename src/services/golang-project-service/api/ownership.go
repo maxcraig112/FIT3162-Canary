@@ -96,12 +96,3 @@ func ValidateOwnershipMiddleware(next http.Handler, stores Stores) http.Handler 
 		next.ServeHTTP(w, r)
 	})
 }
-
-func containsString(list []string, target string) bool {
-	for _, v := range list {
-		if v == target {
-			return true
-		}
-	}
-	return false
-}

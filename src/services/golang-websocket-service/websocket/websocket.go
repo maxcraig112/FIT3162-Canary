@@ -126,8 +126,12 @@ func (h *WebSocketHub) CreateSession(w http.ResponseWriter, r *http.Request, req
 		s.BatchID = req.BatchID // keep batchID consistent
 		h.mu.Unlock()
 		oldOwner.Close()
-		h.startWebhookWriter(newOwner, "owner", req.SessionID)
-		h.startWebhookReader(newOwner, req.SessionID)
+		if err := h.startWebhookWriter(newOwner, "owner", req.SessionID); err != nil {
+			log.Error().Err(err).Str("sessionID", req.SessionID).Msg("Failed to start webhook writer for new owner")
+		}
+		if err := h.startWebhookReader(newOwner, req.SessionID); err != nil {
+			log.Error().Err(err).Str("sessionID", req.SessionID).Msg("Failed to start webhook reader for new owner")
+		}
 		return nil
 	}
 
@@ -137,8 +141,12 @@ func (h *WebSocketHub) CreateSession(w http.ResponseWriter, r *http.Request, req
 	s.BatchID = req.BatchID
 	h.mu.Unlock()
 	// This handles websocket communication for the owner
-	h.startWebhookWriter(owner, "owner", req.SessionID)
-	h.startWebhookReader(owner, req.SessionID)
+	if err := h.startWebhookWriter(owner, "owner", req.SessionID); err != nil {
+		return err
+	}
+	if err := h.startWebhookReader(owner, req.SessionID); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -176,8 +184,12 @@ func (h *WebSocketHub) JoinSession(w http.ResponseWriter, r *http.Request, req J
 		Time:      time.Now().UTC(),
 	})
 
-	h.startWebhookWriter(member, "member", req.SessionID)
-	h.startWebhookReader(member, req.SessionID)
+	if err := h.startWebhookWriter(member, "member", req.SessionID); err != nil {
+		return err
+	}
+	if err := h.startWebhookReader(member, req.SessionID); err != nil {
+		return err
+	}
 	return nil
 }
 

@@ -76,7 +76,9 @@ func (h *BoundingBoxLabelHandler) UpdateBoundingBoxLabelHandler(w http.ResponseW
 
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("boundingBoxLabelID", boundingBoxLabelID).Msg("Bounding box label updated successfully")
-	w.Write([]byte(fmt.Sprintf("Bounding box label %s updated", req.BoundingBoxLabelID)))
+	if _, err := fmt.Fprintf(w, "Bounding box label %s updated", req.BoundingBoxLabelID); err != nil {
+		log.Error().Err(err).Str("boundingBoxLabelID", boundingBoxLabelID).Msg("Error writing update bounding box label response")
+	}
 }
 
 func (h *BoundingBoxLabelHandler) DeleteBoundingBoxLabelHandler(w http.ResponseWriter, r *http.Request) {
@@ -106,7 +108,9 @@ func (h *BoundingBoxLabelHandler) DeleteBoundingBoxLabelHandler(w http.ResponseW
 
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("boundingBoxLabelID", boundingBoxLabelID).Msg("Bounding box label deleted successfully")
-	w.Write([]byte(fmt.Sprintf("Bounding box label %s deleted", boundingBoxLabelID)))
+	if _, err := fmt.Fprintf(w, "Bounding box label %s deleted", boundingBoxLabelID); err != nil {
+		log.Error().Err(err).Str("boundingBoxLabelID", boundingBoxLabelID).Msg("Error writing delete bounding box label response")
+	}
 }
 
 func (h *BoundingBoxLabelHandler) CreateBoundingBoxLabelHandler(w http.ResponseWriter, r *http.Request) {
@@ -131,7 +135,9 @@ func (h *BoundingBoxLabelHandler) CreateBoundingBoxLabelHandler(w http.ResponseW
 
 	w.WriteHeader(http.StatusCreated)
 	log.Info().Str("boundingBoxLabelID", boundingBoxLabelID).Msg("Bounding box label created successfully")
-	w.Write([]byte(fmt.Sprintf("Bounding box label %s created", boundingBoxLabelID)))
+	if _, err := fmt.Fprintf(w, "Bounding box label %s created", boundingBoxLabelID); err != nil {
+		log.Error().Err(err).Str("boundingBoxLabelID", boundingBoxLabelID).Msg("Error writing create bounding box label response")
+	}
 }
 
 func (h *BoundingBoxLabelHandler) LoadBoundingBoxLabelsHandler(w http.ResponseWriter, r *http.Request) {

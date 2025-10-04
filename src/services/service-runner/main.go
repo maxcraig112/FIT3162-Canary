@@ -16,7 +16,7 @@ type service struct {
 	cmd  *exec.Cmd
 }
 
-func (s service) runService() error {
+func (s *service) runService() error {
 	cmd := exec.Command("go", "run", ".")
 	cmd.Dir = s.dir
 	cmd.Stdout = os.Stdout
@@ -30,7 +30,7 @@ func (s service) runService() error {
 	return nil
 }
 
-func (s service) stopService() {
+func (s *service) stopService() {
 	if s.cmd == nil || s.cmd.Process == nil {
 		return
 	}

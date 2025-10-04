@@ -110,7 +110,11 @@ func (b *GenericBucket) GetObject(ctx context.Context, objectName string) ([]byt
 	if err != nil {
 		return nil, fmt.Errorf("failed to create reader for object %s: %w", objectName, err)
 	}
-	defer rc.Close()
+	defer func() {
+		if err := rc.Close(); err != nil {
+			fmt.Printf("failed to close reader for object %s: %v", objectName, err)
+		}
+	}()
 
 	data, err := io.ReadAll(rc)
 	if err != nil {

@@ -76,7 +76,9 @@ func (h *KeypointLabelHandler) UpdateKeypointLabelHandler(w http.ResponseWriter,
 
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("keypointLabelID", keypointLabelID).Msg("Keypoint label updated successfully")
-	w.Write([]byte(fmt.Sprintf("Keypoint label %s updated", req.KeypointLabelID)))
+	if _, err := fmt.Fprintf(w, "Keypoint label %s updated", req.KeypointLabelID); err != nil {
+		log.Error().Err(err).Str("keypointLabelID", keypointLabelID).Msg("Failed to write update keypoint label response")
+	}
 
 }
 
@@ -107,7 +109,9 @@ func (h *KeypointLabelHandler) DeleteKeypointLabelHandler(w http.ResponseWriter,
 
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("keypointLabelID", keypointLabelID).Msg("Keypoint label deleted successfully")
-	w.Write([]byte(fmt.Sprintf("Keypoint label %s deleted", keypointLabelID)))
+	if _, err := fmt.Fprintf(w, "Keypoint label %s deleted", keypointLabelID); err != nil {
+		log.Error().Err(err).Str("keypointLabelID", keypointLabelID).Msg("Failed to write delete keypoint label response")
+	}
 }
 
 func (h *KeypointLabelHandler) CreateKeypointLabelHandler(w http.ResponseWriter, r *http.Request) {
@@ -132,7 +136,9 @@ func (h *KeypointLabelHandler) CreateKeypointLabelHandler(w http.ResponseWriter,
 
 	w.WriteHeader(http.StatusCreated)
 	log.Info().Str("keypointLabelID", keypointLabelID).Msg("Keypoint label created successfully")
-	w.Write([]byte(fmt.Sprintf("Keypoint label %s created", keypointLabelID)))
+	if _, err := fmt.Fprintf(w, "Keypoint label %s created", keypointLabelID); err != nil {
+		log.Error().Err(err).Str("keypointLabelID", keypointLabelID).Msg("Failed to write create keypoint label response")
+	}
 }
 
 func (h *KeypointLabelHandler) LoadKeypointLabelsHandler(w http.ResponseWriter, r *http.Request) {
@@ -149,5 +155,7 @@ func (h *KeypointLabelHandler) LoadKeypointLabelsHandler(w http.ResponseWriter, 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("projectID", projectID).Msg("Loaded keypoint labels successfully")
-	json.NewEncoder(w).Encode(keypointLabels)
+	if err := json.NewEncoder(w).Encode(keypointLabels); err != nil {
+		log.Error().Err(err).Str("projectID", projectID).Msg("Failed to encode keypoint labels response")
+	}
 }

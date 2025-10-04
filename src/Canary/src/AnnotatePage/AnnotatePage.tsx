@@ -60,6 +60,8 @@ const AnnotatePage: React.FC = () => {
   const [hasPrev, setHasPrev] = useState(false);
   const [memberNotices, setMemberNotices] = useState<{ id: string; memberID: string; type: 'member_joined' | 'member_left' }[]>([]);
 
+  const lastRenderedImageRef = useRef<number | null>(null);
+
   const boxRef = useRef<HTMLDivElement | null>(null);
   const [zoom, setZoom] = useState(1);
   const zoomHandlerRef = useRef<ZoomHandler | null>(null);
@@ -103,24 +105,27 @@ const AnnotatePage: React.FC = () => {
 
   // Render when batchID or currentImage changes
   useEffect(() => {
-    async function render() {
+    // Skip if we've already rendered this exact image number (e.g. second StrictMode pass)
+    if (lastRenderedImageRef.current === imageHandler.currentImageNumber) return;
+    lastRenderedImageRef.current = imageHandler.currentImageNumber;
+
+    (async () => {
       if (!batchID || !projectID) return;
       if (!getCanvas()) {
         console.error('Canvas not initialized yet');
         return;
       }
-
       try {
         const { current } = await annotateHandler.renderToCanvas(batchID, projectID);
-        imageHandler.setCurrentImageNumber(current);
+        // Only update if different to avoid triggering downstream state churn
+        if (current !== imageHandler.currentImageNumber) {
+          imageHandler.setCurrentImageNumber(current);
+        }
         setInputImage(current.toString());
       } catch (e) {
         console.error(e);
       }
-    }
-
-    render();
-    // Re-render when current image number changes
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally only depend on currentImageNumber
   }, [imageHandler.currentImageNumber]); // UNDER NO CIRCUMSTANCES ADD batchID, projectID, imageHandler
 
