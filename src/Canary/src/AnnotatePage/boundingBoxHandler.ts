@@ -55,7 +55,7 @@ export const boundingBoxDatabaseHandler = {
         method: 'POST',
         json: body,
       });
-      console.log(result);
+      // console.log(result);
       const newId = (result as { boundingBoxID: string }).boundingBoxID;
       if (!newId) throw new Error('No bounding box ID returned from server');
       ann.id = newId;
@@ -63,7 +63,7 @@ export const boundingBoxDatabaseHandler = {
       console.error(`Failed to create bounding box ${ann.id}:`, err);
     }
 
-    console.log('Bounding box stored:', ann);
+    // console.log('Bounding box stored:', ann);
     return ann;
   },
 
@@ -83,7 +83,7 @@ export const boundingBoxDatabaseHandler = {
       console.error(`Failed to rename bounding box ${ann.id}:`, err);
     }
 
-    console.log(`Bounding box ${ann.id} renamed to label ${newLabelID}`);
+    // console.log(`Bounding box ${ann.id} renamed to label ${newLabelID}`);
     return { ...ann, labelID: newLabelID };
   },
 
@@ -98,7 +98,7 @@ export const boundingBoxDatabaseHandler = {
       console.error(`Failed to delete bounding box ${ann.id}:`, err);
     }
 
-    console.log('Bounding box deleted:', ann);
+    // console.log('Bounding box deleted:', ann);
   },
 
   async getAllBoundingBoxes(projectID: string, imageID: string) {
@@ -137,7 +137,7 @@ export const boundingBoxDatabaseHandler = {
         return bb;
       })
       .filter((v): v is BoundingBoxAnnotation => Boolean(v));
-    console.log(`bounding boxes loaded:`, normalized);
+    // console.log(`bounding boxes loaded:`, normalized);
     return normalized;
   },
 };

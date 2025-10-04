@@ -57,6 +57,7 @@ const AnnotatePage: React.FC = () => {
   const [labelValue, setLabelValue] = useState('');
   const [kpOptions, setKpOptions] = useState<string[]>([]);
   const [bbOptions, setBbOptions] = useState<string[]>([]);
+  const [hasPrev, setHasPrev] = useState(false);
   const [memberNotices, setMemberNotices] = useState<{ id: string; memberID: string; type: 'member_joined' | 'member_left' }[]>([]);
 
   const lastRenderedImageRef = useRef<number | null>(null);
@@ -185,6 +186,14 @@ const AnnotatePage: React.FC = () => {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [labelPrompt.open, labelPrompt.mode, searchParams]);
+
+  useEffect(() => {
+    async function checkPrev() {
+      const result = await annotateHandler.hasPrevAnnotations(imageHandler.currentImageID);
+      setHasPrev(result);
+    }
+    checkPrev();
+  }, [imageHandler.currentImageID]);
 
   const handleToolChange = (_event: React.MouseEvent<HTMLElement>, newTool: string | null) => {
     if (newTool !== null) setSelectedTool(newTool);
@@ -497,44 +506,56 @@ const AnnotatePage: React.FC = () => {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'center',
+          justifyContent: 'flex-start',
           gap: 2,
         }}
       >
+        {/* Toggle-only group */}
         <ToggleButtonGroup orientation="vertical" value={selectedTool} exclusive onChange={handleToolChange} aria-label="tool selection" sx={{ alignItems: 'center', gap: 2 }}>
-          <ToggleButton value="kp" aria-label="keypoint" sx={{ width: 100, height: 100, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <MyLocation fontSize="large" />
-              <Typography variant="body2" sx={{ mt: 0.5 }}>
-                KP
-              </Typography>
-            </Box>
+          <ToggleButton value="kp" aria-label="keypoint" sx={{ width: 100, height: 100, flexDirection: 'column' }}>
+            <MyLocation fontSize="large" />
+            <Typography variant="body2" sx={{ mt: 0.5 }}>
+              KP
+            </Typography>
           </ToggleButton>
-          <ToggleButton value="bb" aria-label="bounding-box" sx={{ width: 100, height: 100, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <SelectAll fontSize="large" />
-              <Typography variant="body2" sx={{ mt: 0.5 }}>
-                BB
-              </Typography>
-            </Box>
-          </ToggleButton>
-          <ToggleButton value="kp-null" aria-label="null-keypoint" sx={{ width: 100, height: 100, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <NotInterested fontSize="large" />
-              <Typography variant="body2" sx={{ mt: 0.5 }}>
-                KP
-              </Typography>
-            </Box>
-          </ToggleButton>
-          <ToggleButton value="bb-null" aria-label="null-bounding-box" sx={{ width: 100, height: 100, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <NotInterested fontSize="large" />
-              <Typography variant="body2" sx={{ mt: 0.5 }}>
-                BB
-              </Typography>
-            </Box>
+          <ToggleButton value="bb" aria-label="bounding-box" sx={{ width: 100, height: 100, flexDirection: 'column' }}>
+            <SelectAll fontSize="large" />
+            <Typography variant="body2" sx={{ mt: 0.5 }}>
+              BB
+            </Typography>
           </ToggleButton>
         </ToggleButtonGroup>
+
+        {/* Non-toggle actions */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+          {/* <Button
+            variant="outlined"
+            sx={{ width: 100, height: 100, flexDirection: 'column' }}
+            onClick={() => annotateHandler.setTool('kp-null')}
+          >
+            <NotInterested fontSize="large" />
+            <Typography variant="body2">KP NULL</Typography>
+          </Button>
+
+          <Button
+            variant="outlined"
+            sx={{ width: 100, height: 100, flexDirection: 'column' }}
+            onClick={() => annotateHandler.setTool('bb-null')}
+          >
+            <NotInterested fontSize="large" />
+            <Typography variant="body2">BB NULL</Typography>
+          </Button> */}
+
+          <Button
+            variant="outlined"
+            sx={{ width: 100, height: 100, flexDirection: 'column' }}
+            onClick={() => annotateHandler.copyPrevAnnotations(imageHandler.currentImageID, batchID, projectID)}
+            disabled={!hasPrev} // greyed out when there are NO previous annotations
+          >
+            <NotInterested fontSize="large" />
+            <Typography variant="body2">CPY</Typography>
+          </Button>
+        </Box>
       </Paper>
     </Box>
   );

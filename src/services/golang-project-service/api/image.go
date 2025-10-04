@@ -58,6 +58,10 @@ func RegisterImageRoutes(r *mux.Router, h *handler.Handler) {
 		{"POST", "/batch/{batchID}/images", ih.UploadImagesHandler},
 		// Delete all images from a batch
 		{"DELETE", "/batch/{batchID}/images", ih.DeleteImagesHandler},
+
+		{"GET", "/images/{imageID}/previous", ih.HasPreviousImageHandler},
+
+		{"POST", "/images/{imageID}/annotations/copy_previous", ih.CopyPrevAnnotationsHandler},
 	}
 
 	for _, rt := range routes {
@@ -148,7 +152,7 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	var imageData bucket.ObjectMap
+	var imageData bucket.ObjectList
 	imgUpStart := time.Now()
 	if imageData, err = h.ImageBucket.CreateImages(ctx, batchID, imageObjects); err != nil {
 		http.Error(w, "Failed to upload images", http.StatusInternalServerError)
@@ -164,7 +168,7 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 	imgMetaStart := time.Now()
 	var createdImages []fs.Image
 	if len(imageData) > 0 {
-		imgs, err := h.ImageStore.CreateImageMetadata(ctx, batchID, imageData)
+		imgs, err := h.ImageStore.CreateImageMetadata(ctx, batchID, imageData, false)
 		if err != nil {
 			http.Error(w, "Failed to create image metadata", http.StatusInternalServerError)
 			log.Error().Err(err).Str("batchID", batchID).Msg("Failed to create image metadata in Firestore")
@@ -181,7 +185,7 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 			Msg("Created image metadata in Firestore (batch)")
 	}
 
-	var videoData bucket.ObjectMap
+	var videoData bucket.ObjectList
 	vidUpStart := time.Now()
 	if videoData, err = h.ImageBucket.CreateImages(ctx, batchID, videoFrameObjects); err != nil {
 		http.Error(w, "Failed to upload videos", http.StatusInternalServerError)
@@ -199,7 +203,7 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 	vidMetaStart := time.Now()
 	var createdVideoFrames []fs.Image
 	if len(videoData) > 0 {
-		frames, err := h.ImageStore.CreateImageMetadata(ctx, batchID, videoData)
+		frames, err := h.ImageStore.CreateImageMetadata(ctx, batchID, videoData, true)
 		if err != nil {
 			http.Error(w, "Failed to create video metadata", http.StatusInternalServerError)
 			log.Error().Err(err).Str("batchID", batchID).Msg("Failed to create video metadata in Firestore")
@@ -238,15 +242,15 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-func generateImageData(batchID string, form *multipart.Form) (bucket.ObjectMap, error) {
+func generateImageData(batchID string, form *multipart.Form) (bucket.ObjectList, error) {
 	files := form.File["images"]
 	if len(files) == 0 {
 		return nil, ErrNoMediaFound
 	}
 
-	objects := make(bucket.ObjectMap, len(files))
+	objects := make(bucket.ObjectList, len(files))
 
-	for _, fileHeader := range files {
+	for i, fileHeader := range files {
 		f, err := fileHeader.Open()
 		if err != nil {
 			return nil, ErrOpeningFile(fileHeader.Filename)
@@ -267,10 +271,13 @@ func generateImageData(batchID string, form *multipart.Form) (bucket.ObjectMap, 
 
 		uuid := GenerateUUID()
 		objectName := fmt.Sprintf("%s/%s_%s", batchID, fileHeader.Filename, uuid)
-		objects[objectName] = bucket.ImageData{
-			Width:        int64(width),
-			Height:       int64(height),
-			ObjectReader: io.NopCloser(bytes.NewReader(data)),
+		objects[i] = bucket.ObjectData{
+			ImageName: objectName,
+			ImageData: bucket.ImageData{
+				Width:        int64(width),
+				Height:       int64(height),
+				ObjectReader: io.NopCloser(bytes.NewReader(data)),
+			},
 		}
 	}
 
@@ -278,13 +285,13 @@ func generateImageData(batchID string, form *multipart.Form) (bucket.ObjectMap, 
 
 }
 
-func generateVideoData(batchID string, form *multipart.Form) (bucket.ObjectMap, func(), error) {
+func generateVideoData(batchID string, form *multipart.Form) (bucket.ObjectList, func(), error) {
 	files := form.File["videos"]
 	if len(files) == 0 {
 		return nil, nil, ErrNoMediaFound
 	}
 
-	objects := make(bucket.ObjectMap)
+	objects := bucket.ObjectList{}
 	// Track resources for cleanup outside this function
 	var closers []io.Closer
 	var tempDirs []string
@@ -393,11 +400,14 @@ func generateVideoData(batchID string, form *multipart.Form) (bucket.ObjectMap, 
 			closers = append(closers, frameFile)
 			frameName := fmt.Sprintf("%s/%s/%s_frame_%04d_w%d_h%d.png",
 				batchID, uuid, fileHeader.Filename, i+1, width, height)
-			objects[frameName] = bucket.ImageData{
-				ObjectReader: frameFile,
-				Width:        int64(width),
-				Height:       int64(height),
-			}
+			objects = append(objects, bucket.ObjectData{
+				ImageName: frameName,
+				ImageData: bucket.ImageData{
+					ObjectReader: frameFile,
+					Width:        int64(width),
+					Height:       int64(height),
+				},
+			})
 		}
 	}
 
@@ -469,5 +479,128 @@ func (h *ImageHandler) DeleteImagesHandler(w http.ResponseWriter, r *http.Reques
 		"batchID": batchID,
 		"deleted": true,
 		"message": "All images and annotations deleted",
+	})
+}
+
+func (h *ImageHandler) HasPreviousImageHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	vars := mux.Vars(r)
+	imageID := vars["imageID"]
+	if imageID == "" {
+		http.Error(w, "Missing imageID in URL", http.StatusBadRequest)
+		log.Error().Msg("Missing imageID in URL for HasPreviousImageHandler")
+		return
+	}
+
+	imageData, err := h.ImageStore.GetImageMetadata(ctx, imageID)
+	if err != nil {
+		http.Error(w, "Failed to get image metadata", http.StatusInternalServerError)
+		log.Error().Err(err).Str("imageID", imageID).Msg("Failed to get image metadata")
+		return
+	}
+
+	// check if image is sequence
+	// check if prevImageID is empty
+
+	w.Header().Set("Content-Type", "application/json")
+	log.Info().Str("imageID", imageID).Msg("Successfully checked if image has previous image")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]bool{"hasPrevious": imageData.IsSequence && imageData.PrevImageID != ""})
+}
+
+func (h *ImageHandler) CopyPrevAnnotationsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	vars := mux.Vars(r)
+	imageID := vars["imageID"]
+	if imageID == "" {
+		http.Error(w, "Missing imageID in URL", http.StatusBadRequest)
+		log.Error().Msg("Missing imageID in URL for HasPreviousImageHandler")
+		return
+	}
+
+	currImageData, err := h.ImageStore.GetImageMetadata(ctx, imageID)
+	if err != nil {
+		http.Error(w, "Failed to get image metadata", http.StatusInternalServerError)
+		log.Error().Err(err).Str("imageID", imageID).Msg("Failed to get image metadata")
+		return
+	}
+
+	if !currImageData.IsSequence || currImageData.PrevImageID == "" {
+		http.Error(w, "Image is not a sequence or has no previous image", http.StatusBadRequest)
+		log.Error().Err(err).Str("imageID", imageID).Msg("Image is not a sequence or has no previous image")
+		return
+	}
+
+	// get previous image
+	prevImageID := currImageData.PrevImageID
+
+	// get all bounding boxes
+	prevBoundingBoxes, err := h.BoundingBoxStore.GetBoundingBoxesByImageID(ctx, prevImageID)
+	if err != nil {
+		http.Error(w, "Failed to get bounding boxes", http.StatusInternalServerError)
+		log.Error().Err(err).Str("imageID", imageID).Msg("Failed to get bounding boxes")
+		return
+	}
+
+	// get all keypoints
+	prevKeypoints, err := h.KeypointStore.GetKeypointsByImageID(ctx, prevImageID)
+	if err != nil {
+		http.Error(w, "Failed to get keypoints", http.StatusInternalServerError)
+		log.Error().Err(err).Str("imageID", imageID).Msg("Failed to get keypoints")
+		return
+	}
+
+	// remove all keypoints and bounding boxes from current image
+	if err := h.KeypointStore.DeleteKeypointsByImageID(ctx, imageID); err != nil {
+		http.Error(w, "Failed to delete keypoints for image", http.StatusInternalServerError)
+		log.Error().Err(err).Str("imageID", imageID).Msg("Failed to delete keypoints for images")
+		return
+	}
+
+	if err := h.BoundingBoxStore.DeleteBoundingBoxesByImageID(ctx, imageID); err != nil {
+		http.Error(w, "Failed to delete bounding boxes for image", http.StatusInternalServerError)
+		log.Error().Err(err).Str("imageID", imageID).Msg("Failed to delete bounding boxes for images")
+		return
+	}
+
+	// create new bounding boxes
+	// map old to new id
+	boundingBoxIdMap := make(map[string]string, len(prevBoundingBoxes))
+	for _, boundingBox := range prevBoundingBoxes {
+		// create new bounding box
+		createBoundingBoxReq := fs.CreateBoundingBoxRequest{
+			ImageID:            imageID,
+			Box:                boundingBox.Box,
+			BoundingBoxLabelID: boundingBox.BoundingBoxLabelID,
+		}
+		newId, err := h.BoundingBoxStore.CreateBoundingBox(ctx, createBoundingBoxReq)
+		if err != nil {
+			http.Error(w, "Failed to create bounding box", http.StatusInternalServerError)
+			log.Error().Err(err).Str("imageID", imageID).Msg("Failed to create bounding box")
+			return
+		}
+		boundingBoxIdMap[boundingBox.BoundingBoxID] = newId
+	}
+
+	// create new keypoints
+	for _, keypoint := range prevKeypoints {
+		// create new keypoint
+		createKeypointReq := fs.CreateKeypointRequest{
+			ImageID:         imageID,
+			Position:        keypoint.Position,
+			KeypointLabelID: keypoint.KeypointLabelID,
+			BoundingBoxID:   boundingBoxIdMap[keypoint.BoundingBoxID],
+		}
+		if _, err := h.KeypointStore.CreateKeypoint(ctx, createKeypointReq); err != nil {
+			http.Error(w, "Failed to create keypoint", http.StatusInternalServerError)
+			log.Error().Err(err).Str("imageID", imageID).Msg("Failed to create keypoint")
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
 	})
 }
