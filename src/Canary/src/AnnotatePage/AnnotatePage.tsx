@@ -269,11 +269,18 @@ const AnnotatePage: React.FC = () => {
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', bgcolor: '#f5f5f5' }}>
-      {/* Left Sidebar */}
-      <Paper elevation={2} sx={{ width: '200px', p: 2 }}>
-        <Typography variant="h6">Tools</Typography>
-        {/* Placeholder for left sidebar content */}
-      </Paper>
+      {/* Left Sidebar (now empty placeholder, centered) */}
+      <Paper
+        elevation={2}
+        sx={{
+          width: 200,
+          p: 2,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      />
 
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
@@ -495,67 +502,99 @@ const AnnotatePage: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Right Sidebar */}
+      {/* Right Sidebar (Tools moved here, centered) */}
       <Paper
         elevation={2}
         sx={{
-          width: 120,
-          minWidth: 120,
-          maxWidth: 120,
+          width: 140,
+          minWidth: 140,
+          maxWidth: 160,
           flexShrink: 0,
-          p: 1,
+          p: 2,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'flex-start',
-          gap: 2,
+          height: '100%',
         }}
       >
-        {/* Toggle-only group */}
-        <ToggleButtonGroup orientation="vertical" value={selectedTool} exclusive onChange={handleToolChange} aria-label="tool selection" sx={{ alignItems: 'center', gap: 2 }}>
-          <ToggleButton value="kp" aria-label="keypoint" sx={{ width: 100, height: 100, flexDirection: 'column' }}>
-            <MyLocation fontSize="large" />
-            <Typography variant="body2" sx={{ mt: 0.5 }}>
-              KP
-            </Typography>
-          </ToggleButton>
-          <ToggleButton value="bb" aria-label="bounding-box" sx={{ width: 100, height: 100, flexDirection: 'column' }}>
-            <SelectAll fontSize="large" />
-            <Typography variant="body2" sx={{ mt: 0.5 }}>
-              BB
-            </Typography>
-          </ToggleButton>
-        </ToggleButtonGroup>
-
-        {/* Non-toggle actions */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-          {/* <Button
-            variant="outlined"
-            sx={{ width: 100, height: 100, flexDirection: 'column' }}
-            onClick={() => annotateHandler.setTool('kp-null')}
+        <Typography variant="h6" sx={{ mb: 1, mt: 0 }}>
+          Tools
+        </Typography>
+        {/* Centered tool controls container */}
+        <Box sx={{ flexGrow: 1, width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 3 }}>
+          <ToggleButtonGroup
+            orientation="vertical"
+            value={selectedTool}
+            exclusive
+            onChange={handleToolChange}
+            aria-label="tool selection"
+            sx={{
+              alignItems: 'center',
+              gap: 2,
+              '& .MuiToggleButtonGroup-grouped': {
+                margin: 0,
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 2,
+              },
+              '& .MuiToggleButtonGroup-grouped:not(:first-of-type)': {
+                marginTop: 0,
+                borderTopLeftRadius: 2,
+                borderTopRightRadius: 2,
+              },
+            }}
           >
-            <NotInterested fontSize="large" />
-            <Typography variant="body2">KP NULL</Typography>
-          </Button>
-
-          <Button
-            variant="outlined"
-            sx={{ width: 100, height: 100, flexDirection: 'column' }}
-            onClick={() => annotateHandler.setTool('bb-null')}
-          >
-            <NotInterested fontSize="large" />
-            <Typography variant="body2">BB NULL</Typography>
-          </Button> */}
-
-          <Button
-            variant="outlined"
-            sx={{ width: 100, height: 100, flexDirection: 'column' }}
-            onClick={() => annotateHandler.copyPrevAnnotations(imageHandler.currentImageID, batchID, projectID)}
-            disabled={!hasPrev} // greyed out when there are NO previous annotations
-          >
-            <NotInterested fontSize="large" />
-            <Typography variant="body2">CPY</Typography>
-          </Button>
+            <ToggleButton
+              value="kp"
+              aria-label="keypoint"
+              sx={{
+                width: 100,
+                height: 100,
+                flexDirection: 'column',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'visible',
+                py: 1,
+              }}
+            >
+              <MyLocation fontSize="large" />
+              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                KP
+              </Typography>
+            </ToggleButton>
+            <ToggleButton
+              value="bb"
+              aria-label="bounding-box"
+              sx={{
+                width: 100,
+                height: 100,
+                flexDirection: 'column',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'visible',
+                py: 1,
+              }}
+            >
+              <SelectAll fontSize="large" />
+              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                BB
+              </Typography>
+            </ToggleButton>
+          </ToggleButtonGroup>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Button
+              variant="outlined"
+              sx={{ width: 100, height: 100, flexDirection: 'column' }}
+              onClick={() => annotateHandler.copyPrevAnnotations(imageHandler.currentImageID, batchID, projectID)}
+              disabled={!hasPrev}
+            >
+              <NotInterested fontSize="large" />
+              <Typography variant="body2">CPY</Typography>
+            </Button>
+          </Box>
         </Box>
       </Paper>
     </Box>
