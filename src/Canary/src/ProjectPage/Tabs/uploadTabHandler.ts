@@ -11,7 +11,7 @@ export function useUploadTab(project: Project | null) {
 
   const createBatch = useCallback(async (projectID: string, nameHint?: string): Promise<{ batchID: string; batchName: string }> => {
     const url = `${projectServiceUrl()}/batch`;
-    const finalName = (nameHint && nameHint.trim()) || `Upload ${new Date().toLocaleString()}`;
+    const finalName = (nameHint && nameHint.trim()) || `Upload ${new Date().toLocaleString('en-GB')}`;
 
     const data = await CallAPI<{
       batchID?: string;
