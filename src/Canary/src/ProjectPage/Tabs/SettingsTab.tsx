@@ -239,13 +239,13 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
           <br />
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
             <Typography variant="body2" sx={{ color: '#000', textAlign: 'center' }}>
-              Sessions allow you to cross-collaborate with multiple users on the same project, allowing them to upload, annotate and export images.
+              Sessions allow you to cross-collaborate with multiple users on the same batch, allowing them to add, remove and edit keypoint and bounding box annotations.
               <br />
               <br />
-              To enable sessions, tick the checkbox below, and enter a unique session code. This will be used by users to join your project.
+              To enable sessions, tick the checkbox below, and enter a password. Once sessions are enabled, annotating a batch will begin a session with a unique ID you can share.
               <br />
               <br />
-              <b>DO NOT SHARE THIS CODE WITH ANYONE YOU DO NOT TRUST.</b>
+              <b>DO NOT SHARE YOUR SESSION ID AND PASSWORD WITH ANYONE YOU DO NOT TRUST.</b>
             </Typography>
           </Box>
         </Box>
