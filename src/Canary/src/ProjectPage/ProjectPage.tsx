@@ -90,6 +90,8 @@ const ProjectPage: React.FC = () => {
     const view = params.get('view');
     if (view === 'settings') {
       setSettingsTab(true);
+      // Deselect any main tab so user can click it again to return
+      setSelectedTab(-1);
       return; // leave selectedTab as-is (so no main tab appears selected intentionally)
     }
     const idx = viewToIndex(view);
@@ -119,6 +121,8 @@ const ProjectPage: React.FC = () => {
 
   function handleSettingsClick() {
     setSettingsTab(true);
+    // Deselect main tabs so a click on the same tab index registers
+    setSelectedTab(-1);
     navigateWithView('settings');
   }
 
@@ -197,7 +201,7 @@ const ProjectPage: React.FC = () => {
             <Box sx={{ height: '50vh' }}>
               <Tabs
                 orientation="vertical"
-                value={selectedTab}
+                value={selectedTab < 0 ? false : selectedTab}
                 onChange={handleTabChange}
                 sx={{
                   height: '100%',

@@ -188,6 +188,7 @@ const AnnotatePage: React.FC = () => {
   }, [labelPrompt.open, labelPrompt.mode, searchParams]);
 
   useEffect(() => {
+    if (!imageHandler.currentImageID) return;
     async function checkPrev() {
       const result = await annotateHandler.hasPrevAnnotations(imageHandler.currentImageID);
       setHasPrev(result);
