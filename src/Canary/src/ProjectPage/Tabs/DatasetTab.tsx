@@ -204,7 +204,7 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
           },
         }}
       >
-        <MenuItem onClick={handleFinish}>UnFinish</MenuItem>
+        <MenuItem onClick={handleFinish}>Mark as Incomplete</MenuItem>
         <MenuItem onClick={openRename}>Rename</MenuItem>
         <MenuItem onClick={openDelete}>Delete</MenuItem>
       </Menu>
