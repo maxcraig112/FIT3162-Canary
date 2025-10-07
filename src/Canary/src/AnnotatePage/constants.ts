@@ -21,6 +21,11 @@ export type LabelRequest = {
   y: number;
   mode: 'create' | 'edit';
   currentLabel?: string;
+  /**
+   * When true, the request is only to reposition the existing open label/OK overlay (e.g. while dragging)
+   * and the current typed value in the UI should be preserved (don't reset the input to currentLabel).
+   */
+  preserveLabel?: boolean;
 };
 
 export const fabricGroupProps = {
@@ -30,10 +35,10 @@ export const fabricGroupProps = {
   lockScalingX: true,
   lockScalingY: true,
   lockRotation: true,
-  lockMovementX: true,
-  lockMovementY: true,
-  hoverCursor: 'default',
-  moveCursor: 'default',
+  lockMovementX: false,
+  lockMovementY: false,
+  hoverCursor: 'move',
+  moveCursor: 'move',
   subTargetCheck: false,
 };
 

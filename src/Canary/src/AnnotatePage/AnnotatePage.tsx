@@ -150,15 +150,17 @@ const AnnotatePage: React.FC = () => {
       const opts = req.kind === 'kp' ? getKeypointLabelNames() : getBoundingBoxLabelNames();
       setKpOptions(getKeypointLabelNames());
       setBbOptions(getBoundingBoxLabelNames());
-      const initial = req.currentLabel && opts.includes(req.currentLabel) ? req.currentLabel : opts[0] || '';
-      setLabelValue(initial);
-      setLabelPrompt({
+      if (!req.preserveLabel) {
+        const initial = req.currentLabel && opts.includes(req.currentLabel) ? req.currentLabel : opts[0] || '';
+        setLabelValue(initial);
+      }
+      setLabelPrompt((prev) => ({
         open: true,
         kind: req.kind === 'kp' ? 'kp' : 'bb',
         x: req.x,
         y: req.y,
-        mode: req.mode ?? 'create',
-      });
+        mode: req.mode ?? prev.mode ?? 'create',
+      }));
     });
     return () => {
       unsub();

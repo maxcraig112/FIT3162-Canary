@@ -186,13 +186,6 @@ func (s *KeypointStore) UpdateKeypoint(ctx context.Context, req UpdateKeypointRe
 		qp = append(qp, fs.QueryParameter{Path: "boundingBoxID", Op: "==", Value: nil})
 	}
 
-	docs, err := s.genericStore.ReadCollection(ctx, qp)
-	if err != nil {
-		return err
-	}
-	if len(docs) > 0 {
-		return fs.ErrAlreadyExists
-	}
 	updates := []firestore.Update{}
 
 	if req.KeypointLabelID != "" {

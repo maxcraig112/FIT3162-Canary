@@ -66,10 +66,20 @@ export const keypointDatabaseHandler = {
 
   // Rename an existing keypoint's label in the database
   async renameKeyPoint(ann: KeypointAnnotation, newLabelID: string): Promise<KeypointAnnotation> {
+    return this.updateKeyPoint(ann, { labelID: newLabelID });
+  },
+
+  async updateKeyPoint(
+    ann: KeypointAnnotation,
+    updates: { labelID?: string; position?: { x: number; y: number } },
+  ): Promise<KeypointAnnotation> {
     const url = `${projectServiceUrl()}/projects/${ann.projectID}/keypoints/${ann.id}`;
-    const body = {
-      keypointLabelID: newLabelID,
+    const body: { keypointLabelID: string; position?: { x: number; y: number } } = {
+      keypointLabelID: updates.labelID ?? ann.labelID,
     };
+    if (updates.position) {
+      body.position = updates.position;
+    }
     try {
       await CallAPI(url, {
         method: 'PATCH',
@@ -77,11 +87,14 @@ export const keypointDatabaseHandler = {
         ignoreResponse: true,
       });
     } catch (err) {
-      throw new Error(`Failed to rename keypoint ${ann.id}: ${err}`);
+      throw new Error(`Failed to update keypoint ${ann.id}: ${err}`);
     }
 
-    // console.log(`Keypoint ${ann.id} renamed to label ${newLabelID}`);
-    return { ...ann, labelID: newLabelID };
+    return {
+      ...ann,
+      labelID: body.keypointLabelID,
+      position: updates.position ? { ...updates.position } : { ...ann.position },
+    };
   },
 
   // Delete an existing keypoint in the database
