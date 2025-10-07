@@ -70,35 +70,32 @@ const AnnotatePage: React.FC = () => {
   const [zoom, setZoom] = useState(1);
   const zoomHandlerRef = useRef<ZoomHandler | null>(null);
 
-  const computeAvailableKeypointLabels = React.useCallback(
-    (currentLabel?: string) => {
-      const handler = latestImageHandlerRef.current;
-      const allNames = getKeypointLabelNames();
-      if (!handler) {
-        return allNames;
-      }
+  const computeAvailableKeypointLabels = React.useCallback((currentLabel?: string) => {
+    const handler = latestImageHandlerRef.current;
+    const allNames = getKeypointLabelNames();
+    if (!handler) {
+      return allNames;
+    }
 
-      const used = new Set<string>();
-      try {
-        const keypoints = handler.getKeypoints();
-        keypoints.forEach((kp) => {
-          const labelName = getKeypointLabelName(kp.labelID);
-          if (labelName) {
-            used.add(labelName);
-          }
-        });
-      } catch (err) {
-        console.warn('[Annotate] failed to collect keypoint labels in use', err);
-      }
+    const used = new Set<string>();
+    try {
+      const keypoints = handler.getKeypoints();
+      keypoints.forEach((kp) => {
+        const labelName = getKeypointLabelName(kp.labelID);
+        if (labelName) {
+          used.add(labelName);
+        }
+      });
+    } catch (err) {
+      console.warn('[Annotate] failed to collect keypoint labels in use', err);
+    }
 
-      if (currentLabel) {
-        used.delete(currentLabel);
-      }
+    if (currentLabel) {
+      used.delete(currentLabel);
+    }
 
-      return allNames.filter((name) => !used.has(name));
-    },
-    [],
-  );
+    return allNames.filter((name) => !used.has(name));
+  }, []);
 
   useEffect(() => {
     const boxEl = boxRef.current as HTMLDivElement | null;
