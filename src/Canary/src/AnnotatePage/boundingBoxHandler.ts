@@ -68,10 +68,19 @@ export const boundingBoxDatabaseHandler = {
   },
 
   async renameBoundingBox(ann: BoundingBoxAnnotation, newLabelID: string): Promise<BoundingBoxAnnotation> {
+    return this.updateBoundingBox(ann, { labelID: newLabelID });
+  },
+
+  async updateBoundingBox(
+    ann: BoundingBoxAnnotation,
+    updates: { labelID?: string; points?: Array<{ x: number; y: number }> },
+  ): Promise<BoundingBoxAnnotation> {
+    const nextPoints = updates.points ?? ann.points;
+    const nextLabel = updates.labelID ?? ann.labelID;
     const url = `${projectServiceUrl()}/projects/${ann.projectID}/boundingboxes/${ann.id}`;
     const body = {
-      box: getBox(ann),
-      boundingBoxLabelID: newLabelID,
+      box: getBox({ ...ann, points: nextPoints }),
+      boundingBoxLabelID: nextLabel,
     };
     try {
       await CallAPI(url, {
@@ -80,11 +89,14 @@ export const boundingBoxDatabaseHandler = {
         ignoreResponse: true,
       });
     } catch (err) {
-      console.error(`Failed to rename bounding box ${ann.id}:`, err);
+      console.error(`Failed to update bounding box ${ann.id}:`, err);
     }
 
-    // console.log(`Bounding box ${ann.id} renamed to label ${newLabelID}`);
-    return { ...ann, labelID: newLabelID };
+    return {
+      ...ann,
+      labelID: nextLabel,
+      points: nextPoints.map((p) => ({ ...p })),
+    };
   },
 
   async deleteBoundingBox(ann: BoundingBoxAnnotation): Promise<void> {
