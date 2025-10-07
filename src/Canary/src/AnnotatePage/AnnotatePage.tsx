@@ -9,7 +9,7 @@ import RemoveIcon from '@mui/icons-material/Remove';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useSearchParams } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
-import { getBoundingBoxLabelNames, getKeypointLabelNames } from './labelRegistry';
+import { getBoundingBoxLabelNames, getKeypointLabelNames, getKeypointLabelName } from './labelRegistry';
 import { getCentreOfCanvas } from './helper';
 import { useAuthGuard } from '../utils/authUtil';
 // import { useSharedImageHandler } from './imagehandlercontext';
@@ -27,6 +27,10 @@ const AnnotatePage: React.FC = () => {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageHandler = useImageHandler();
+  const latestImageHandlerRef = useRef(imageHandler);
+  useEffect(() => {
+    latestImageHandlerRef.current = imageHandler;
+  }, [imageHandler]);
   // Ensure annotateHandler uses the same imageHandler instance
   useEffect(() => {
     annotateHandler.setImageHandler(imageHandler);
@@ -65,6 +69,36 @@ const AnnotatePage: React.FC = () => {
   const boxRef = useRef<HTMLDivElement | null>(null);
   const [zoom, setZoom] = useState(1);
   const zoomHandlerRef = useRef<ZoomHandler | null>(null);
+
+  const computeAvailableKeypointLabels = React.useCallback(
+    (currentLabel?: string) => {
+      const handler = latestImageHandlerRef.current;
+      const allNames = getKeypointLabelNames();
+      if (!handler) {
+        return allNames;
+      }
+
+      const used = new Set<string>();
+      try {
+        const keypoints = handler.getKeypoints();
+        keypoints.forEach((kp) => {
+          const labelName = getKeypointLabelName(kp.labelID);
+          if (labelName) {
+            used.add(labelName);
+          }
+        });
+      } catch (err) {
+        console.warn('[Annotate] failed to collect keypoint labels in use', err);
+      }
+
+      if (currentLabel) {
+        used.delete(currentLabel);
+      }
+
+      return allNames.filter((name) => !used.has(name));
+    },
+    [],
+  );
 
   useEffect(() => {
     const boxEl = boxRef.current as HTMLDivElement | null;
@@ -146,10 +180,14 @@ const AnnotatePage: React.FC = () => {
   // Subscribe to label requests from handler
   useEffect(() => {
     const unsub = annotateHandler.subscribeLabelRequests((req) => {
-      // if we already have a value, keep it; otherwise default to first option of relevant list
-      const opts = req.kind === 'kp' ? getKeypointLabelNames() : getBoundingBoxLabelNames();
-      setKpOptions(getKeypointLabelNames());
-      setBbOptions(getBoundingBoxLabelNames());
+      const opts = req.kind === 'kp' ? computeAvailableKeypointLabels(req.currentLabel) : getBoundingBoxLabelNames();
+
+      if (req.kind === 'kp') {
+        setKpOptions(opts);
+      } else {
+        setBbOptions(opts);
+      }
+
       if (!req.preserveLabel) {
         const initial = req.currentLabel && opts.includes(req.currentLabel) ? req.currentLabel : opts[0] || '';
         setLabelValue(initial);
@@ -165,7 +203,7 @@ const AnnotatePage: React.FC = () => {
     return () => {
       unsub();
     };
-  }, []);
+  }, [computeAvailableKeypointLabels]);
 
   // Undo/Redo keydown handler
   useEffect(() => {
