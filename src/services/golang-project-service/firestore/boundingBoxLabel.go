@@ -58,10 +58,23 @@ func (s *BoundingBoxLabelStore) GetBoundingBoxLabelsByProjectID(ctx context.Cont
 	return boundingBoxLabels, nil
 }
 
-func (s *BoundingBoxLabelStore) CreateBoundingBoxLabel(ctx context.Context, createBoundingBoxLabelReq CreateBoundingBoxLabelRequest) (string, error) {
+func (s *BoundingBoxLabelStore) CreateBoundingBoxLabel(ctx context.Context, req CreateBoundingBoxLabelRequest) (string, error) {
 	boundingBoxLabel := BoundingBoxLabel{
-		BoundingBoxLabel: createBoundingBoxLabelReq.BoundingBoxLabel,
-		ProjectID:        createBoundingBoxLabelReq.ProjectID,
+		BoundingBoxLabel: req.BoundingBoxLabel,
+		ProjectID:        req.ProjectID,
+	}
+
+	qp := []fs.QueryParameter{
+		{Path: "boundingBoxLabel", Op: "==", Value: req.BoundingBoxLabel},
+		{Path: "projectID", Op: "==", Value: req.ProjectID},
+	}
+
+	docs, err := s.genericStore.ReadCollection(ctx, qp)
+	if err != nil {
+		return "", err
+	}
+	if len(docs) > 0 {
+		return "", fs.ErrAlreadyExists
 	}
 
 	return s.genericStore.CreateDoc(ctx, boundingBoxLabel)
@@ -71,12 +84,31 @@ func (s *BoundingBoxLabelStore) DeleteBoundingBoxLabel(ctx context.Context, boun
 	return s.genericStore.DeleteDoc(ctx, boundingBoxLabelID)
 }
 
-func (s *BoundingBoxLabelStore) UpdateBoundingBoxLabelName(ctx context.Context, updateBoundingBoxLabelReq UpdateBoundingBoxLabelRequest) error {
-	updateParams := []firestore.Update{
-		{Path: "boundingBoxLabel", Value: updateBoundingBoxLabelReq.BoundingBoxLabel},
+func (s *BoundingBoxLabelStore) UpdateBoundingBoxLabelName(ctx context.Context, req UpdateBoundingBoxLabelRequest) error {
+
+	bbl, err := s.GetBoundingBoxLabel(ctx, req.BoundingBoxLabelID)
+	if err == fs.ErrNotFound {
+		return fs.ErrNotFound
 	}
 
-	return s.genericStore.UpdateDoc(ctx, updateBoundingBoxLabelReq.BoundingBoxLabelID, updateParams)
+	qp := []fs.QueryParameter{
+		{Path: "boundingBoxLabel", Op: "==", Value: req.BoundingBoxLabel},
+		{Path: "projectID", Op: "==", Value: bbl.ProjectID},
+	}
+
+	docs, err := s.genericStore.ReadCollection(ctx, qp)
+	if err != nil {
+		return err
+	}
+	if len(docs) > 0 {
+		return fs.ErrAlreadyExists
+	}
+
+	updateParams := []firestore.Update{
+		{Path: "keypointLabel", Value: req.BoundingBoxLabel},
+	}
+
+	return s.genericStore.UpdateDoc(ctx, req.BoundingBoxLabelID, updateParams)
 }
 
 func (s *BoundingBoxLabelStore) GetBoundingBoxLabel(ctx context.Context, boundingBoxLabelID string) (BoundingBoxLabel, error) {

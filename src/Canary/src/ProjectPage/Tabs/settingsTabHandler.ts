@@ -21,8 +21,10 @@ export function useSettingsTab(projectID?: string, initialSettings?: ProjectSett
   const [sessionPassword, setSessionPassword] = useState<string>('');
   const [keypointLabels, setKeypointLabels] = useState<string[]>([]);
   const [bboxLabels, setBboxLabels] = useState<string[]>([]);
-  const [keypointInput, setKeypointInput] = useState('');
-  const [bboxInput, setBboxInput] = useState('');
+  const [keypointInputState, setKeypointInputState] = useState('');
+  const [bboxInputState, setBboxInputState] = useState('');
+  const [keypointError, setKeypointError] = useState<string | null>(null);
+  const [bboxError, setBboxError] = useState<string | null>(null);
 
   // Maps from label -> id to support delete actions from UI list of strings
   const [kpMap, setKpMap] = useState<Record<string, string>>({});
@@ -88,53 +90,91 @@ export function useSettingsTab(projectID?: string, initialSettings?: ProjectSett
     }
   }, [initialSettings]);
 
-  const addKeypoint = useCallback(() => {
-    const v = keypointInput.trim();
-    if (!v) return;
-    const doLocal = () => {
-      setKeypointLabels((prev) => (prev.includes(v) ? prev : [...prev, v]));
-      setKeypointInput('');
-    };
-    if (!canUseApi) {
-      doLocal();
-      return;
-    }
-    // Create via API then reload to capture assigned ID
-    (async () => {
-      try {
-        const url = `${projectServiceUrl()}/projects/${projectID}/keypointlabels`;
-        await CallAPI<string>(url, { method: 'POST', json: { keypointLabel: v }, parseJson: false });
-        await loadKeypointLabels();
-        setKeypointInput('');
-      } catch {
-        // fallback local add so user sees it; next reload will sync
-        doLocal();
-      }
-    })();
-  }, [keypointInput, canUseApi, projectID, loadKeypointLabels]);
+  const setKeypointInput = useCallback(
+    (value: string) => {
+      setKeypointError(null);
+      setKeypointInputState(value);
+    },
+    [setKeypointError],
+  );
 
-  const addBbox = useCallback(() => {
-    const v = bboxInput.trim();
+  const setBboxInput = useCallback(
+    (value: string) => {
+      setBboxError(null);
+      setBboxInputState(value);
+    },
+    [setBboxError],
+  );
+
+  const clearKeypointError = useCallback(() => setKeypointError(null), [setKeypointError]);
+  const clearBboxError = useCallback(() => setBboxError(null), [setBboxError]);
+
+  const keypointInput = keypointInputState;
+  const bboxInput = bboxInputState;
+
+  const addKeypoint = useCallback(async () => {
+    const v = keypointInputState.trim();
     if (!v) return;
-    const doLocal = () => {
-      setBboxLabels((prev) => (prev.includes(v) ? prev : [...prev, v]));
-      setBboxInput('');
-    };
-    if (!canUseApi) {
-      doLocal();
+
+    if (keypointLabels.includes(v)) {
+      setKeypointError('Keypoint label already exists.');
       return;
     }
-    (async () => {
-      try {
-        const url = `${projectServiceUrl()}/projects/${projectID}/boundingboxlabels`;
-        await CallAPI<string>(url, { method: 'POST', json: { boundingBoxLabel: v }, parseJson: false });
-        await loadBoundingBoxLabels();
-        setBboxInput('');
-      } catch {
-        doLocal();
+
+    if (!canUseApi) {
+      setKeypointLabels((prev) => (prev.includes(v) ? prev : [...prev, v]));
+      setKeypointInputState('');
+      setKeypointError(null);
+      return;
+    }
+
+    try {
+      const url = `${projectServiceUrl()}/projects/${projectID}/keypointlabels`;
+      await CallAPI<string>(url, { method: 'POST', json: { keypointLabel: v }, parseJson: false });
+      await loadKeypointLabels();
+      setKeypointInputState('');
+      setKeypointError(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
+      if (message.includes('already exists')) {
+        setKeypointError('Keypoint label already exists.');
+      } else {
+        setKeypointError('Failed to add keypoint label.');
       }
-    })();
-  }, [bboxInput, canUseApi, projectID, loadBoundingBoxLabels]);
+    }
+  }, [keypointInputState, keypointLabels, canUseApi, projectID, loadKeypointLabels]);
+
+  const addBbox = useCallback(async () => {
+    const v = bboxInputState.trim();
+    if (!v) return;
+
+    if (bboxLabels.includes(v)) {
+      setBboxError('Bounding box label already exists.');
+      return;
+    }
+
+    if (!canUseApi) {
+      setBboxLabels((prev) => (prev.includes(v) ? prev : [...prev, v]));
+      setBboxInputState('');
+      setBboxError(null);
+      return;
+    }
+
+    try {
+      const url = `${projectServiceUrl()}/projects/${projectID}/boundingboxlabels`;
+      await CallAPI<string>(url, { method: 'POST', json: { boundingBoxLabel: v }, parseJson: false });
+      await loadBoundingBoxLabels();
+      setBboxInputState('');
+      setBboxError(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
+      if (message.includes('already exists')) {
+        setBboxError('Bounding box label already exists.');
+      } else {
+        setBboxError('Failed to add bounding box label.');
+      }
+    }
+  }, [bboxInputState, bboxLabels, canUseApi, projectID, loadBoundingBoxLabels]);
 
   const saveSessionSettings = useCallback(async (): Promise<void> => {
     if (!projectID) return;
@@ -217,8 +257,12 @@ export function useSettingsTab(projectID?: string, initialSettings?: ProjectSett
       const prevKpMap = kpMap;
       const id = kpMap[oldName];
 
-      // If duplicate exists, abort
-      if (prevKpLabels.includes(newName)) return;
+      if (prevKpLabels.includes(newName)) {
+        setKeypointError('Keypoint label already exists.');
+        return;
+      }
+
+      setKeypointError(null);
 
       const applyLocal = () => {
         setKeypointLabels((prev) => prev.map((n) => (n === oldName ? newName : n)));
@@ -252,8 +296,15 @@ export function useSettingsTab(projectID?: string, initialSettings?: ProjectSett
           parseJson: false,
         });
         await loadKeypointLabels(); // ensure sync with server state/ids
-      } catch {
+        setKeypointError(null);
+      } catch (err) {
         rollbackLocal();
+        const message = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
+        if (message.includes('already exists')) {
+          setKeypointError('Keypoint label already exists.');
+        } else {
+          setKeypointError('Failed to rename keypoint label.');
+        }
       }
     },
     [canUseApi, projectID, keypointLabels, kpMap, loadKeypointLabels],
@@ -268,7 +319,12 @@ export function useSettingsTab(projectID?: string, initialSettings?: ProjectSett
       const prevBbMap = bbMap;
       const id = bbMap[oldName];
 
-      if (prevBbLabels.includes(newName)) return;
+      if (prevBbLabels.includes(newName)) {
+        setBboxError('Bounding box label already exists.');
+        return;
+      }
+
+      setBboxError(null);
 
       const applyLocal = () => {
         setBboxLabels((prev) => prev.map((n) => (n === oldName ? newName : n)));
@@ -301,8 +357,15 @@ export function useSettingsTab(projectID?: string, initialSettings?: ProjectSett
           parseJson: false,
         });
         await loadBoundingBoxLabels();
-      } catch {
+        setBboxError(null);
+      } catch (err) {
         rollbackLocal();
+        const message = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
+        if (message.includes('already exists')) {
+          setBboxError('Bounding box label already exists.');
+        } else {
+          setBboxError('Failed to rename bounding box label.');
+        }
       }
     },
     [canUseApi, projectID, bboxLabels, bbMap, loadBoundingBoxLabels],
@@ -327,6 +390,10 @@ export function useSettingsTab(projectID?: string, initialSettings?: ProjectSett
     addBbox,
     deleteKeypoint,
     deleteBbox,
+    keypointError,
+    bboxError,
+    clearKeypointError,
+    clearBboxError,
     // New exports for rename
     renameKeypointLabel,
     renameBboxLabel,

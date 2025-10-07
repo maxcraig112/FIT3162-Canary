@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	fs "pkg/gcp/firestore"
 	"pkg/handler"
 	"project-service/firestore"
 
@@ -68,7 +69,11 @@ func (h *BoundingBoxLabelHandler) UpdateBoundingBoxLabelHandler(w http.ResponseW
 	}
 
 	err = h.BoundingBoxLabelStore.UpdateBoundingBoxLabelName(h.Ctx, req)
-	if err != nil {
+	if err == fs.ErrAlreadyExists {
+		http.Error(w, "Bounding box label already exists", http.StatusConflict)
+		log.Error().Err(err).Msg("Bounding box label already exists")
+		return
+	} else if err != nil {
 		http.Error(w, "Error updating bounding box label", http.StatusInternalServerError)
 		log.Error().Err(err).Str("projectID", projectID).Msg("Error updating bounding box label")
 		return
@@ -127,7 +132,11 @@ func (h *BoundingBoxLabelHandler) CreateBoundingBoxLabelHandler(w http.ResponseW
 	// add projectID to request
 	req.ProjectID = projectID
 	boundingBoxLabelID, err := h.BoundingBoxLabelStore.CreateBoundingBoxLabel(h.Ctx, req)
-	if err != nil {
+	if err == fs.ErrAlreadyExists {
+		http.Error(w, "Bounding box label already exists", http.StatusConflict)
+		log.Error().Err(err).Msg("Bounding box label already exists")
+		return
+	} else if err != nil {
 		http.Error(w, "Error creating bounding box label", http.StatusInternalServerError)
 		log.Error().Err(err).Str("projectID", projectID).Msg("Error creating bounding box label")
 		return
