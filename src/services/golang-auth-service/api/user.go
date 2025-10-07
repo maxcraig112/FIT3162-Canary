@@ -87,15 +87,16 @@ func (h *UserHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error().Err(err).Str("email", req.Email).Msg("Error hashing password for register")
 		return
 	}
-	_, err = h.UserStore.CreateUser(r.Context(), req.Email, string(hashedPassword))
+	userID, err := h.UserStore.CreateUser(r.Context(), req.Email, string(hashedPassword))
 	if err != nil {
 		http.Error(w, "Error creating user", http.StatusInternalServerError)
 		log.Error().Err(err).Str("email", req.Email).Msg("Error creating user for register")
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	log.Info().Str("email", req.Email).Msg("User registered successfully")
-	if _, err = w.Write([]byte("User registered")); err != nil {
+	log.Info().Str("email", req.Email).Str("userID", userID).Msg("User registered successfully")
+	if err := json.NewEncoder(w).Encode(map[string]string{"message": "User registered", "userID": userID}); err != nil {
 		log.Error().Err(err).Str("email", req.Email).Msg("Error writing response for register")
 	}
 }

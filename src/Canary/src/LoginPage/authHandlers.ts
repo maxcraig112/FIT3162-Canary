@@ -31,7 +31,9 @@ export async function handleLogin(email: string, password: string, setResult?: (
 export async function handleRegister(email: string, password: string, setResult?: (msg: string) => void) {
   try {
     const data = await postToAuthService('/register', { email, password });
-    if (setResult) setResult(data?.message ? data.message : 'Register successful');
+    const baseMessage = data?.message ?? 'User registered';
+    const message = `${baseMessage}. Please press Login to sign in.`;
+    if (setResult) setResult(message);
     // console.log('Register success:', data);
   } catch (err) {
     if (setResult) setResult('Register failed: ' + (err instanceof Error ? err.message : 'Unknown error'));

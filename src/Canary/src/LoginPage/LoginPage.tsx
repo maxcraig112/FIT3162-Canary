@@ -42,6 +42,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     }
   };
 
+  const resultIsSuccess = result ? /success|press login/i.test(result) : false;
+
   return (
     <AppThemeProvider>
       <Box
@@ -190,7 +192,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               <Typography
                 sx={{
                   mt: 1,
-                  color: '#b91c1c',
+                  color: resultIsSuccess ? '#047857' : '#b91c1c',
                   wordBreak: 'break-word',
                   whiteSpace: 'pre-line',
                   maxWidth: '100%',
