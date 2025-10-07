@@ -58,7 +58,6 @@ func (h *WebSocketHub) handlerMemberLeft(sessionID string, memberID string) {
 		MemberID:  memberID,
 		Time:      time.Now().UTC(),
 	})
-	return
 }
 
 // This is a generic notification format indicating something has happened to a member of the session (joined, left, etc.)
@@ -100,27 +99,5 @@ func (h *WebSocketHub) safeEnqueue(c *Client, msg any) (ok bool) {
 		return true
 	default:
 		return false
-	}
-}
-
-// This is a standard notification send to everyone
-func (h *WebSocketHub) sendStandardNotification(notif StandardNotification) {
-	s := h.Sessions[notif.SessionID]
-
-	s.Mu.RLock()
-	defer s.Mu.RUnlock()
-
-	// Notify owner
-	if s.Owner != nil {
-		if !h.safeEnqueue(s.Owner, notif) {
-			log.Warn().Str("sessionID", notif.SessionID).Msg("owner out channel unavailable, dropping standard notification")
-		}
-	}
-
-	// Notify all members
-	for member := range s.Members {
-		if !h.safeEnqueue(member, notif) {
-			log.Warn().Str("sessionID", notif.SessionID).Str("memberID", member.id).Msg("member out channel unavailable, dropping standard notification")
-		}
 	}
 }

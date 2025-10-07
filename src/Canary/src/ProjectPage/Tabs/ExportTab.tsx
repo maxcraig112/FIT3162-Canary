@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Box, Stack, FormControl, Select, MenuItem, Button, Alert, Typography } from '@mui/material';
-import type { Project } from '../ProjectPage';
 import { getAuthTokenFromCookie } from '../../utils/cookieUtils';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import type { Project } from '../../utils/intefaces/interfaces';
+import { projectServiceUrl } from '../../utils/apis';
 
 type ExportFormat = 'coco' | 'pascal-voc';
 type AnnotationType = 'bbox' | 'keypoint';
@@ -19,8 +20,6 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-
-  const baseUrl = useMemo(() => import.meta.env.VITE_PROJECT_SERVICE_URL as string, []);
 
   /* ---------- helpers ---------- */
   const bothSelectsDisabled = !format;
@@ -49,11 +48,11 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
     try {
       let url;
       if (format === 'pascal-voc' && annotationType === 'bbox') {
-        url = `${baseUrl}/project/${encodeURIComponent(project.projectID)}/boundingboxes/export/pascal_voc`;
+        url = `${projectServiceUrl()}/project/${encodeURIComponent(project.projectID)}/boundingboxes/export/pascal_voc`;
       } else if (format === 'coco' && annotationType === 'bbox') {
-        url = `${baseUrl}/project/${encodeURIComponent(project.projectID)}/boundingboxes/export/coco`;
+        url = `${projectServiceUrl()}/project/${encodeURIComponent(project.projectID)}/boundingboxes/export/coco`;
       } else if (format === 'coco' && annotationType === 'keypoint') {
-        url = `${baseUrl}/project/${encodeURIComponent(project.projectID)}/keypoints/export/coco`;
+        url = `${projectServiceUrl()}/project/${encodeURIComponent(project.projectID)}/keypoints/export/coco`;
       }
       if (!url) {
         throw new Error('Invalid format or annotation type.');

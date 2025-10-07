@@ -16,18 +16,23 @@ const (
 type Session struct {
 	OwnerID     string    `firestore:"ownerID,omitempty" json:"ownerID"`
 	BatchID     string    `firestore:"batchID,omitempty" json:"batchID"`
+	ProjectID   string    `firestore:"projectID,omitempty" json:"projectID"`
+	Password    string    `firestore:"password,omitempty" json:"password"`
 	Members     []string  `firestore:"members,omitempty" json:"members"`
 	LastUpdated time.Time `firestore:"lastUpdated,omitempty" json:"lastUpdated"`
 }
 
 type CreateSessionRequest struct {
-	UserID  string `json:"userID"`
-	BatchID string `json:"batchID"`
+	UserID    string `json:"userID"`
+	BatchID   string `json:"batchID"`
+	ProjectID string `json:"projectID"`
+	Password  string `json:"password,omitempty"`
 }
 
 type JoinSessionRequest struct {
 	UserID    string `json:"userID"`
 	SessionID string `json:"sessionID"`
+	Password  string `json:"password,omitempty"`
 }
 
 type SessionStore struct {
@@ -43,9 +48,11 @@ func (s *SessionStore) GenericClient() fs.FirestoreClientInterface { return s.ge
 
 func (s *SessionStore) CreateNewSession(ctx context.Context, req CreateSessionRequest) (string, error) {
 	session := Session{
-		OwnerID: req.UserID,
-		BatchID: req.BatchID,
-		Members: []string{},
+		OwnerID:   req.UserID,
+		BatchID:   req.BatchID,
+		ProjectID: req.ProjectID,
+		Password:  req.Password,
+		Members:   []string{},
 	}
 	return s.genericStore.CreateDoc(ctx, session)
 }
@@ -98,4 +105,16 @@ func (s *SessionStore) IsUserInSession(ctx context.Context, req JoinSessionReque
 	}
 
 	return req.UserID == session.OwnerID || lo.Contains(session.Members, req.UserID), nil
+}
+
+func (s *SessionStore) GetSession(ctx context.Context, sessionID string) (*Session, error) {
+	docSnap, err := s.genericStore.GetDoc(ctx, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	var session Session
+	if err := docSnap.DataTo(&session); err != nil {
+		return nil, err
+	}
+	return &session, nil
 }

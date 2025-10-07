@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
-import { CallAPI } from '../../utils/apis';
-import type { Project } from '../ProjectPage';
+import { CallAPI, projectServiceUrl } from '../../utils/apis';
+import type { Project } from '../../utils/intefaces/interfaces';
 
 export function useUploadTab(project: Project | null) {
   const [uploading, setUploading] = useState(false);
@@ -10,9 +10,8 @@ export function useUploadTab(project: Project | null) {
   const [batchName, setBatchName] = useState<string>('');
 
   const createBatch = useCallback(async (projectID: string, nameHint?: string): Promise<{ batchID: string; batchName: string }> => {
-    const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
-    const url = `${baseUrl}/batch`;
-    const finalName = (nameHint && nameHint.trim()) || `Upload ${new Date().toLocaleString()}`;
+    const url = `${projectServiceUrl()}/batch`;
+    const finalName = (nameHint && nameHint.trim()) || `Upload ${new Date().toLocaleString('en-GB')}`;
 
     const data = await CallAPI<{
       batchID?: string;
@@ -102,8 +101,7 @@ export function useUploadTab(project: Project | null) {
 
       try {
         const { batchID, batchName: finalBatchName } = await createBatch(project.projectID, batchName);
-        const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
-        const url = `${baseUrl}/batch/${encodeURIComponent(batchID)}/images`;
+        const url = `${projectServiceUrl()}/batch/${encodeURIComponent(batchID)}/images`;
 
         const formData = new FormData();
         list.forEach((f) => {

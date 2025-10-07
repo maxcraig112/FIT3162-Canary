@@ -12,6 +12,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+var defaultKeypointLabels = []string{"Left Eye", "Right Eye", "Beak", "Left Wing Tip", "Right Wing Tip"}
+var defaultBoundingBoxLabels = []string{"Bird"}
+
 type ProjectHandler struct {
 	*handler.Handler
 	// These are embedded fields so you don't need to call .Stores to get the inner fields
@@ -79,7 +82,9 @@ func (h *ProjectHandler) LoadProjectsHandler(w http.ResponseWriter, r *http.Requ
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		log.Info().Str("userID", userID).Msg("Successfully returned projects by User ID")
-		json.NewEncoder(w).Encode(projects)
+		if err := json.NewEncoder(w).Encode(projects); err != nil {
+			log.Error().Err(err).Str("userID", userID).Msg("Failed to encode projects response")
+		}
 		return
 	} else {
 		project, err := h.ProjectStore.GetProject(h.Ctx, projectID)
@@ -100,7 +105,9 @@ func (h *ProjectHandler) LoadProjectsHandler(w http.ResponseWriter, r *http.Requ
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		log.Info().Str("projectID", projectID).Msg("Successfully returned project with Project ID")
-		json.NewEncoder(w).Encode(project)
+		if err := json.NewEncoder(w).Encode(project); err != nil {
+			log.Error().Err(err).Str("projectID", projectID).Msg("Failed to encode project response")
+		}
 	}
 
 }
@@ -118,6 +125,32 @@ func (h *ProjectHandler) CreateProjectHandler(w http.ResponseWriter, r *http.Req
 		http.Error(w, "Error creating project", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Error creating project")
 		return
+	}
+
+	if req.CreateDefaultLabels {
+		for _, label := range defaultKeypointLabels {
+			_, err := h.KeypointLabelStore.CreateKeypointLabel(h.Ctx, firestore.CreateKeypointLabelRequest{
+				KeypointLabel: label,
+				ProjectID:     projectID,
+			})
+			// we shouldn't fail if a single label fails
+			if err != nil {
+				log.Error().Err(err).Str("projectID", projectID).Str("label", label).Msg("Error creating default keypoint label")
+			}
+		}
+
+		// Create default bounding box label
+		for _, label := range defaultBoundingBoxLabels {
+			_, err = h.BoundingBoxLabelStore.CreateBoundingBoxLabel(h.Ctx, firestore.CreateBoundingBoxLabelRequest{
+				BoundingBoxLabel: label,
+				ProjectID:        projectID,
+			})
+			// we shouldn't fail if a single label fails
+			if err != nil {
+				log.Error().Err(err).Str("projectID", projectID).Msg("Error creating default bounding box label")
+			}
+		}
+		log.Info().Str("projectID", projectID).Msg("Created default labels")
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -228,5 +261,7 @@ func (h *ProjectHandler) UpdateProjectHandler(w http.ResponseWriter, r *http.Req
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("projectID", projectID).Msg("Updated project settings successfully")
-	json.NewEncoder(w).Encode(project)
+	if err := json.NewEncoder(w).Encode(project); err != nil {
+		log.Error().Err(err).Str("projectID", projectID).Msg("Failed to encode update project response")
+	}
 }

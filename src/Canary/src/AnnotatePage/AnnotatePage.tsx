@@ -14,6 +14,8 @@ import { getCentreOfCanvas } from './helper';
 import { useAuthGuard } from '../utils/authUtil';
 // import { useSharedImageHandler } from './imagehandlercontext';
 import { useImageHandler } from './imageStateHandler';
+import { initialiseSessionWebSocket, getActiveSessionID, sendActiveImageID, closeSessionWebSocket, setNavigateAway } from './sessionHandler';
+import Fade from '@mui/material/Fade';
 
 const AnnotatePage: React.FC = () => {
   // Helper for undo/redo actions
@@ -50,9 +52,15 @@ const AnnotatePage: React.FC = () => {
     y: number;
     mode?: 'create' | 'edit';
   }>({ open: false, kind: null, x: 0, y: 0, mode: 'create' });
+  const [sessionID, setSessionID] = useState<string | undefined>(getActiveSessionID());
+  const [sessionRole, setSessionRole] = useState<'owner' | 'member' | undefined>();
   const [labelValue, setLabelValue] = useState('');
   const [kpOptions, setKpOptions] = useState<string[]>([]);
   const [bbOptions, setBbOptions] = useState<string[]>([]);
+  const [hasPrev, setHasPrev] = useState(false);
+  const [memberNotices, setMemberNotices] = useState<{ id: string; memberID: string; type: 'member_joined' | 'member_left' }[]>([]);
+
+  const lastRenderKeyRef = useRef<string | null>(null);
 
   const boxRef = useRef<HTMLDivElement | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -77,32 +85,55 @@ const AnnotatePage: React.FC = () => {
     zoomHandlerRef.current = new ZoomHandler({ canvas: getCanvas()! });
     zoomHandlerRef.current.attachWheelListener((newZoom) => setZoom(newZoom));
     setZoom(zoomHandlerRef.current.getZoom());
+    // Attempt session websocket init (if cookies present)
+    initialiseSessionWebSocket(getActiveSessionID()).then((res) => {
+      if (res.sessionID) setSessionID(res.sessionID);
+      if (res.role) setSessionRole(res.role);
+    });
     return () => {
       annotateHandler.disposeCanvas();
       zoomHandlerRef.current = null;
     };
   }, []);
 
-  // Render when batchID or currentImage changes
+  // Notify websocket of current image ID whenever it changes and session active
   useEffect(() => {
-    async function render() {
+    if (imageHandler.currentImageID) {
+      sendActiveImageID(imageHandler.currentImageID);
+    }
+  }, [imageHandler.currentImageID]);
+
+  // Render when batch or current image changes (composite key) and always sync displayed number
+  useEffect(() => {
+    const key = `${batchID}|${imageHandler.currentImageNumber}`;
+    if (lastRenderKeyRef.current === key) {
+      // Ensure field reflects current number even if render was skipped
+      setInputImage(imageHandler.currentImageNumber.toString());
+      return;
+    }
+    lastRenderKeyRef.current = key;
+    (async () => {
       if (!batchID || !projectID) return;
       if (!getCanvas()) {
         console.error('Canvas not initialized yet');
         return;
       }
-
       try {
         const { current } = await annotateHandler.renderToCanvas(batchID, projectID);
-        imageHandler.setCurrentImageNumber(current);
-        setInputImage(current.toString());
+        if (current !== imageHandler.currentImageNumber) {
+          imageHandler.setCurrentImageNumber(current);
+        }
+        setInputImage((prev) => (prev !== current.toString() ? current.toString() : prev));
       } catch (e) {
         console.error(e);
       }
-    }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageHandler.currentImageNumber]);
 
-    render();
-    // Re-render when current image number changes
+  // // Keep input field always synced if number changes from elsewhere (e.g. external control)
+  useEffect(() => {
+    setInputImage(imageHandler.currentImageNumber.toString());
   }, [imageHandler.currentImageNumber]);
 
   // Keep handler tool selection in sync with UI
@@ -119,15 +150,17 @@ const AnnotatePage: React.FC = () => {
       const opts = req.kind === 'kp' ? getKeypointLabelNames() : getBoundingBoxLabelNames();
       setKpOptions(getKeypointLabelNames());
       setBbOptions(getBoundingBoxLabelNames());
-      const initial = req.currentLabel && opts.includes(req.currentLabel) ? req.currentLabel : opts[0] || '';
-      setLabelValue(initial);
-      setLabelPrompt({
+      if (!req.preserveLabel) {
+        const initial = req.currentLabel && opts.includes(req.currentLabel) ? req.currentLabel : opts[0] || '';
+        setLabelValue(initial);
+      }
+      setLabelPrompt((prev) => ({
         open: true,
         kind: req.kind === 'kp' ? 'kp' : 'bb',
         x: req.x,
         y: req.y,
-        mode: req.mode ?? 'create',
-      });
+        mode: req.mode ?? prev.mode ?? 'create',
+      }));
     });
     return () => {
       unsub();
@@ -162,6 +195,15 @@ const AnnotatePage: React.FC = () => {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [labelPrompt.open, labelPrompt.mode, searchParams]);
+
+  useEffect(() => {
+    if (!imageHandler.currentImageID) return;
+    async function checkPrev() {
+      const result = await annotateHandler.hasPrevAnnotations(imageHandler.currentImageID);
+      setHasPrev(result);
+    }
+    checkPrev();
+  }, [imageHandler.currentImageID]);
 
   const handleToolChange = (_event: React.MouseEvent<HTMLElement>, newTool: string | null) => {
     if (newTool !== null) setSelectedTool(newTool);
@@ -203,13 +245,51 @@ const AnnotatePage: React.FC = () => {
     }
   };
 
+  // Decide where to navigate to depending on the sessionRole
+  const NavigateAway = React.useCallback(() => {
+    if (sessionRole === 'member') {
+      navigate('/');
+    } else if (projectID) {
+      navigate(`/projects/${projectID}?view=batches`);
+    } else {
+      navigate(-1);
+    }
+  }, [sessionRole, projectID, navigate]);
+
+  useEffect(() => {
+    setNavigateAway(NavigateAway);
+  }, [NavigateAway]);
+
+  // Listen for member join/left events dispatched by sessionHandler and show ephemeral notices
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<{ type: 'member_joined' | 'member_left'; memberID: string }>; // time optional
+      if (!ce.detail?.memberID) return;
+      const id = `${ce.detail.type}-${ce.detail.memberID}-${Date.now()}`;
+      setMemberNotices((prev) => [...prev, { id, memberID: ce.detail.memberID, type: ce.detail.type }]);
+      // Auto-remove after 3s
+      setTimeout(() => {
+        setMemberNotices((prev) => prev.filter((n) => n.id !== id));
+      }, 3000);
+    };
+    window.addEventListener('canary-session-member-event', handler as EventListener);
+    return () => window.removeEventListener('canary-session-member-event', handler as EventListener);
+  }, []);
+
   return (
     <Box sx={{ display: 'flex', height: '100vh', bgcolor: '#f5f5f5' }}>
-      {/* Left Sidebar */}
-      <Paper elevation={2} sx={{ width: '200px', p: 2 }}>
-        <Typography variant="h6">Tools</Typography>
-        {/* Placeholder for left sidebar content */}
-      </Paper>
+      {/* Left Sidebar (now empty placeholder, centered) */}
+      <Paper
+        elevation={2}
+        sx={{
+          width: 200,
+          p: 2,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      />
 
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
@@ -222,11 +302,7 @@ const AnnotatePage: React.FC = () => {
               edge="start"
               sx={{ position: 'absolute', left: 8, top: 8 }}
               onClick={() => {
-                if (projectID) {
-                  navigate(`/projects/${projectID}`);
-                } else {
-                  navigate(-1);
-                }
+                closeSessionWebSocket(1000, 'navigate away');
               }}
             >
               <ExitToAppIcon />
@@ -240,6 +316,14 @@ const AnnotatePage: React.FC = () => {
                 gap: 1,
               }}
             >
+              {sessionID && (
+                <Paper elevation={2} sx={{ px: 2, py: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                    Session: {sessionID}
+                    {sessionRole ? ` (${sessionRole})` : ''}
+                  </Typography>
+                </Paper>
+              )}
               <IconButton aria-label="previous image" onClick={handlePrev}>
                 <KeyboardArrowLeft />
               </IconButton>
@@ -323,6 +407,29 @@ const AnnotatePage: React.FC = () => {
           }}
           ref={boxRef}
         >
+          {/* Ephemeral member join/leave notifications */}
+          <Box sx={{ position: 'absolute', top: 8, left: 8, display: 'flex', flexDirection: 'column', gap: 1, zIndex: 10 }}>
+            {memberNotices.map((n) => (
+              <Fade in key={n.id} timeout={{ enter: 200, exit: 300 }}>
+                <Paper
+                  elevation={4}
+                  sx={{
+                    px: 1.5,
+                    py: 0.5,
+                    bgcolor: n.type === 'member_joined' ? '#2e7d32' : '#c62828',
+                    color: '#fff',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    borderRadius: 1,
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+                  }}
+                >
+                  {n.type === 'member_joined' ? 'Member joined: ' : 'Member left: '}
+                  {n.memberID}
+                </Paper>
+              </Fade>
+            ))}
+          </Box>
           {/* Width/height are set programmatically in useEffect to match container; rely on style for initial sizing */}
           <canvas
             ref={canvasRef}
@@ -404,56 +511,100 @@ const AnnotatePage: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Right Sidebar */}
+      {/* Right Sidebar (Tools moved here, centered) */}
       <Paper
         elevation={2}
         sx={{
-          width: 120,
-          minWidth: 120,
-          maxWidth: 120,
+          width: 140,
+          minWidth: 140,
+          maxWidth: 160,
           flexShrink: 0,
-          p: 1,
+          p: 2,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'center',
-          gap: 2,
+          justifyContent: 'flex-start',
+          height: '100%',
         }}
       >
-        <ToggleButtonGroup orientation="vertical" value={selectedTool} exclusive onChange={handleToolChange} aria-label="tool selection" sx={{ alignItems: 'center', gap: 2 }}>
-          <ToggleButton value="kp" aria-label="keypoint" sx={{ width: 100, height: 100, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <Typography variant="h6" sx={{ mb: 1, mt: 0 }}>
+          Tools
+        </Typography>
+        {/* Centered tool controls container */}
+        <Box sx={{ flexGrow: 1, width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 3 }}>
+          <ToggleButtonGroup
+            orientation="vertical"
+            value={selectedTool}
+            exclusive
+            onChange={handleToolChange}
+            aria-label="tool selection"
+            sx={{
+              alignItems: 'center',
+              gap: 2,
+              '& .MuiToggleButtonGroup-grouped': {
+                margin: 0,
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 2,
+              },
+              '& .MuiToggleButtonGroup-grouped:not(:first-of-type)': {
+                marginTop: 0,
+                borderTopLeftRadius: 2,
+                borderTopRightRadius: 2,
+              },
+            }}
+          >
+            <ToggleButton
+              value="kp"
+              aria-label="keypoint"
+              sx={{
+                width: 100,
+                height: 100,
+                flexDirection: 'column',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'visible',
+                py: 1,
+              }}
+            >
               <MyLocation fontSize="large" />
               <Typography variant="body2" sx={{ mt: 0.5 }}>
                 KP
               </Typography>
-            </Box>
-          </ToggleButton>
-          <ToggleButton value="bb" aria-label="bounding-box" sx={{ width: 100, height: 100, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            </ToggleButton>
+            <ToggleButton
+              value="bb"
+              aria-label="bounding-box"
+              sx={{
+                width: 100,
+                height: 100,
+                flexDirection: 'column',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'visible',
+                py: 1,
+              }}
+            >
               <SelectAll fontSize="large" />
               <Typography variant="body2" sx={{ mt: 0.5 }}>
                 BB
               </Typography>
-            </Box>
-          </ToggleButton>
-          <ToggleButton value="kp-null" aria-label="null-keypoint" sx={{ width: 100, height: 100, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            </ToggleButton>
+          </ToggleButtonGroup>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Button
+              variant="outlined"
+              sx={{ width: 100, height: 100, flexDirection: 'column' }}
+              onClick={() => annotateHandler.copyPrevAnnotations(imageHandler.currentImageID, batchID, projectID)}
+              disabled={!hasPrev}
+            >
               <NotInterested fontSize="large" />
-              <Typography variant="body2" sx={{ mt: 0.5 }}>
-                KP
-              </Typography>
-            </Box>
-          </ToggleButton>
-          <ToggleButton value="bb-null" aria-label="null-bounding-box" sx={{ width: 100, height: 100, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <NotInterested fontSize="large" />
-              <Typography variant="body2" sx={{ mt: 0.5 }}>
-                BB
-              </Typography>
-            </Box>
-          </ToggleButton>
-        </ToggleButtonGroup>
+              <Typography variant="body2">CPY</Typography>
+            </Button>
+          </Box>
+        </Box>
       </Paper>
     </Box>
   );

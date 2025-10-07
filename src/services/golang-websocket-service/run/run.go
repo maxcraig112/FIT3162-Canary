@@ -23,7 +23,9 @@ func setupHandlers(ctx context.Context, r *mux.Router, clients *gcp.Clients) {
 	authMw := jwt.AuthMiddleware(clients)
 
 	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("OK"))
+		if _, err := w.Write([]byte("OK")); err != nil {
+			log.Error().Err(err).Msg("Failed to write health response")
+		}
 	}).Methods("GET")
 
 	h := handler.NewHandler(ctx, clients, authMw)
@@ -84,7 +86,7 @@ func Run() {
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to retrieve JWT Secret from GSM")
 		}
-		os.Setenv("JWT_SECRET", secret)
+		_ = os.Setenv("JWT_SECRET", secret)
 	}
 
 	r := mux.NewRouter()
@@ -98,7 +100,7 @@ func Run() {
 	}
 
 	go func() {
-		log.Info().Str("port", port).Msg("Project service running")
+		log.Info().Str("port", port).Msg("Websocket service running")
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatal().Err(err).Msg("Failed to listen on port")
 		}

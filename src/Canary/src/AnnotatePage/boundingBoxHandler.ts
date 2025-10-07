@@ -1,12 +1,10 @@
 import * as fabric from 'fabric';
 import { fabricBBPolygonProps, fabricBBProps, fabricGroupProps, fabricBBMarkerProps } from './constants';
-import type { BoundingBoxAnnotation } from './constants';
 import { getBoundingBoxLabelName } from './labelRegistry';
 import { polygonCentroid } from './helper';
-import { CallAPI } from '../utils/apis';
+import { CallAPI, projectServiceUrl } from '../utils/apis';
 import { createBoundingBoxAnnotation } from './constants';
-
-const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
+import type { BoundingBoxAnnotation } from '../utils/intefaces/interfaces';
 
 export const BoundingBoxFabricHandler = {
   createFabricBoundingBox(canvas: fabric.Canvas, ann: BoundingBoxAnnotation, transform?: { scale: number; offsetX: number; offsetY: number }): { group: fabric.Group } {
@@ -47,7 +45,7 @@ export const BoundingBoxFabricHandler = {
 export const boundingBoxDatabaseHandler = {
   // Create a bounding box in the database and get its ID
   async createBoundingBox(ann: BoundingBoxAnnotation): Promise<BoundingBoxAnnotation> {
-    const url = `${baseUrl}/projects/${ann.projectID}/images/${ann.imageID}/boundingboxes`;
+    const url = `${projectServiceUrl()}/projects/${ann.projectID}/images/${ann.imageID}/boundingboxes`;
     const body = {
       box: getBox(ann),
       boundingBoxLabelID: ann.labelID,
@@ -57,7 +55,7 @@ export const boundingBoxDatabaseHandler = {
         method: 'POST',
         json: body,
       });
-      console.log(result);
+      // console.log(result);
       const newId = (result as { boundingBoxID: string }).boundingBoxID;
       if (!newId) throw new Error('No bounding box ID returned from server');
       ann.id = newId;
@@ -65,15 +63,21 @@ export const boundingBoxDatabaseHandler = {
       console.error(`Failed to create bounding box ${ann.id}:`, err);
     }
 
-    console.log('Bounding box stored:', ann);
+    // console.log('Bounding box stored:', ann);
     return ann;
   },
 
   async renameBoundingBox(ann: BoundingBoxAnnotation, newLabelID: string): Promise<BoundingBoxAnnotation> {
-    const url = `${baseUrl}/projects/${ann.projectID}/boundingboxes/${ann.id}`;
+    return this.updateBoundingBox(ann, { labelID: newLabelID });
+  },
+
+  async updateBoundingBox(ann: BoundingBoxAnnotation, updates: { labelID?: string; points?: Array<{ x: number; y: number }> }): Promise<BoundingBoxAnnotation> {
+    const nextPoints = updates.points ?? ann.points;
+    const nextLabel = updates.labelID ?? ann.labelID;
+    const url = `${projectServiceUrl()}/projects/${ann.projectID}/boundingboxes/${ann.id}`;
     const body = {
-      box: getBox(ann),
-      boundingBoxLabelID: newLabelID,
+      box: getBox({ ...ann, points: nextPoints }),
+      boundingBoxLabelID: nextLabel,
     };
     try {
       await CallAPI(url, {
@@ -82,15 +86,18 @@ export const boundingBoxDatabaseHandler = {
         ignoreResponse: true,
       });
     } catch (err) {
-      console.error(`Failed to rename bounding box ${ann.id}:`, err);
+      console.error(`Failed to update bounding box ${ann.id}:`, err);
     }
 
-    console.log(`Bounding box ${ann.id} renamed to label ${newLabelID}`);
-    return { ...ann, labelID: newLabelID };
+    return {
+      ...ann,
+      labelID: nextLabel,
+      points: nextPoints.map((p) => ({ ...p })),
+    };
   },
 
   async deleteBoundingBox(ann: BoundingBoxAnnotation): Promise<void> {
-    const url = `${baseUrl}/projects/${ann.projectID}/boundingboxes/${ann.id}`;
+    const url = `${projectServiceUrl()}/projects/${ann.projectID}/boundingboxes/${ann.id}`;
     try {
       await CallAPI(url, {
         method: 'DELETE',
@@ -100,11 +107,11 @@ export const boundingBoxDatabaseHandler = {
       console.error(`Failed to delete bounding box ${ann.id}:`, err);
     }
 
-    console.log('Bounding box deleted:', ann);
+    // console.log('Bounding box deleted:', ann);
   },
 
   async getAllBoundingBoxes(projectID: string, imageID: string) {
-    const url = `${baseUrl}/projects/${projectID}/images/${imageID}/boundingboxes`;
+    const url = `${projectServiceUrl()}/projects/${projectID}/images/${imageID}/boundingboxes`;
     let raw;
     try {
       raw = await CallAPI(url, {
@@ -139,7 +146,7 @@ export const boundingBoxDatabaseHandler = {
         return bb;
       })
       .filter((v): v is BoundingBoxAnnotation => Boolean(v));
-    console.log(`bounding boxes loaded:`, normalized);
+    // console.log(`bounding boxes loaded:`, normalized);
     return normalized;
   },
 };

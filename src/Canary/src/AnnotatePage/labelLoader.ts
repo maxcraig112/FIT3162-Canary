@@ -1,3 +1,4 @@
+import { projectServiceUrl } from '../utils/apis';
 import { setBoundingBoxLabelMaps, setKeypointLabelMaps } from './labelRegistry';
 
 type KeypointLabelDTO = {
@@ -12,13 +13,12 @@ type BoundingBoxLabelDTO = {
 
 export async function loadProjectLabels(projectID?: string) {
   if (!projectID) return;
-  const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL as string;
   const { CallAPI } = await import('../utils/apis');
 
   try {
     const [kpData, bbData] = await Promise.all([
-      CallAPI<KeypointLabelDTO[]>(`${baseUrl}/projects/${projectID}/keypointlabels`),
-      CallAPI<BoundingBoxLabelDTO[]>(`${baseUrl}/projects/${projectID}/boundingboxlabels`),
+      CallAPI<KeypointLabelDTO[]>(`${projectServiceUrl()}/projects/${projectID}/keypointlabels`),
+      CallAPI<BoundingBoxLabelDTO[]>(`${projectServiceUrl()}/projects/${projectID}/boundingboxlabels`),
     ]);
     if (kpData && Array.isArray(kpData)) {
       const map: Record<string, string> = {};
@@ -27,7 +27,7 @@ export async function loadProjectLabels(projectID?: string) {
         const name = d.keypointLabel.toString();
         if (id && name) map[id] = name;
       }
-      console.log('Loaded keypoint labels:', map);
+      // console.log('Loaded keypoint labels:', map);
       setKeypointLabelMaps(map);
     }
     if (bbData && Array.isArray(bbData)) {
@@ -37,10 +37,10 @@ export async function loadProjectLabels(projectID?: string) {
         const name = d.boundingBoxLabel.toString();
         if (id && name) map[id] = name;
       }
-      console.log('Loaded bounding box labels:', map);
+      // console.log('Loaded bounding box labels:', map);
       setBoundingBoxLabelMaps(map);
     }
   } catch {
-    console.log('Failed to load project labels');
+    // console.log('Failed to load project labels');
   }
 }

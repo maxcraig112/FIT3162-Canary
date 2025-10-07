@@ -1,21 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Toolbar, AppBar, Button, TextField, Paper, IconButton, InputAdornment, Modal, Menu, MenuItem } from '@mui/material';
+import { Box, Typography, Toolbar, AppBar, Button, TextField, Paper, IconButton, InputAdornment, Modal, Menu, MenuItem, Checkbox, FormControlLabel } from '@mui/material';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import SearchIcon from '@mui/icons-material/Search';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import * as projectHandler from './projectHandler';
 import { useNavigate } from 'react-router-dom';
 import { useAuthGuard } from '../utils/authUtil';
-
-// Project type based on Go struct
-export interface Project {
-  projectID: string;
-  projectName: string;
-  userID: string;
-  numberOfBatches: number;
-  lastUpdated: string;
-  settings?: unknown;
-}
+import type { Project } from '../utils/intefaces/interfaces';
 
 const ProjectsPage: React.FC = () => {
   // validate the user authentication, otherwise redirect to login
@@ -30,6 +21,7 @@ const ProjectsPage: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [modalOpen, setModalOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
+  const [createDefaultLabels, setCreateDefaultLabels] = useState(true); // checkbox for default labels
   // Renacame modal state
   const [renameModalOpen, setRenameModalOpen] = useState(false);
   const [renameProjectId, setRenameProjectId] = useState<string | null>(null);
@@ -194,12 +186,24 @@ const ProjectsPage: React.FC = () => {
               }}
               SelectProps={{ native: true }}
             >
-              <option value="projectName-asc">Name (A-Z)</option>
-              <option value="projectName-desc">Name (Z-A)</option>
-              <option value="numberOfBatches-asc">Batches (Low to High)</option>
-              <option value="numberOfBatches-desc">Batches (High to Low)</option>
-              <option value="lastUpdated-desc">Last Updated (Newest)</option>
-              <option value="lastUpdated-asc">Last Updated (Oldest)</option>
+              <option value="projectName-asc" style={{ color: 'black' }}>
+                Name (A-Z) Ascending
+              </option>
+              <option value="projectName-desc" style={{ color: 'black' }}>
+                Name (Z-A) Descending
+              </option>
+              <option value="numberOfBatches-asc" style={{ color: 'black' }}>
+                Number of Batches Ascending
+              </option>
+              <option value="numberOfBatches-desc" style={{ color: 'black' }}>
+                Number of Batches Descending
+              </option>
+              <option value="lastUpdated-desc" style={{ color: 'black' }}>
+                Last Updated Descending
+              </option>
+              <option value="lastUpdated-asc" style={{ color: 'black' }}>
+                Last Updated Ascending
+              </option>
             </TextField>
           </Box>
           <Button
@@ -557,13 +561,21 @@ const ProjectsPage: React.FC = () => {
             Create New Project
           </Typography>
           <TextField variant="outlined" label="Project Name" value={newProjectName} onChange={(e) => setNewProjectName(e.target.value)} size="medium" fullWidth sx={{ mb: 3 }} autoFocus />
+          <FormControlLabel
+            control={<Checkbox checked={createDefaultLabels} onChange={(e) => setCreateDefaultLabels(e.target.checked)} />}
+            label="Create default labels"
+            sx={{
+              mb: 3,
+              color: 'black',
+            }}
+          />
           <Button
             variant="contained"
             color="primary"
             fullWidth
             onClick={async () => {
               try {
-                const message = await projectHandler.handleNewProject(newProjectName);
+                const message = await projectHandler.handleNewProject(newProjectName, createDefaultLabels);
                 console.log('Project created successfully:', message);
                 handleCloseModal();
                 // Refresh the projects list

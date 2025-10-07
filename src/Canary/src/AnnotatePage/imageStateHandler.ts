@@ -1,10 +1,8 @@
 import * as fabric from 'fabric';
-import { CallAPI } from '../utils/apis';
+import { CallAPI, projectServiceUrl } from '../utils/apis';
 import { devRewriteURL } from './helper';
 import * as React from 'react';
-import type { BoundingBoxAnnotation, KeypointAnnotation } from './constants';
-
-const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
+import type { BoundingBoxAnnotation, KeypointAnnotation } from '../utils/intefaces/interfaces';
 
 export type ImageMeta = {
   imageID: string;
@@ -70,9 +68,10 @@ export function useImageHandler() {
   );
 
   const fetchImagesForBatch = React.useCallback(async (batchID: string): Promise<ImageMeta[]> => {
-    const url = `${baseUrl}/batch/${batchID}/images`;
+    const url = `${projectServiceUrl()}/batch/${batchID}/images`;
     try {
       const data = await CallAPI<ImageMeta[]>(url);
+      data.sort((a, b) => a.imageName.localeCompare(b.imageName));
       return data;
     } catch (err) {
       throw new Error(`Failed to fetch images for batch ${batchID}: ${err}`);
@@ -167,6 +166,35 @@ export function useImageHandler() {
     annotationStore: annotationStore.current, // expose stable ref
   };
 }
+
+export const imageDatabaseHandler = {
+  async copyPrevAnnotations(imageID: string) {
+    const url = `${projectServiceUrl()}/images/${imageID}/annotations/copy_previous`;
+    try {
+      await CallAPI(url, {
+        method: 'POST',
+      });
+      // console.log(`[COPY] Copied annotations into image ${imageID}`, result);
+    } catch (err) {
+      console.error(`Failed to copy annotations for image ${imageID}:`, err);
+    }
+  },
+
+  async hasPrevAnnotations(imageID: string): Promise<boolean> {
+    const url = `${projectServiceUrl()}/images/${imageID}/previous`;
+    try {
+      const result = await CallAPI(url, {
+        method: 'GET',
+      });
+      const has_prev = (result as { hasPrevious: boolean }).hasPrevious;
+
+      return has_prev;
+    } catch (err) {
+      console.error(`Failed to check for prev image ${imageID}:`, err);
+    }
+    return false;
+  },
+};
 
 // Convenience export for consumers that only need the instance type
 export type ImageHandler = ReturnType<typeof useImageHandler>;

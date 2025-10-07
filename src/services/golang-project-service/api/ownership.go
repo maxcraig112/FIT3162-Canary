@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
+	"github.com/samber/lo"
 )
 
 // Resolver looks up a projectID given some other ID
@@ -63,16 +64,31 @@ func ValidateOwnershipMiddleware(next http.Handler, stores Stores) http.Handler 
 				project, err := stores.ProjectStore.GetProject(r.Context(), projectID)
 				if err != nil || project.UserID != userID {
 					if err != nil {
-						log.Error().Err(err).Str("projectID", projectID).Msg("ValidateOwnershipMiddleware: failed to fetch project for ownership check")
-					} else {
-						log.Warn().
-							Str("userID", userID).
-							Str("ownerID", project.UserID).
-							Str("projectID", projectID).
-							Msg("ValidateOwnershipMiddleware: forbidden - user does not own project")
+						log.Warn().Err(err).Str("projectID", projectID).Msg("ValidateOwnershipMiddleware: ownership fetch failed; attempting session fallback")
 					}
-					http.Error(w, "Forbidden", http.StatusForbidden)
-					return
+
+					if r.Method == http.MethodGet || r.Method == http.MethodHead {
+						// Use only X-Session-Id header for collaborative access.
+						sessionID := r.Header.Get("X-Session-Id")
+						if sessionID != "" {
+							session, sErr := stores.SessionStore.GetSession(r.Context(), sessionID)
+							if sErr == nil && session != nil {
+								// Validate project match
+								if session.ProjectID == projectID && lo.Contains(session.Members, userID) {
+									log.Info().Str("userID", userID).Str("projectID", projectID).Str("sessionID", sessionID).Msg("ValidateOwnershipMiddleware: authorized via session membership")
+									break
+								}
+							} else if sErr != nil {
+								log.Debug().Err(sErr).Str("sessionID", sessionID).Msg("ValidateOwnershipMiddleware: session fetch failed")
+							}
+						}
+					}
+
+					if project == nil || project.UserID != userID {
+						log.Warn().Str("userID", userID).Str("projectID", projectID).Msg("ValidateOwnershipMiddleware: user does not own project")
+						http.Error(w, "Forbidden", http.StatusForbidden)
+						return
+					}
 				}
 				break
 			}

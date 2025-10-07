@@ -2,9 +2,9 @@ import React from 'react';
 import { Box, Paper, IconButton, Menu, MenuItem, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
 // Using Box + CSS grid for precise gaps and alignment
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import type { Project } from '../ProjectPage';
 import { useBatchesTab } from './batchesTabHandler';
 import { useParams, useNavigate } from 'react-router-dom';
+import type { Project } from '../../utils/intefaces/interfaces';
 
 export const BatchesTab: React.FC<{ project: Project | null }> = () => {
   const { projectID } = useParams<{ projectID: string }>();
@@ -33,12 +33,13 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
     deleting,
     closeRename,
     closeDelete,
+    openBatch,
   } = useBatchesTab(projectID);
 
   // Log batches whenever they change so you can inspect the data
   React.useEffect(() => {
     if (batches) {
-      console.log('[BatchesTab] Batches state:', batches);
+      // console.log('[BatchesTab] Batches state:', batches);
     }
   }, [batches]);
 
@@ -92,7 +93,7 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
                     },
                     overflow: 'hidden', // clip blurred bg to card
                   }}
-                  onClick={() => navigate(`/annotate?batchID=${encodeURIComponent(b.batchID)}&projectID=${encodeURIComponent(projectID ?? b.projectID)}`)}
+                  onClick={() => openBatch(b, navigate)}
                 >
                   {/* blurred background preview */}
                   {b.previewURL && (

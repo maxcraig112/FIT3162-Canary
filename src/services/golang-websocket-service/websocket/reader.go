@@ -26,7 +26,7 @@ type ChangeImageIDMessage struct {
 	ImageID string `json:"imageID"`
 }
 
-func (h *WebSocketHub) startWebhookReader(c *Client, sessionID string) {
+func (h *WebSocketHub) startWebhookReader(c *Client, sessionID string) error {
 	timeoutSec := 60 // default timeout in seconds (lower for quicker disconnect detection)
 	if envTimeout := os.Getenv("WEBSOCKET_CONNECTION_TIMEOUT_SECONDS"); envTimeout != "" {
 		if t, err := strconv.Atoi(envTimeout); err == nil {
@@ -36,9 +36,13 @@ func (h *WebSocketHub) startWebhookReader(c *Client, sessionID string) {
 	timeout := time.Duration(timeoutSec)
 
 	c.conn.SetReadLimit(1 << 20) // 1MB
-	_ = c.conn.SetReadDeadline(time.Now().Add(timeout * time.Second))
+	if err := c.conn.SetReadDeadline(time.Now().Add(timeout * time.Second)); err != nil {
+		return err
+	}
 	c.conn.SetPongHandler(func(string) error {
-		_ = c.conn.SetReadDeadline(time.Now().Add(timeout * time.Second))
+		if err := c.conn.SetReadDeadline(time.Now().Add(timeout * time.Second)); err != nil {
+			return err
+		}
 		return nil
 	})
 
@@ -93,4 +97,5 @@ func (h *WebSocketHub) startWebhookReader(c *Client, sessionID string) {
 			}
 		}
 	}()
+	return nil
 }

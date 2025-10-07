@@ -40,24 +40,35 @@ func (s *GenericStore) CreateDoc(ctx context.Context, data interface{}) (string,
 	return docRef.ID, nil
 }
 
-func (s *GenericStore) CreateDocsBatch(ctx context.Context, docs []interface{}) ([]string, error) {
+func (s *GenericStore) CreateDocsBatch(ctx context.Context, docs []interface{}, ids []string) ([]string, error) {
+	// If caller provided IDs, length must match docs
+	if len(ids) != 0 && len(ids) != len(docs) {
+		return nil, status.Error(codes.InvalidArgument, "number of ids and documents does not match")
+	}
+
+	// If no IDs provided, generate them
+	if len(ids) == 0 {
+		ids = make([]string, len(docs))
+		for i := range docs {
+			ids[i] = s.collection.NewDoc().ID
+		}
+	}
+
 	bulkWriter := s.client.BulkWriter(ctx)
-	ids := make([]string, len(docs))
 	errChan := make(chan error, len(docs))
 
 	for i, data := range docs {
-		docRef := s.collection.NewDoc()
-		ids[i] = docRef.ID
-
+		docRef := s.collection.Doc(ids[i]) // use provided or generated ID
 		_, err := bulkWriter.Set(docRef, data)
 		if err != nil {
 			errChan <- err
 		}
 	}
-	// End sends all the documents simulatenously and closes the channel
+
+	// Finalize writes
 	bulkWriter.End()
 
-	// Check for individual errors
+	// Check for errors
 	close(errChan)
 	for err := range errChan {
 		if err != nil {
@@ -231,4 +242,12 @@ func (s *GenericStore) WatchCollection(ctx context.Context, query []QueryParamet
 
 	stop := func() { cancel() }
 	return stop, nil
+}
+
+func (s *GenericStore) GenerateNIDs(n int) ([]string, error) {
+	ids := make([]string, n)
+	for i := 0; i < n; i++ {
+		ids[i] = s.collection.NewDoc().ID
+	}
+	return ids, nil
 }

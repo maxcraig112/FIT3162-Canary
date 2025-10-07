@@ -14,15 +14,7 @@ import BarChartOutlined from '@mui/icons-material/BarChartOutlined';
 import IosShareOutlined from '@mui/icons-material/IosShareOutlined';
 import SettingsOutlined from '@mui/icons-material/SettingsOutlined';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
-
-export interface Project {
-  projectID: string;
-  projectName: string;
-  userID: string;
-  numberOfBatches: number;
-  lastUpdated: string;
-  settings?: unknown;
-}
+import type { Project } from '../utils/intefaces/interfaces';
 
 const ProjectPage: React.FC = () => {
   const navigate = useNavigate();
@@ -34,8 +26,8 @@ const ProjectPage: React.FC = () => {
   const [projectData, setProjectData] = useState<Project | null>(passedProject || null);
 
   const [loading, setLoading] = useState<boolean>(!passedProject);
-  const [selectedTab, setSelectedTab] = useState(0);
-  const [settingsTab, setSettingsTab] = useState(false);
+  const [selectedTab, setSelectedTab] = useState(0); // 0..3 for the main tabs
+  const [settingsTab, setSettingsTab] = useState(false); // separate flag for settings so layout stays identical
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -68,14 +60,70 @@ const ProjectPage: React.FC = () => {
     navigate('/projects');
   }
 
+  // Map tab index <-> view string
+  const indexToView: Record<number, string> = {
+    0: 'upload',
+    1: 'datasets',
+    2: 'batches',
+    3: 'export',
+  };
+
+  function viewToIndex(view: string | null): number | null {
+    if (!view) return null;
+    switch (view.toLowerCase()) {
+      case 'upload':
+        return 0;
+      case 'datasets':
+        return 1;
+      case 'batches':
+        return 2;
+      case 'export':
+        return 3;
+      default:
+        return null;
+    }
+  }
+
+  // Sync component state with the query parameter (?view=...)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const view = params.get('view');
+    if (view === 'settings') {
+      setSettingsTab(true);
+      // Deselect any main tab so user can click it again to return
+      setSelectedTab(-1);
+      return; // leave selectedTab as-is (so no main tab appears selected intentionally)
+    }
+    const idx = viewToIndex(view);
+    if (idx !== null) {
+      setSelectedTab(idx);
+      setSettingsTab(false);
+    } else if (!view) {
+      // default state if no view specified -> upload
+      setSelectedTab(0);
+      setSettingsTab(false);
+    }
+  }, [location.search]);
+
+  function navigateWithView(view: string) {
+    // Preserve current pathname (projectID path) but update view param
+    const newUrl = `${location.pathname}?view=${view}`;
+    if (location.search !== `?view=${view}`) {
+      navigate(newUrl, { replace: false });
+    }
+  }
+
   function handleTabChange(_: React.SyntheticEvent, newValue: number) {
     setSelectedTab(newValue);
     setSettingsTab(false);
+    navigateWithView(indexToView[newValue]);
   }
 
   function handleSettingsClick() {
-    setSelectedTab(-1);
     setSettingsTab(true);
+    // Deselect main tabs so a click on the same tab index registers
+    setSelectedTab(-1);
+    navigateWithView('settings');
   }
 
   const title = projectData?.projectName || (error ? 'Error' : loading ? 'Loading project...' : 'Project');
@@ -153,7 +201,7 @@ const ProjectPage: React.FC = () => {
             <Box sx={{ height: '50vh' }}>
               <Tabs
                 orientation="vertical"
-                value={selectedTab}
+                value={selectedTab < 0 ? false : selectedTab}
                 onChange={handleTabChange}
                 sx={{
                   height: '100%',
@@ -175,10 +223,10 @@ const ProjectPage: React.FC = () => {
                   '& .Mui-selected': { fontWeight: 700 },
                 }}
               >
-                <Tab icon={<CloudUploadOutlined />} iconPosition="start" label="Upload" />
-                <Tab icon={<GpsFixedOutlined />} iconPosition="start" label="Datasets" />
-                <Tab icon={<BarChartOutlined />} iconPosition="start" label="Batches" />
-                <Tab icon={<IosShareOutlined />} iconPosition="start" label="Export" />
+                <Tab icon={<CloudUploadOutlined />} iconPosition="start" label="Upload" aria-label="Upload" />
+                <Tab icon={<GpsFixedOutlined />} iconPosition="start" label="Datasets" aria-label="Datasets" />
+                <Tab icon={<BarChartOutlined />} iconPosition="start" label="Batches" aria-label="Batches" />
+                <Tab icon={<IosShareOutlined />} iconPosition="start" label="Export" aria-label="Export" />
               </Tabs>
             </Box>
             <Divider sx={{ my: 2 }} />
@@ -264,11 +312,16 @@ const ProjectPage: React.FC = () => {
                 {loading && !projectData && <Typography variant="body1">Loading content...</Typography>}
                 {!loading && !error && (
                   <>
-                    {selectedTab === 0 && <UploadTab project={projectData} />}
-                    {selectedTab === 1 && <DatasetTab project={projectData} />}
-                    {selectedTab === 2 && <BatchesTab project={projectData} />}
-                    {selectedTab === 3 && <ExportTab project={projectData} />}
-                    {settingsTab && <SettingsTab project={projectData} />}
+                    {settingsTab ? (
+                      <SettingsTab project={projectData} />
+                    ) : (
+                      <>
+                        {selectedTab === 0 && <UploadTab project={projectData} />}
+                        {selectedTab === 1 && <DatasetTab project={projectData} />}
+                        {selectedTab === 2 && <BatchesTab project={projectData} />}
+                        {selectedTab === 3 && <ExportTab project={projectData} />}
+                      </>
+                    )}
                   </>
                 )}
               </Box>

@@ -22,6 +22,9 @@ type Image struct {
 	Width       int64     `firestore:"width" json:"width"`
 	BatchID     string    `firestore:"batchID" json:"batchID"`
 	LastUpdated time.Time `firestore:"lastUpdated" json:"lastUpdated"`
+	IsSequence  bool      `firestore:"isSequence" json:"isSequence"`
+	PrevImageID string    `firestore:"prevImageID" json:"prevImageID"`
+	NextImageID string    `firestore:"nextImageID" json:"nextImageID"`
 }
 
 type ImageStore struct {
@@ -65,6 +68,7 @@ func (s *ImageStore) GetImagesByBatchID(ctx context.Context, batchID string) ([]
 		if err := doc.DataTo(&i); err != nil {
 			return nil, err
 		}
+
 		i.BatchID = batchID
 		i.ImageID = doc.Ref.ID
 		images = append(images, i)
@@ -79,16 +83,39 @@ func (s *ImageStore) GetTotalImageCountByBatchID(ctx context.Context, batchID st
 	return s.genericStore.GetAggregationWithQuery(ctx, queryParams, fs.Count)
 }
 
-func (s *ImageStore) CreateImageMetadata(ctx context.Context, batchID string, imageInfo bucket.ObjectMap) ([]Image, error) {
+func (s *ImageStore) CreateImageMetadata(ctx context.Context, batchID string, imageInfo bucket.ObjectList, isSequence bool) ([]Image, error) {
 	imageBatch := []Image{}
-	for imageName, imageData := range imageInfo {
+
+	ids, err := s.genericStore.GenerateNIDs(len(imageInfo))
+	if err != nil {
+		return nil, err
+	}
+
+	nextImageID := ""
+	prevImageID := ""
+
+	for i, objectData := range imageInfo {
+		if isSequence {
+			if i < len(imageInfo)-1 {
+				nextImageID = ids[i+1]
+			} else {
+				nextImageID = ""
+			}
+			if i > 0 {
+				prevImageID = ids[i-1]
+			} else {
+				prevImageID = ""
+			}
+		}
 		imageBatch = append(imageBatch, Image{
-			ImageURL:    imageData.URL,
-			ImageName:   imageName,
-			Height:      imageData.Height,
-			Width:       imageData.Width,
+			ImageName:   objectData.ImageName,
+			Height:      objectData.ImageData.Height,
+			Width:       objectData.ImageData.Width,
 			BatchID:     batchID,
 			LastUpdated: time.Now(),
+			IsSequence:  isSequence,
+			PrevImageID: prevImageID,
+			NextImageID: nextImageID,
 		})
 	}
 
@@ -97,12 +124,8 @@ func (s *ImageStore) CreateImageMetadata(ctx context.Context, batchID string, im
 		imageInterfaces[i] = img
 	}
 
-	ids, err := s.genericStore.CreateDocsBatch(ctx, imageInterfaces)
-	if err != nil {
+	if _, err = s.genericStore.CreateDocsBatch(ctx, imageInterfaces, ids); err != nil {
 		return nil, err
-	}
-	for i := range imageBatch {
-		imageBatch[i].ImageID = ids[i]
 	}
 	return imageBatch, nil
 }
@@ -116,4 +139,19 @@ func (s *ImageStore) DeleteImagesByBatchID(ctx context.Context, batchID string) 
 		return nil
 	}
 	return err
+}
+
+func (s *ImageStore) GetImageMetadata(ctx context.Context, imageID string) (*Image, error) {
+	docSnap, err := s.genericStore.GetDoc(ctx, imageID)
+	if err != nil {
+		return nil, err
+	}
+
+	var i Image
+	if err := docSnap.DataTo(&i); err != nil {
+		return nil, err
+	}
+
+	i.ImageID = docSnap.Ref.ID
+	return &i, nil
 }

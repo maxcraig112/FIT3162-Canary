@@ -1,10 +1,8 @@
 import * as fabric from 'fabric';
 import { createKeypointAnnotation, fabricGroupProps, fabricKPMarkerProps, fabricKPProps } from './constants';
-import type { KeypointAnnotation } from './constants';
 import { getKeypointLabelName } from './labelRegistry';
-import { CallAPI } from '../utils/apis';
-
-const baseUrl = import.meta.env.VITE_PROJECT_SERVICE_URL;
+import { CallAPI, projectServiceUrl } from '../utils/apis';
+import type { KeypointAnnotation } from '../utils/intefaces/interfaces';
 
 export const KeyPointFabricHandler = {
   createFabricKeyPoint(canvas: fabric.Canvas, ann: KeypointAnnotation, transform?: { scale: number; offsetX: number; offsetY: number }): { group: fabric.Group } {
@@ -45,7 +43,7 @@ export const KeyPointFabricHandler = {
 export const keypointDatabaseHandler = {
   // Create a key point in the database and get its ID
   async createdKeyPoint(ann: KeypointAnnotation): Promise<KeypointAnnotation> {
-    const url = `${baseUrl}/projects/${ann.projectID}/images/${ann.imageID}/keypoints`;
+    const url = `${projectServiceUrl()}/projects/${ann.projectID}/images/${ann.imageID}/keypoints`;
     const requestBody = {
       position: ann.position,
       keypointLabelID: ann.labelID,
@@ -62,16 +60,23 @@ export const keypointDatabaseHandler = {
       throw new Error(`Invalid JSON response: ${err}`);
     }
 
-    console.log('Keypoint stored:', ann);
+    // console.log('Keypoint stored:', ann);
     return ann;
   },
 
   // Rename an existing keypoint's label in the database
   async renameKeyPoint(ann: KeypointAnnotation, newLabelID: string): Promise<KeypointAnnotation> {
-    const url = `${baseUrl}/projects/${ann.projectID}/keypoints/${ann.id}`;
-    const body = {
-      keypointLabelID: newLabelID,
+    return this.updateKeyPoint(ann, { labelID: newLabelID });
+  },
+
+  async updateKeyPoint(ann: KeypointAnnotation, updates: { labelID?: string; position?: { x: number; y: number } }): Promise<KeypointAnnotation> {
+    const url = `${projectServiceUrl()}/projects/${ann.projectID}/keypoints/${ann.id}`;
+    const body: { keypointLabelID: string; position?: { x: number; y: number } } = {
+      keypointLabelID: updates.labelID ?? ann.labelID,
     };
+    if (updates.position) {
+      body.position = updates.position;
+    }
     try {
       await CallAPI(url, {
         method: 'PATCH',
@@ -79,16 +84,19 @@ export const keypointDatabaseHandler = {
         ignoreResponse: true,
       });
     } catch (err) {
-      throw new Error(`Failed to rename keypoint ${ann.id}: ${err}`);
+      throw new Error(`Failed to update keypoint ${ann.id}: ${err}`);
     }
 
-    console.log(`Keypoint ${ann.id} renamed to label ${newLabelID}`);
-    return { ...ann, labelID: newLabelID };
+    return {
+      ...ann,
+      labelID: body.keypointLabelID,
+      position: updates.position ? { ...updates.position } : { ...ann.position },
+    };
   },
 
   // Delete an existing keypoint in the database
   async deleteKeyPoint(ann: KeypointAnnotation): Promise<void> {
-    const url = `${baseUrl}/projects/${ann.projectID}/keypoints/${ann.id}`;
+    const url = `${projectServiceUrl()}/projects/${ann.projectID}/keypoints/${ann.id}`;
     console.log('Deleting keypoint:', ann);
     console.log(`URL: ${url}`);
     try {
@@ -100,11 +108,11 @@ export const keypointDatabaseHandler = {
       console.error(`Failed to delete keypoint ${ann.id}:`, err);
     }
 
-    console.log('Keypoint deleted:', ann);
+    // console.log('Keypoint deleted:', ann);
   },
 
   async getAllKeyPoints(projectID: string, imageID: string) {
-    const url = `${baseUrl}/projects/${projectID}/images/${imageID}/keypoints`;
+    const url = `${projectServiceUrl()}/projects/${projectID}/images/${imageID}/keypoints`;
     let raw: unknown;
     try {
       raw = await CallAPI(url, { method: 'GET' });
@@ -125,7 +133,7 @@ export const keypointDatabaseHandler = {
         return kp;
       })
       .filter((v): v is KeypointAnnotation => Boolean(v));
-    console.log(`keypoints loaded:`, normalized);
+    // console.log(`keypoints loaded:`, normalized);
     return normalized;
   },
 };

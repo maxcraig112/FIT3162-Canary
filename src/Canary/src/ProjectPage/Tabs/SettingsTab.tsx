@@ -14,7 +14,7 @@ import MenuItem from '@mui/material/MenuItem';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import InputBase from '@mui/material/InputBase';
 import { useSettingsTab } from './settingsTabHandler';
-import type { Project } from '../ProjectPage';
+import type { Project } from '../../utils/intefaces/interfaces';
 
 type ListPanelProps = {
   inputValue: string;
@@ -214,10 +214,8 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
   const projectID = _project?.projectID;
   const {
     sessionEnabled,
-    sessionName,
     sessionPassword,
     setSessionEnabled,
-    setSessionName,
     setSessionPassword,
     saveSessionSettings,
     saveSuccess,
@@ -238,7 +236,7 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
     clearBboxError,
     renameKeypointLabel,
     renameBboxLabel,
-  } = useSettingsTab(projectID, (_project as unknown as { settings?: { session?: { enabled?: boolean; name?: string; password?: string } } } | null)?.settings ?? null);
+  } = useSettingsTab(projectID, (_project as unknown as { settings?: { session?: { enabled?: boolean; password?: string } } } | null)?.settings ?? null);
 
   return (
     <Box
@@ -268,13 +266,13 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
           <br />
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
             <Typography variant="body2" sx={{ color: '#000', textAlign: 'center' }}>
-              Sessions allow you to cross-collaborate with multiple users on the same project, allowing them to upload, annotate and export images.
+              Sessions allow you to cross-collaborate with multiple users on the same batch, allowing them to add, remove and edit keypoint and bounding box annotations.
               <br />
               <br />
-              To enable sessions, tick the checkbox below, and enter a unique session code. This will be used by users to join your project.
+              To enable sessions, tick the checkbox below, and enter a password. Once sessions are enabled, annotating a batch will begin a session with a unique ID you can share.
               <br />
               <br />
-              <b>DO NOT SHARE THIS CODE WITH ANYONE YOU DO NOT TRUST.</b>
+              <b>DO NOT SHARE YOUR SESSION ID AND PASSWORD WITH ANYONE YOU DO NOT TRUST.</b>
             </Typography>
           </Box>
         </Box>
@@ -316,18 +314,6 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
               mb: 2,
             }}
           >
-            <TextField
-              label="Session Name"
-              variant="outlined"
-              color="primary"
-              focused
-              autoComplete="off"
-              sx={{ minWidth: '48%' }}
-              value={sessionName}
-              onChange={(e) => setSessionName(e.target.value)}
-              InputProps={{ style: { color: '#000' } }}
-              inputProps={{ name: 'canary-session-name', autoComplete: 'off' }}
-            />
             <TextField
               label="Password"
               variant="outlined"

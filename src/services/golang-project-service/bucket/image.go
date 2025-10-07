@@ -15,8 +15,8 @@ func NewImageBucket(bk bucket.BucketClientInterface) *ImageBucket {
 	return &ImageBucket{genericBucket: bucket.NewGenericBucket(bk)}
 }
 
-func (b *ImageBucket) CreateImages(ctx context.Context, batchID string, objectMap bucket.ObjectMap) (map[string]bucket.ImageData, error) {
-	objectData, err := b.genericBucket.CreateObjectsBatch(ctx, objectMap)
+func (b *ImageBucket) CreateImages(ctx context.Context, batchID string, objectList bucket.ObjectList) (bucket.ObjectList, error) {
+	objectData, err := b.genericBucket.CreateObjectsBatch(ctx, objectList)
 	if err != nil {
 		return nil, err
 	}
@@ -38,4 +38,8 @@ func (b *ImageBucket) DownloadImage(ctx context.Context, imageName string) ([]by
 
 func (b *ImageBucket) StreamImage(ctx context.Context, imageName string) (io.ReadCloser, error) {
 	return b.genericBucket.StreamObject(ctx, imageName)
+}
+
+func (b *ImageBucket) GetSignedURL(ctx context.Context, imageName string) (string, error) {
+	return b.genericBucket.GetSignedURL(ctx, imageName)
 }

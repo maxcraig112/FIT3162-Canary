@@ -170,29 +170,6 @@ func (s *KeypointStore) GetKeypoint(ctx context.Context, keypointID string) (*Ke
 }
 
 func (s *KeypointStore) UpdateKeypoint(ctx context.Context, req UpdateKeypointRequest) error {
-	kp, err := s.GetKeypoint(ctx, req.KeypointID)
-	if err == fs.ErrNotFound {
-		return fs.ErrNotFound
-	}
-
-	qp := []fs.QueryParameter{
-		{Path: "keypointLabelID", Op: "==", Value: req.KeypointLabelID},
-		{Path: "imageID", Op: "==", Value: kp.ImageID},
-	}
-
-	if kp.BoundingBoxID != "" {
-		qp = append(qp, fs.QueryParameter{Path: "boundingBoxID", Op: "==", Value: kp.BoundingBoxID})
-	} else {
-		qp = append(qp, fs.QueryParameter{Path: "boundingBoxID", Op: "==", Value: nil})
-	}
-
-	docs, err := s.genericStore.ReadCollection(ctx, qp)
-	if err != nil {
-		return err
-	}
-	if len(docs) > 0 {
-		return fs.ErrAlreadyExists
-	}
 	updates := []firestore.Update{}
 
 	if req.KeypointLabelID != "" {
