@@ -49,7 +49,54 @@ const labelRequestSubs = new Set<(req: LabelRequest) => void>();
 
 // Map Fabric groups to backing annotation
 const groupToAnnotation = new WeakMap<fabric.Group, { kind: 'kp' | 'bb'; ann: KeypointAnnotation | BoundingBoxAnnotation }>();
+const keypointGroups = new Set<fabric.Group>();
+const boundingBoxGroups = new Set<fabric.Group>();
 const undoRedoHandler = new UndoRedoHandler();
+
+function applyGroupInteractivity(group: fabric.Group, kind: 'kp' | 'bb') {
+  const requestedTool: ToolMode = currentTool;
+  const isEnabled = (kind === 'kp' && requestedTool === 'kp') || (kind === 'bb' && requestedTool === 'bb');
+  group.selectable = isEnabled;
+  group.evented = isEnabled;
+  group.lockMovementX = !isEnabled;
+  group.lockMovementY = !isEnabled;
+  group.hoverCursor = isEnabled ? 'move' : 'not-allowed';
+  if (!isEnabled && canvasRef && canvasRef.getActiveObject() === group) {
+    canvasRef.discardActiveObject();
+    canvasRef.requestRenderAll();
+  }
+}
+
+function registerAnnotationGroup(group: fabric.Group, kind: 'kp' | 'bb') {
+  if (kind === 'kp') {
+    keypointGroups.add(group);
+  } else {
+    boundingBoxGroups.add(group);
+  }
+  group.set({ hasControls: false });
+  applyGroupInteractivity(group, kind);
+}
+
+function unregisterAnnotationGroup(group: fabric.Group, kind: 'kp' | 'bb') {
+  if (kind === 'kp') {
+    keypointGroups.delete(group);
+  } else {
+    boundingBoxGroups.delete(group);
+  }
+  if (canvasRef && canvasRef.getActiveObject() === group) {
+    canvasRef.discardActiveObject();
+    canvasRef.requestRenderAll();
+  }
+}
+
+function updateAnnotationInteractivity() {
+  for (const group of keypointGroups) {
+    applyGroupInteractivity(group, 'kp');
+  }
+  for (const group of boundingBoxGroups) {
+    applyGroupInteractivity(group, 'bb');
+  }
+}
 
 // Keypoint pending state
 let pendingKP: { x: number; y: number; marker?: fabric.Circle } | null = null;
@@ -112,6 +159,17 @@ export const annotateHandler = {
         break;
       default:
         currentTool = 'none';
+    }
+    updateAnnotationInteractivity();
+    if (pendingEdit) {
+      const matches = (pendingEdit.kind === 'kp' && currentTool === 'kp') || (pendingEdit.kind === 'bb' && currentTool === 'bb');
+      if (!matches) {
+        if (canvasRef && canvasRef.getActiveObject() === pendingEdit.group) {
+          canvasRef.discardActiveObject();
+          canvasRef.requestRenderAll();
+        }
+        pendingEdit = null;
+      }
     }
   },
 
@@ -223,7 +281,8 @@ export const annotateHandler = {
           offsetX: currentOffsetX,
           offsetY: currentOffsetY,
         });
-        groupToAnnotation.set(group, { kind: 'kp', ann: createdAnn });
+  groupToAnnotation.set(group, { kind: 'kp', ann: createdAnn });
+  registerAnnotationGroup(group, 'kp');
         const s = imageHandler.annotationStore.get(imageHandler.currentImageURL) ?? { kps: [], bbs: [] };
         s.kps.push(createdAnn);
         imageHandler.annotationStore.set(imageHandler.currentImageURL, s);
@@ -250,7 +309,8 @@ export const annotateHandler = {
           offsetX: currentOffsetX,
           offsetY: currentOffsetY,
         });
-        groupToAnnotation.set(group, { kind: 'bb', ann: createdAnn });
+  groupToAnnotation.set(group, { kind: 'bb', ann: createdAnn });
+  registerAnnotationGroup(group, 'bb');
         const s = imageHandler.annotationStore.get(imageHandler.currentImageURL) ?? { kps: [], bbs: [] };
         s.bbs.push(createdAnn);
         imageHandler.annotationStore.set(imageHandler.currentImageURL, s);
@@ -332,6 +392,11 @@ export const annotateHandler = {
           labelRequestSubs.forEach((cb) => cb({ kind, x: focus.x, y: focus.y, mode: 'edit', currentLabel }));
           return;
         }
+        if (canvasRef.getActiveObject() === group) {
+          canvasRef.discardActiveObject();
+        }
+        canvasRef.requestRenderAll();
+        return;
       }
 
       if (pendingEdit) {
@@ -427,6 +492,7 @@ export const annotateHandler = {
             const idx = s.kps.indexOf(meta.ann as KeypointAnnotation);
             if (idx >= 0) s.kps.splice(idx, 1);
             // backend delete
+            unregisterAnnotationGroup(g, 'kp');
             keypointDatabaseHandler.deleteKeyPoint(meta.ann as KeypointAnnotation);
             KeyPointFabricHandler.deleteFabricKeyPoint(canvasRef, g);
             // Record a delete action so Undo will re-add it
@@ -435,6 +501,7 @@ export const annotateHandler = {
             const idx = s.bbs.indexOf(meta.ann as BoundingBoxAnnotation);
             // TODO i don't know what this does below
             if (idx >= 0) s.bbs.splice(idx, 1);
+            unregisterAnnotationGroup(g, 'bb');
             boundingBoxDatabaseHandler.deleteBoundingBox(meta.ann as BoundingBoxAnnotation);
             BoundingBoxFabricHandler.deleteFabricBoundingBox(canvasRef, g);
             // Record a delete action so Undo will re-add it
@@ -453,7 +520,11 @@ export const annotateHandler = {
   },
 
   disposeCanvas() {
-    canvasRef?.dispose();
+    if (canvasRef) {
+      canvasRef.dispose();
+    }
+    keypointGroups.clear();
+    boundingBoxGroups.clear();
   },
   /**
    * Render the current image to the Fabric canvas, centered and scaled.
@@ -678,7 +749,19 @@ function clearAnnotationGroups() {
     return type !== 'image';
   });
 
-  toRemove.forEach((o) => canvasRef.remove(o));
+  toRemove.forEach((o) => {
+    if (isGroup(o)) {
+      const group = o as fabric.Group;
+      const meta = groupToAnnotation.get(group);
+      if (meta) {
+        unregisterAnnotationGroup(group, meta.kind);
+        groupToAnnotation.delete(group);
+      }
+    }
+    canvasRef.remove(o);
+  });
+  keypointGroups.clear();
+  boundingBoxGroups.clear();
   canvasRef.requestRenderAll();
 }
 function updatePendingEditDraft() {
@@ -769,6 +852,7 @@ export function drawAnnotationsForCurrentImage(handler: ImageHandler, forImageUR
       offsetY: currentOffsetY,
     });
     groupToAnnotation.set(group, { kind: 'kp', ann });
+    registerAnnotationGroup(group, 'kp');
   }
 
   // Draw bounding boxes
@@ -779,6 +863,7 @@ export function drawAnnotationsForCurrentImage(handler: ImageHandler, forImageUR
       offsetY: currentOffsetY,
     });
     groupToAnnotation.set(group, { kind: 'bb', ann });
+    registerAnnotationGroup(group, 'bb');
   }
 }
 
@@ -811,6 +896,7 @@ const undoRedoAPI = {
       if (group) {
         canvasRef.add(group);
         groupToAnnotation.set(group, { kind: 'bb', ann: annotation });
+        registerAnnotationGroup(group, 'bb');
       } else {
         const { group: g } = BoundingBoxFabricHandler.createFabricBoundingBox(canvasRef, annotation, {
           scale: currentScale,
@@ -818,12 +904,14 @@ const undoRedoAPI = {
           offsetY: currentOffsetY,
         });
         groupToAnnotation.set(g, { kind: 'bb', ann: annotation });
+        registerAnnotationGroup(g, 'bb');
       }
     } else if (kind === 'kp' && isKeypointAnnotation(annotation)) {
       await keypointDatabaseHandler.createdKeyPoint(annotation);
       if (group) {
         canvasRef.add(group);
         groupToAnnotation.set(group, { kind: 'kp', ann: annotation });
+        registerAnnotationGroup(group, 'kp');
       } else {
         const { group: g } = KeyPointFabricHandler.createFabricKeyPoint(canvasRef, annotation, {
           scale: currentScale,
@@ -831,6 +919,7 @@ const undoRedoAPI = {
           offsetY: currentOffsetY,
         });
         groupToAnnotation.set(g, { kind: 'kp', ann: annotation });
+        registerAnnotationGroup(g, 'kp');
       }
     } else {
       throw new Error('Mismatched kind/annotation in onAdd');
@@ -870,10 +959,12 @@ const undoRedoAPI = {
   onDelete: async (kind: 'kp' | 'bb', annotation: KeypointAnnotation | BoundingBoxAnnotation, group: fabric.Group) => {
     if (kind === 'bb' && isBoundingBoxAnnotation(annotation)) {
       await boundingBoxDatabaseHandler.deleteBoundingBox(annotation);
+      unregisterAnnotationGroup(group, 'bb');
       BoundingBoxFabricHandler.deleteFabricBoundingBox(canvasRef, group);
       groupToAnnotation.delete(group);
     } else if (kind === 'kp' && isKeypointAnnotation(annotation)) {
       await keypointDatabaseHandler.deleteKeyPoint(annotation);
+      unregisterAnnotationGroup(group, 'kp');
       KeyPointFabricHandler.deleteFabricKeyPoint(canvasRef, group);
       groupToAnnotation.delete(group);
     } else {
