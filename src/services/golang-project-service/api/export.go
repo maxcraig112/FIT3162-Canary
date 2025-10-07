@@ -125,6 +125,38 @@ func (h *ExportHandler) getProjectImages(batches []*firestore.Batch) ([]firestor
 	return images, nil
 }
 
+func ExportCOCO(ds coco.ObjectDetection) ([]byte, error) {
+	// Step 1: Marshal your existing dataset
+	raw, err := json.Marshal(ds)
+	if err != nil {
+		return nil, err
+	}
+
+	// Step 2: Unmarshal to a generic map
+	var m map[string]interface{}
+	if err := json.Unmarshal(raw, &m); err != nil {
+		return nil, err
+	}
+
+	// Step 3: Inject "iscrowd":0 wherever missing
+	if anns, ok := m["annotations"].([]interface{}); ok {
+		for _, ann := range anns {
+			a := ann.(map[string]interface{})
+			if _, exists := a["iscrowd"]; !exists {
+				a["iscrowd"] = 0
+			}
+		}
+	}
+
+	// Step 4: Marshal back to JSON
+	finalJSON, err := json.MarshalIndent(m, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+
+	return finalJSON, nil
+}
+
 func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	projectID := vars["projectID"]
@@ -233,7 +265,7 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 
 		cocoDS.Images = append(cocoDS.Images, coco.Image{
 			ID:           i + 1,
-			FileName:     img_path,
+			FileName:     fmt.Sprintf("%d.jpg", i+1),
 			License:      1,
 			DateCaptured: now.Format(time.RFC3339),
 			Width:        int(img.Width),
@@ -289,17 +321,17 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	fw, err := zipWriter.Create("annotations.json")
+	fw, err := zipWriter.Create("annotations/instances.json")
 	if err != nil {
 		http.Error(w, "Error creating coco JSON in zip", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to create annotations.json in zip")
+		log.Error().Err(err).Msg("Failed to create annotations/instances.json in zip")
 		return
 	}
 
 	_, err = fw.Write(cocoBytes)
 	if err != nil {
 		http.Error(w, "Error writing coco JSON to zip", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to write annotations.json in zip")
+		log.Error().Err(err).Msg("Failed to write annotations/instances.json in zip")
 		return
 	}
 
@@ -311,12 +343,12 @@ func (h *ExportHandler) exportBoundingBoxCOCOHandler(w http.ResponseWriter, r *h
 	vars := mux.Vars(r)
 	projectID := vars["projectID"]
 
-	project, err := h.ProjectStore.GetProject(h.Ctx, projectID)
-	if err != nil {
-		http.Error(w, "Error getting project", http.StatusInternalServerError)
-		log.Error().Err(err).Str("projectID", projectID).Msg("Failed to get project by ID")
-		return
-	}
+	// project, err := h.ProjectStore.GetProject(h.Ctx, projectID)
+	// if err != nil {
+	// 	http.Error(w, "Error getting project", http.StatusInternalServerError)
+	// 	log.Error().Err(err).Str("projectID", projectID).Msg("Failed to get project by ID")
+	// 	return
+	// }
 
 	completedBatches, err := h.getCompletedBatches(projectID)
 	if err != nil || len(completedBatches) == 0 {
@@ -370,22 +402,15 @@ func (h *ExportHandler) exportBoundingBoxCOCOHandler(w http.ResponseWriter, r *h
 				URL:  "http://creativecommons.org/licenses/by-nc-sa/2.0/ ",
 			},
 		},
-		Categories: []coco.ODCategories{
-			{
-				ID:            1,
-				Name:          project.ProjectName, // keep as project name?
-				Supercategory: "none",
-			},
-		},
+		Categories:  make([]coco.ODCategories, 0),
 		Images:      make([]coco.Image, 0),
 		Annotations: make([]coco.ODAnnotation, 0),
 	}
 
 	for i, bbLabelNames := range bbLabelNames {
 		cocoDS.Categories = append(cocoDS.Categories, coco.ODCategories{
-			ID:            i + 2,
-			Name:          bbLabelNames,
-			Supercategory: project.ProjectName,
+			ID:   i + 1,
+			Name: bbLabelNames,
 		})
 	}
 
@@ -420,7 +445,7 @@ func (h *ExportHandler) exportBoundingBoxCOCOHandler(w http.ResponseWriter, r *h
 
 		cocoDS.Images = append(cocoDS.Images, coco.Image{
 			ID:           i + 1,
-			FileName:     img_path,
+			FileName:     fmt.Sprintf("%d.jpg", i+1),
 			License:      1,
 			DateCaptured: now.Format(time.RFC3339),
 			Width:        int(img.Width),
@@ -449,10 +474,10 @@ func (h *ExportHandler) exportBoundingBoxCOCOHandler(w http.ResponseWriter, r *h
 			cocoDS.Annotations = append(cocoDS.Annotations, coco.ODAnnotation{
 				ID:           current_annotation_idx,
 				ImageID:      i + 1,
-				CategoryID:   idx + 2,
+				CategoryID:   idx + 1,
 				Bbox:         [4]float32{float32(bbox.Box.X), float32(bbox.Box.Y), float32(bbox.Box.Width), float32(bbox.Box.Height)},
 				Area:         float32(bbox.Box.Width * bbox.Box.Height),
-				Segmentation: nil,
+				Segmentation: []float32{},
 				Iscrowd:      0,
 			})
 			current_annotation_idx++
@@ -460,24 +485,25 @@ func (h *ExportHandler) exportBoundingBoxCOCOHandler(w http.ResponseWriter, r *h
 	}
 
 	// save coco json to zip
-	cocoBytes, err := json.MarshalIndent(cocoDS, "", "  ")
+	// cocoBytes, err := json.MarshalIndent(cocoDS, "", "  ")
+	cocoBytes, err := ExportCOCO(cocoDS)
 	if err != nil {
 		http.Error(w, "Error marshaling COCO JSON", http.StatusInternalServerError)
 		log.Error().Err(err).Str("projectID", projectID).Msg("Failed to marshal coco JSON")
 		return
 	}
 
-	fw, err := zipWriter.Create("annotations.json")
+	fw, err := zipWriter.Create("annotations/instances.json")
 	if err != nil {
 		http.Error(w, "Error creating coco JSON in zip", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to create annotations.json in zip")
+		log.Error().Err(err).Msg("Failed to create annotations/instances.json in zip")
 		return
 	}
 
 	_, err = fw.Write(cocoBytes)
 	if err != nil {
 		http.Error(w, "Error writing coco JSON to zip", http.StatusInternalServerError)
-		log.Error().Err(err).Msg("Failed to write annotations.json in zip")
+		log.Error().Err(err).Msg("Failed to write annotations/instances.json in zip")
 		return
 	}
 
