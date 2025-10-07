@@ -69,10 +69,7 @@ export const keypointDatabaseHandler = {
     return this.updateKeyPoint(ann, { labelID: newLabelID });
   },
 
-  async updateKeyPoint(
-    ann: KeypointAnnotation,
-    updates: { labelID?: string; position?: { x: number; y: number } },
-  ): Promise<KeypointAnnotation> {
+  async updateKeyPoint(ann: KeypointAnnotation, updates: { labelID?: string; position?: { x: number; y: number } }): Promise<KeypointAnnotation> {
     const url = `${projectServiceUrl()}/projects/${ann.projectID}/keypoints/${ann.id}`;
     const body: { keypointLabelID: string; position?: { x: number; y: number } } = {
       keypointLabelID: updates.labelID ?? ann.labelID,

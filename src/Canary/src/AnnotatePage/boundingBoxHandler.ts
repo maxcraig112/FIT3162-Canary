@@ -71,10 +71,7 @@ export const boundingBoxDatabaseHandler = {
     return this.updateBoundingBox(ann, { labelID: newLabelID });
   },
 
-  async updateBoundingBox(
-    ann: BoundingBoxAnnotation,
-    updates: { labelID?: string; points?: Array<{ x: number; y: number }> },
-  ): Promise<BoundingBoxAnnotation> {
+  async updateBoundingBox(ann: BoundingBoxAnnotation, updates: { labelID?: string; points?: Array<{ x: number; y: number }> }): Promise<BoundingBoxAnnotation> {
     const nextPoints = updates.points ?? ann.points;
     const nextLabel = updates.labelID ?? ann.labelID;
     const url = `${projectServiceUrl()}/projects/${ann.projectID}/boundingboxes/${ann.id}`;
