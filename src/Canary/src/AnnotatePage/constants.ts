@@ -43,11 +43,14 @@ export const fabricGroupProps = {
 };
 
 export const fabricKPProps = (p: { x: number; y: number }): Partial<fabric.TextProps> => ({
-  left: p.x + 10,
-  top: p.y - 8,
-  fill: '#222',
+  left: p.x + 12,
+  top: p.y - 28,
+  fill: '#0f172a',
   fontSize: 14,
-  backgroundColor: 'rgba(255,255,255,0.6)',
+  fontWeight: 600,
+  fontFamily: 'Inter, "Segoe UI", sans-serif',
+  backgroundColor: 'rgba(255,255,255,0.92)',
+  padding: 4,
   hasControls: false,
   lockScalingX: true,
   lockScalingY: true,
@@ -59,8 +62,10 @@ export const fabricKPProps = (p: { x: number; y: number }): Partial<fabric.TextP
 export const fabricKPMarkerProps = (p: { x: number; y: number }): Partial<fabric.CircleProps> => ({
   left: p.x,
   top: p.y,
-  radius: 4,
-  fill: '#ff1744',
+  radius: 6,
+  fill: '#f97316',
+  stroke: '#ffffff',
+  strokeWidth: 2,
   originX: 'center',
   originY: 'center',
   hasControls: false,
@@ -72,11 +77,14 @@ export const fabricKPMarkerProps = (p: { x: number; y: number }): Partial<fabric
 });
 
 export const fabricBBProps = (p: { x: number; y: number }): Partial<fabric.TextProps> => ({
-  left: p.x + 8,
-  top: p.y - 8,
-  fill: '#222',
+  left: p.x + 12,
+  top: p.y - 32,
+  fill: '#0f172a',
   fontSize: 14,
-  backgroundColor: 'rgba(255,255,255,0.6)',
+  fontWeight: 600,
+  fontFamily: 'Inter, "Segoe UI", sans-serif',
+  backgroundColor: 'rgba(255,255,255,0.92)',
+  padding: 4,
   hasControls: false,
   lockScalingX: true,
   lockScalingY: true,
@@ -85,12 +93,14 @@ export const fabricBBProps = (p: { x: number; y: number }): Partial<fabric.TextP
   evented: false,
 });
 
-export const fabricBBColour = '#2979ff';
+export const fabricBBColour = '#2563eb';
 export const fabricBBMarkerProps = (p: { x: number; y: number }): Partial<fabric.CircleProps> => ({
   left: p.x,
   top: p.y,
   radius: 3,
   fill: fabricBBColour,
+  stroke: '#ffffff',
+  strokeWidth: 1.5,
   originX: 'center',
   originY: 'center',
   hasControls: false,
@@ -102,7 +112,7 @@ export const fabricBBMarkerProps = (p: { x: number; y: number }): Partial<fabric
 });
 
 export const fabricBBPolygonProps = {
-  fill: 'rgba(41,121,255,0.15)',
+  fill: 'rgba(37,99,235,0.14)',
   stroke: fabricBBColour,
   strokeWidth: 2,
   objectCaching: false,
@@ -112,3 +122,18 @@ export const fabricBBPolygonProps = {
   lockScalingY: true,
   lockRotation: true,
 };
+
+export const fabricBBRectProps = (size: { width: number; height: number }): Partial<fabric.RectProps> => ({
+  left: 0,
+  top: 0,
+  width: Math.max(size.width, 1),
+  height: Math.max(size.height, 1),
+  rx: 6,
+  ry: 6,
+  fill: 'rgba(37,99,235,0.12)',
+  stroke: fabricBBColour,
+  strokeWidth: 2,
+  objectCaching: false,
+  selectable: false,
+  evented: false,
+});
