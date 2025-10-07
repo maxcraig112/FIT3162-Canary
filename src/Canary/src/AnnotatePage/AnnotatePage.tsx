@@ -60,7 +60,7 @@ const AnnotatePage: React.FC = () => {
   const [hasPrev, setHasPrev] = useState(false);
   const [memberNotices, setMemberNotices] = useState<{ id: string; memberID: string; type: 'member_joined' | 'member_left' }[]>([]);
 
-  const lastRenderedImageRef = useRef<number | null>(null);
+  const lastRenderKeyRef = useRef<string | null>(null);
 
   const boxRef = useRef<HTMLDivElement | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -103,12 +103,15 @@ const AnnotatePage: React.FC = () => {
     }
   }, [imageHandler.currentImageID]);
 
-  // Render when batchID or currentImage changes
+  // Render when batch or current image changes (composite key) and always sync displayed number
   useEffect(() => {
-    // Skip if we've already rendered this exact image number (e.g. second StrictMode pass)
-    if (lastRenderedImageRef.current === imageHandler.currentImageNumber) return;
-    lastRenderedImageRef.current = imageHandler.currentImageNumber;
-
+    const key = `${batchID}|${imageHandler.currentImageNumber}`;
+    if (lastRenderKeyRef.current === key) {
+      // Ensure field reflects current number even if render was skipped
+      setInputImage(imageHandler.currentImageNumber.toString());
+      return;
+    }
+    lastRenderKeyRef.current = key;
     (async () => {
       if (!batchID || !projectID) return;
       if (!getCanvas()) {
@@ -117,17 +120,21 @@ const AnnotatePage: React.FC = () => {
       }
       try {
         const { current } = await annotateHandler.renderToCanvas(batchID, projectID);
-        // Only update if different to avoid triggering downstream state churn
         if (current !== imageHandler.currentImageNumber) {
           imageHandler.setCurrentImageNumber(current);
         }
-        setInputImage(current.toString());
+        setInputImage((prev) => (prev !== current.toString() ? current.toString() : prev));
       } catch (e) {
         console.error(e);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally only depend on currentImageNumber
-  }, [imageHandler.currentImageNumber]); // UNDER NO CIRCUMSTANCES ADD batchID, projectID, imageHandler
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageHandler.currentImageNumber]);
+
+  // // Keep input field always synced if number changes from elsewhere (e.g. external control)
+  useEffect(() => {
+    setInputImage(imageHandler.currentImageNumber.toString());
+  }, [imageHandler.currentImageNumber]);
 
   // Keep handler tool selection in sync with UI
   useEffect(() => {

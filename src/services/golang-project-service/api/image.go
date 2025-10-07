@@ -503,7 +503,6 @@ func (h *ImageHandler) HasPreviousImageHandler(w http.ResponseWriter, r *http.Re
 	// check if prevImageID is empty
 
 	w.Header().Set("Content-Type", "application/json")
-	log.Info().Str("imageID", imageID).Msg("Successfully checked if image has previous image")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]bool{"hasPrevious": imageData.IsSequence && imageData.PrevImageID != ""})
 }
