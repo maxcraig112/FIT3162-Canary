@@ -11,6 +11,7 @@ import { type ImageHandler, imageDatabaseHandler } from './imageStateHandler.ts'
 import { getBoundingBoxLabelIdByName, getBoundingBoxLabelName, getKeypointLabelIdByName, getKeypointLabelName } from './labelRegistry.ts';
 import { UndoRedoHandler } from './undoRedoHandler.ts';
 import type { BoundingBoxAnnotation, KeypointAnnotation } from '../utils/intefaces/interfaces.ts';
+import { sidebarHandler } from './sidebarHandler.ts';
 
 type ToolMode = 'kp' | 'bb' | 'none';
 let currentTool: ToolMode = 'none';
@@ -118,6 +119,47 @@ export const annotateHandler = {
     labelRequestSubs.add(cb);
     return () => labelRequestSubs.delete(cb);
   },
+
+  // Resize canvas and maintain annotations positioning
+  resizeCanvas(containerWidth: number, containerHeight: number) {
+    if (!canvasRef || !imageHandlerRef) return;
+    
+    const imageHandler = imageHandlerRef;
+    const imageURL = imageHandler.currentImageURL;
+    if (!imageURL || currentImageW <= 0 || currentImageH <= 0) return;
+
+    // Update canvas dimensions
+    canvasRef.setWidth(containerWidth);
+    canvasRef.setHeight(containerHeight);
+
+    // Recalculate scale and positioning for the image
+    const scale = Math.min(containerWidth / currentImageW, containerHeight / currentImageH);
+    const scaledW = currentImageW * scale;
+    const scaledH = currentImageH * scale;
+    const offsetX = (containerWidth - scaledW) / 2;
+    const offsetY = (containerHeight - scaledH) / 2;
+
+    // Update transform variables
+    currentScale = scale;
+    currentOffsetX = offsetX;
+    currentOffsetY = offsetY;
+
+    // Update background image positioning
+    if (canvasRef.backgroundImage) {
+      canvasRef.backgroundImage.set({
+        left: offsetX,
+        top: offsetY,
+        scaleX: scale,
+        scaleY: scale
+      });
+    }
+
+    // Clear and redraw all annotations with new transform
+    clearAnnotationGroups();
+    drawAnnotationsForCurrentImage(imageHandler, imageURL);
+    
+    canvasRef.requestRenderAll();
+  },
   // When you press OK to confirm the name of a label
   async confirmLabel(label: string, projectID: string) {
     const imageHandler = imageHandlerRef;
@@ -154,6 +196,7 @@ export const annotateHandler = {
           undoRedoHandler.editAction('bb', beforeClone, afterClone, group);
         }
         pendingEdit = null;
+        sidebarHandler.updateSidebar(imageHandler);
         canvasRef.requestRenderAll();
         return;
       }
@@ -185,6 +228,7 @@ export const annotateHandler = {
         s.kps.push(createdAnn);
         imageHandler.annotationStore.set(imageHandler.currentImageURL, s);
         undoRedoHandler.addAction('kp', createdAnn, group);
+        sidebarHandler.updateSidebar(imageHandler);
         removePendingMarkers();
         return;
       }
@@ -211,6 +255,7 @@ export const annotateHandler = {
         s.bbs.push(createdAnn);
         imageHandler.annotationStore.set(imageHandler.currentImageURL, s);
         undoRedoHandler.addAction('bb', createdAnn, group);
+        sidebarHandler.updateSidebar(imageHandler);
         removePendingMarkers();
       }
     } catch (err) {
@@ -311,7 +356,57 @@ export const annotateHandler = {
       if (!pendingEdit) return;
       const target = (opt as unknown as { target?: fabric.Object }).target;
       if (!target || !isGroup(target) || target !== pendingEdit.group) return;
+      
+      // Ensure we can only move annotations when the correct tool is selected
+      const mapped = groupToAnnotation.get(target as fabric.Group);
+      if (mapped) {
+        const kind = mapped.kind;
+        const toolMatches = (currentTool === 'kp' && kind === 'kp') || (currentTool === 'bb' && kind === 'bb');
+        if (!toolMatches) {
+          // Prevent movement by resetting position
+          const group = target as fabric.Group;
+          group.set({ left: pendingEdit.startLeft, top: pendingEdit.startTop });
+          group.setCoords();
+          canvasRef.requestRenderAll();
+          return;
+        }
+      }
+      
       updatePendingEditDraft();
+    });
+
+    canvasRef.on('selection:created', (opt) => {
+      const target = (opt as unknown as { target?: fabric.Object }).target;
+      if (target && isGroup(target)) {
+        const group = target as fabric.Group;
+        const mapped = groupToAnnotation.get(group);
+        if (mapped) {
+          const kind = mapped.kind;
+          const toolMatches = (currentTool === 'kp' && kind === 'kp') || (currentTool === 'bb' && kind === 'bb');
+          if (!toolMatches) {
+            // Deselect if wrong tool is selected
+            canvasRef.discardActiveObject();
+            canvasRef.requestRenderAll();
+          }
+        }
+      }
+    });
+
+    canvasRef.on('selection:updated', (opt) => {
+      const target = (opt as unknown as { target?: fabric.Object }).target;
+      if (target && isGroup(target)) {
+        const group = target as fabric.Group;
+        const mapped = groupToAnnotation.get(group);
+        if (mapped) {
+          const kind = mapped.kind;
+          const toolMatches = (currentTool === 'kp' && kind === 'kp') || (currentTool === 'bb' && kind === 'bb');
+          if (!toolMatches) {
+            // Deselect if wrong tool is selected
+            canvasRef.discardActiveObject();
+            canvasRef.requestRenderAll();
+          }
+        }
+      }
     });
     return canvasRef;
   },
@@ -351,6 +446,7 @@ export const annotateHandler = {
 
       pendingEdit = null;
       canvasRef.remove(g);
+      sidebarHandler.updateSidebar(imageHandler);
       return;
     }
     removePendingMarkers();
@@ -379,27 +475,34 @@ export const annotateHandler = {
 
     const store = imageHandler.annotationStore;
 
-    // Fetch keypoints if not already cached
-    if (!store.has(meta.imageURL) || (store.get(meta.imageURL)?.kps.length ?? 0) === 0) {
+    // Fetch both keypoints and bounding boxes in parallel to avoid flickering
+    const needsKpsFetch = !store.has(meta.imageURL) || (store.get(meta.imageURL)?.kps.length ?? 0) === 0;
+    const needsBbsFetch = !store.has(meta.imageURL) || (store.get(meta.imageURL)?.bbs.length ?? 0) === 0;
+    
+    if (needsKpsFetch || needsBbsFetch) {
       try {
-        const kps = await keypointDatabaseHandler.getAllKeyPoints(projectID, meta.imageID);
-        const s = store.get(meta.imageURL) ?? { kps: [], bbs: [] };
-        s.kps.push(...kps);
-        store.set(meta.imageURL, s);
-      } catch (e) {
-        console.error('[KP] Failed to fetch existing keypoints:', e);
-      }
-    }
+        const [kps, bbs] = await Promise.all([
+          needsKpsFetch ? keypointDatabaseHandler.getAllKeyPoints(projectID, meta.imageID).catch((e) => {
+            console.error('[KP] Failed to fetch existing keypoints:', e);
+            return [];
+          }) : Promise.resolve([]),
+          needsBbsFetch ? boundingBoxDatabaseHandler.getAllBoundingBoxes(projectID, meta.imageID).catch((e) => {
+            console.error('[BB] Failed to fetch existing bounding boxes:', e);
+            return [];
+          }) : Promise.resolve([])
+        ]);
 
-    // Fetch bounding boxes if not already cached
-    if (!store.has(meta.imageURL) || (store.get(meta.imageURL)?.bbs.length ?? 0) === 0) {
-      try {
-        const bbs = await boundingBoxDatabaseHandler.getAllBoundingBoxes(projectID, meta.imageID);
+        // Update store with fetched annotations
         const s = store.get(meta.imageURL) ?? { kps: [], bbs: [] };
-        s.bbs.push(...bbs);
+        if (needsKpsFetch && kps.length > 0) {
+          s.kps.push(...kps);
+        }
+        if (needsBbsFetch && bbs.length > 0) {
+          s.bbs.push(...bbs);
+        }
         store.set(meta.imageURL, s);
       } catch (e) {
-        console.error('[BB] Failed to fetch existing bounding boxes:', e);
+        console.error('[Annotate] Failed to fetch annotations:', e);
       }
     }
 
@@ -438,6 +541,7 @@ export const annotateHandler = {
 
     // Draw annotations using current transform
     drawAnnotationsForCurrentImage(imageHandler, meta.imageURL);
+  sidebarHandler.updateSidebar(imageHandler, { imageURL: meta.imageURL });
     canvasRef.requestRenderAll();
 
     return { current: imageHandler.currentImageNumber, total };
@@ -472,6 +576,7 @@ export const annotateHandler = {
       imageHandler.annotationStore.set(imageURL, { kps, bbs });
       clearAnnotationGroups();
       drawAnnotationsForCurrentImage(imageHandler, imageURL);
+  sidebarHandler.updateSidebar(imageHandler, { imageURL });
       canvasRef.requestRenderAll();
     } catch (e) {
       console.warn('[Annotate] refreshAnnotations failed', e);
