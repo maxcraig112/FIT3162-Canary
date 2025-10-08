@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Button, Typography, Paper, Tabs, Tab, Divider } from '@mui/material';
 import AppThemeProvider from '../assets/AppThemeProvider';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -14,7 +14,7 @@ import BarChartOutlined from '@mui/icons-material/BarChartOutlined';
 import IosShareOutlined from '@mui/icons-material/IosShareOutlined';
 import SettingsOutlined from '@mui/icons-material/SettingsOutlined';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
-import type { Project } from '../utils/intefaces/interfaces';
+import type { Project, Session } from '../utils/intefaces/interfaces';
 
 const ProjectPage: React.FC = () => {
   const navigate = useNavigate();
@@ -29,6 +29,19 @@ const ProjectPage: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState(0); // 0..3 for the main tabs
   const [settingsTab, setSettingsTab] = useState(false); // separate flag for settings so layout stays identical
   const [error, setError] = useState<string | null>(null);
+
+  const handleSessionSettingsSaved = useCallback((session: Session) => {
+    setProjectData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        settings: {
+          ...(prev.settings ?? {}),
+          session: { ...session },
+        },
+      };
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,6 +68,37 @@ const ProjectPage: React.FC = () => {
       cancelled = true;
     };
   }, [projectID]);
+
+  useEffect(() => {
+    if (!settingsTab || !projectID) {
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchProjectByID(projectID);
+        if (!cancelled) {
+          setProjectData(data);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : 'Failed to load project data.');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [settingsTab, projectID]);
 
   function handleBackToAllProjects() {
     navigate('/projects');
@@ -310,10 +354,10 @@ const ProjectPage: React.FC = () => {
                 }}
               >
                 {loading && !projectData && <Typography variant="body1">Loading content...</Typography>}
-                {!loading && !error && (
+                {(!loading || projectData) && !error && (
                   <>
                     {settingsTab ? (
-                      <SettingsTab project={projectData} />
+                      <SettingsTab project={projectData} onSessionSettingsSaved={handleSessionSettingsSaved} />
                     ) : (
                       <>
                         {selectedTab === 0 && <UploadTab project={projectData} />}
