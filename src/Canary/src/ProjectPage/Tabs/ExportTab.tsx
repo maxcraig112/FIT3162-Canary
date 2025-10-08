@@ -11,7 +11,7 @@ type AnnotationType = 'bbox' | 'keypoint';
 
 const formatLabels: Record<ExportFormat, string> = {
   coco: 'COCO',
-  'pascal-voc': 'PASCAL VOC',
+  'pascal-voc': 'Pascal VOC',
 };
 
 export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) => {
@@ -24,8 +24,8 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
   const [message, setMessage] = useState<string | null>(null);
 
   /* ---------- helpers ---------- */
-  const bothSelectsDisabled = !format;
-  const keypointDisabled = format === 'pascal-voc';
+  const bothSelectsDisabled = !annotationType;
+  const pascal_voc_disabled = annotationType === 'keypoint';
 
   /* ---------- export ---------- */
   function inferFilename(res: Response, fallbackBase: string): string {
@@ -126,19 +126,57 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
           Export all finished annotations
         </Typography>
 
+        {/* Annotation-type selector */}
+        <FormControl
+          size="small"
+        >
+          <Select
+            value={annotationType}
+            onChange={(e) => {
+              const t = e.target.value as AnnotationType | '';
+              setAnnotationType(t);
+              setFormat('');
+            }}
+            displayEmpty
+            renderValue={(s) => (s ? s.replace('bbox', 'Bounding box').replace('keypoint', 'Keypoint') : <Typography sx={{ color: '#777' }}>Select annotation type…</Typography>)}
+            IconComponent={ExpandMoreIcon}
+            sx={selectSx}
+          >
+            <MenuItem value="">Select export type…</MenuItem>
+            <MenuItem value="keypoint">Keypoint</MenuItem>
+            <MenuItem value="bbox">Bounding Box</MenuItem>
+          </Select>
+        </FormControl>
+
         {/* Format selector */}
-        <FormControl size="small">
+        <FormControl
+          size="small"
+          disabled={bothSelectsDisabled}
+          sx={{
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: bothSelectsDisabled ? '#ccc' : '#000',
+            },
+            '&:hover .MuiOutlinedInput-notchedOutline': {
+              borderColor: bothSelectsDisabled ? '#ccc !important' : '#000',
+            },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+              borderColor: bothSelectsDisabled ? '#ccc' : '#000',
+            },
+          }}
+        >
           <Select
             value={format}
             onChange={(e) => {
               const f = e.target.value as ExportFormat | '';
               setFormat(f);
-              setAnnotationType((prev) => (f === 'pascal-voc' && prev === 'keypoint' ? '' : prev));
+              if (f === 'pascal-voc' && annotationType === 'keypoint') {
+                setAnnotationType('');
+              }
             }}
             displayEmpty
             renderValue={(s) =>
               s ? (
-                formatLabels[s as ExportFormat] // show "PASCAL VOC" instead of "pascal-voc"
+                formatLabels[s as ExportFormat]
               ) : (
                 <Typography sx={{ color: '#777' }}>Select format…</Typography>
               )
@@ -146,39 +184,17 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
             IconComponent={ExpandMoreIcon}
             sx={selectSx}
           >
-            <MenuItem value="">Select format…</MenuItem>
             <MenuItem value="coco">{formatLabels.coco}</MenuItem>
-            <MenuItem value="pascal-voc">{formatLabels['pascal-voc']}</MenuItem>
-          </Select>
-        </FormControl>
-
-        {/* Annotation-type selector */}
-        <FormControl
-          size="small"
-          disabled={bothSelectsDisabled}
-          sx={{
-            '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: bothSelectsDisabled ? 'transparent !important' : undefined,
-            },
-          }}
-        >
-          <Select
-            value={annotationType}
-            onChange={(e) => setAnnotationType(e.target.value as AnnotationType | '')}
-            displayEmpty
-            renderValue={(s) => (s ? s.replace('bbox', 'Bounding box').replace('keypoint', 'Keypoint') : <Typography sx={{ color: '#777' }}>Select annotation type…</Typography>)}
-            IconComponent={ExpandMoreIcon}
-            sx={selectSx}
-            MenuProps={{
-              PaperProps: {
-                sx: { pointerEvents: keypointDisabled ? 'auto' : undefined },
-              },
-            }}
-          >
-            <MenuItem disabled={keypointDisabled} value="keypoint">
-              Keypoint
+            <MenuItem
+              value="pascal-voc"
+              disabled={pascal_voc_disabled}
+              sx={{
+                color: pascal_voc_disabled ? '#aaa !important' : undefined,
+                pointerEvents: pascal_voc_disabled ? 'none' : 'auto',
+              }}
+            >
+              {formatLabels['pascal-voc']}
             </MenuItem>
-            <MenuItem value="bbox">Bounding box</MenuItem>
           </Select>
         </FormControl>
 
