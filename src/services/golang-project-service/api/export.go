@@ -16,6 +16,7 @@ import (
 	coco "github.com/aidezone/golang-coco"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
+	"github.com/samber/lo"
 )
 
 type CorrectKeypointDetection struct {
@@ -125,7 +126,39 @@ func (h *ExportHandler) getProjectImages(batches []*firestore.Batch) ([]firestor
 	return images, nil
 }
 
-func ExportCOCO(ds coco.ObjectDetection) ([]byte, error) {
+func ExportCOCOObjectDetection(ds coco.ObjectDetection) ([]byte, error) {
+	// Step 1: Marshal your existing dataset
+	raw, err := json.Marshal(ds)
+	if err != nil {
+		return nil, err
+	}
+
+	// Step 2: Unmarshal to a generic map
+	var m map[string]interface{}
+	if err := json.Unmarshal(raw, &m); err != nil {
+		return nil, err
+	}
+
+	// Step 3: Inject "iscrowd":0 wherever missing
+	if anns, ok := m["annotations"].([]interface{}); ok {
+		for _, ann := range anns {
+			a := ann.(map[string]interface{})
+			if _, exists := a["iscrowd"]; !exists {
+				a["iscrowd"] = 0
+			}
+		}
+	}
+
+	// Step 4: Marshal back to JSON
+	finalJSON, err := json.MarshalIndent(m, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+
+	return finalJSON, nil
+}
+
+func ExportCOCOKeypointDetection(ds CorrectKeypointDetection) ([]byte, error) {
 	// Step 1: Marshal your existing dataset
 	raw, err := json.Marshal(ds)
 	if err != nil {
@@ -181,11 +214,25 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 		return
 	}
 
+	boundingBoxLabels, err := h.BoundingBoxLabelStore.GetBoundingBoxLabelsByProjectID(h.Ctx, projectID)
+	if err != nil {
+		http.Error(w, "Error getting bounding box labels", http.StatusInternalServerError)
+		log.Error().Err(err).Str("projectID", projectID).Msg("Failed to get bounding box labels by projectID")
+		return
+	}
+
 	keypointLabels, err := h.KeypointLabelStore.GetKeypointLabelsByProjectID(h.Ctx, projectID)
 	if err != nil {
 		http.Error(w, "Error getting keypoint labels", http.StatusInternalServerError)
 		log.Error().Err(err).Str("projectID", projectID).Msg("Failed to get keypoint labels by projectID")
 		return
+	}
+
+	bbLabelNames := make([]string, len(boundingBoxLabels))
+	bbLabelIDs := make([]string, len(boundingBoxLabels))
+	for i, bb := range boundingBoxLabels {
+		bbLabelNames[i] = bb.BoundingBoxLabel
+		bbLabelIDs[i] = bb.BoundingBoxLabelID
 	}
 
 	kpLabelNames := make([]string, len(keypointLabels))
@@ -231,6 +278,16 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 		},
 		Images:      make([]coco.Image, 0),
 		Annotations: make([]coco.KPAnnotation, 0),
+	}
+
+	for i, bbLabelNames := range bbLabelNames {
+		cocoDS.Categories = append(cocoDS.Categories, coco.KPCategories{
+			ID:            i + 2,
+			Name:          bbLabelNames,
+			Supercategory: "none",
+			Keypoints:     kpLabelNames,
+			Skeleton:      []coco.Edge{},
+		})
 	}
 
 	current_annotation_idx := 1
@@ -279,6 +336,18 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 			return
 		}
 		for _, bbox := range bbox {
+			idx := -1
+			for j, labelID := range bbLabelIDs {
+				if labelID == bbox.BoundingBoxLabelID {
+					idx = j
+					break
+				}
+			}
+			if idx == -1 {
+				http.Error(w, "Error getting bounding box label", http.StatusInternalServerError)
+				log.Error().Err(err).Str("projectID", projectID).Str("imageID", img.ImageID).Str("labelID", bbox.BoundingBoxLabelID).Msg("Failed to get bounding box label")
+				return
+			}
 			keypoints, err := h.KeypointStore.GetKeypointsByBoundingBoxID(h.Ctx, bbox.BoundingBoxID)
 			if err != nil {
 				http.Error(w, "Error getting keypoints", http.StatusInternalServerError)
@@ -301,20 +370,60 @@ func (h *ExportHandler) exportKeypointCOCOHandler(w http.ResponseWriter, r *http
 			cocoDS.Annotations = append(cocoDS.Annotations, coco.KPAnnotation{
 				ID:           current_annotation_idx,
 				ImageID:      i + 1,
-				CategoryID:   1,
+				CategoryID:   idx + 2,
 				Bbox:         [4]float32{float32(bbox.Box.X), float32(bbox.Box.Y), float32(bbox.Box.Width), float32(bbox.Box.Height)},
 				Area:         float32(bbox.Box.Width * bbox.Box.Height),
-				Segmentation: nil,
+				Segmentation: []coco.Segment{},
 				Keypoints:    kp,
 				NumKeypoints: len(keypoints),
 				Iscrowd:      0,
 			})
 			current_annotation_idx++
 		}
+
+		// get all keypoints by image id
+		keypoints, err := h.KeypointStore.GetKeypointsByImageID(h.Ctx, img.ImageID)
+		if err != nil {
+			http.Error(w, "Error getting keypoints", http.StatusInternalServerError)
+			log.Error().Err(err).Str("projectID", projectID).Str("imageID", img.ImageID).Msg("Failed to get keypoints")
+			return
+		}
+		keypoints = lo.Filter(keypoints, func(k firestore.Keypoint, _ int) bool {
+			return k.BoundingBoxID == ""
+		})
+
+		kp := make([]float32, len(kpLabelIDs)*3)
+		for _, k := range keypoints {
+			idx := slices.IndexFunc(kpLabelIDs, func(s string) bool { return s == k.KeypointLabelID })
+			if idx == -1 {
+				http.Error(w, "Error keypoint label ID not found", http.StatusInternalServerError)
+				log.Error().Str("projectID", projectID).Str("imageID", img.ImageID).Str("keypointLabelID", k.KeypointLabelID).Msg("Failed to get keypoint label ID index")
+				return
+			}
+			kp[idx*3] = float32(k.Position.X)
+			kp[idx*3+1] = float32(k.Position.Y)
+			kp[idx*3+2] = 2
+		}
+
+		cocoDS.Annotations = append(cocoDS.Annotations, coco.KPAnnotation{
+			ID:           current_annotation_idx,
+			ImageID:      i + 1,
+			CategoryID:   1,
+			Bbox:         [4]float32{float32(0), float32(0), float32(img.Width), float32(img.Height)},
+			Area:         float32(img.Width * img.Height),
+			Segmentation: []coco.Segment{},
+			Keypoints:    kp,
+			NumKeypoints: len(keypoints),
+			Iscrowd:      0,
+		})
+		current_annotation_idx++
+
 	}
 
 	// save coco json to zip
-	cocoBytes, err := json.MarshalIndent(cocoDS, "", "  ")
+	// cocoBytes, err := json.MarshalIndent(cocoDS, "", "  ")
+	cocoBytes, err := ExportCOCOKeypointDetection(cocoDS)
+
 	if err != nil {
 		http.Error(w, "Error marshaling COCO JSON", http.StatusInternalServerError)
 		log.Error().Err(err).Str("projectID", projectID).Msg("Failed to marshal coco JSON")
@@ -486,7 +595,7 @@ func (h *ExportHandler) exportBoundingBoxCOCOHandler(w http.ResponseWriter, r *h
 
 	// save coco json to zip
 	// cocoBytes, err := json.MarshalIndent(cocoDS, "", "  ")
-	cocoBytes, err := ExportCOCO(cocoDS)
+	cocoBytes, err := ExportCOCOObjectDetection(cocoDS)
 	if err != nil {
 		http.Error(w, "Error marshaling COCO JSON", http.StatusInternalServerError)
 		log.Error().Err(err).Str("projectID", projectID).Msg("Failed to marshal coco JSON")
