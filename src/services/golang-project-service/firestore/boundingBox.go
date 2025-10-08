@@ -128,3 +128,12 @@ func (s *BoundingBoxStore) DeleteBoundingBoxesByImageIDs(ctx context.Context, im
 	}
 	return nil
 }
+
+func (s *BoundingBoxStore) DeleteBoundingBoxesByBoundingBoxLabelID(ctx context.Context, boundingBoxLabelID string) error {
+	qp := []fs.QueryParameter{{Path: "boundingBoxLabelID", Op: "==", Value: boundingBoxLabelID}}
+	err := s.genericStore.DeleteDocsByQuery(ctx, qp)
+	if err != fs.ErrNotFound {
+		return err
+	}
+	return nil
+}

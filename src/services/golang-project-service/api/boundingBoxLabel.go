@@ -111,6 +111,13 @@ func (h *BoundingBoxLabelHandler) DeleteBoundingBoxLabelHandler(w http.ResponseW
 		return
 	}
 
+	err = h.BoundingBoxStore.DeleteBoundingBoxesByBoundingBoxLabelID(h.Ctx, boundingBoxLabelID)
+	if err != nil {
+		http.Error(w, "Error deleting associated bounding boxes", http.StatusInternalServerError)
+		log.Error().Err(err).Str("projectID", projectID).Msg("Error deleting associated bounding boxes")
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("boundingBoxLabelID", boundingBoxLabelID).Msg("Bounding box label deleted successfully")
 	if _, err := fmt.Fprintf(w, "Bounding box label %s deleted", boundingBoxLabelID); err != nil {
