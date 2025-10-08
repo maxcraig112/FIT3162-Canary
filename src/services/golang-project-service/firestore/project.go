@@ -5,6 +5,7 @@ import (
 	"time"
 
 	fs "pkg/gcp/firestore"
+	"pkg/password"
 
 	"cloud.google.com/go/firestore"
 )
@@ -125,6 +126,15 @@ func (s *ProjectStore) UpdateProject(ctx context.Context, projectID string, req 
 	}
 	if req.Settings != nil {
 		updateParams = append(updateParams, firestore.Update{Path: "settings", Value: req.Settings})
+
+		// if password is defined, we need to encrypt it before saving
+		if req.Settings.Session != nil && req.Settings.Session.Password != "" {
+			hashedPassword, err := password.HashPassword(req.Settings.Session.Password)
+			if err != nil {
+				return nil, err
+			}
+			req.Settings.Session.Password = string(hashedPassword)
+		}
 	}
 
 	// Always update lastUpdated
