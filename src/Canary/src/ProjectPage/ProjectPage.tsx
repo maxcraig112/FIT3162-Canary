@@ -15,9 +15,11 @@ import IosShareOutlined from '@mui/icons-material/IosShareOutlined';
 import SettingsOutlined from '@mui/icons-material/SettingsOutlined';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import type { Project, Session } from '../utils/intefaces/interfaces';
+import { useAuthGuard } from '../utils/authUtil';
 
 const ProjectPage: React.FC = () => {
   const navigate = useNavigate();
+  useAuthGuard();
   const location = useLocation();
   const { projectID: paramProjectID } = useParams<{ projectID: string }>();
   const projectID = paramProjectID;

@@ -4,6 +4,7 @@ import { getAuthTokenFromCookie } from '../../utils/cookieUtils';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import type { Project } from '../../utils/intefaces/interfaces';
 import { projectServiceUrl } from '../../utils/apis';
+import { useAuthGuard } from '../../utils/authUtil';
 
 type ExportFormat = 'coco' | 'pascal-voc';
 type AnnotationType = 'bbox' | 'keypoint';
@@ -14,6 +15,7 @@ const formatLabels: Record<ExportFormat, string> = {
 };
 
 export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) => {
+  useAuthGuard();
   /* ---------- state ---------- */
   const [format, setFormat] = useState<ExportFormat | ''>('');
   const [annotationType, setAnnotationType] = useState<AnnotationType | ''>('');

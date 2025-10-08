@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var defaultKeypointLabels = []string{"Left Eye", "Right Eye", "Beak", "Left Wing Tip", "Right Wing Tip"}
+var defaultKeypointLabels = []string{"Left Eye", "Right Eye", "Beak", "Left Wing Tip", "Right Wing Tip", "Left Knee Joint", "Right Knee Joint", "Left Foot Joint", "Right Foot Joint"}
 var defaultBoundingBoxLabels = []string{"Bird"}
 
 type ProjectHandler struct {

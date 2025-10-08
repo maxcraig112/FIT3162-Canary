@@ -5,8 +5,10 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useBatchesTab } from './batchesTabHandler';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { Project } from '../../utils/intefaces/interfaces';
+import { useAuthGuard } from '../../utils/authUtil';
 
 export const BatchesTab: React.FC<{ project: Project | null }> = () => {
+  useAuthGuard();
   const { projectID } = useParams<{ projectID: string }>();
   const navigate = useNavigate();
   const {

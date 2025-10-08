@@ -15,6 +15,7 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import InputBase from '@mui/material/InputBase';
 import { useSettingsTab } from './settingsTabHandler';
 import type { Project, Session } from '../../utils/intefaces/interfaces';
+import { useAuthGuard } from '../../utils/authUtil';
 
 type ListPanelProps = {
   inputValue: string;
@@ -216,6 +217,7 @@ type SettingsTabProps = {
 };
 
 export function SettingsTab({ project: _project, onSessionSettingsSaved }: SettingsTabProps) {
+  useAuthGuard();
   const projectID = _project?.projectID;
   const {
     sessionEnabled,
