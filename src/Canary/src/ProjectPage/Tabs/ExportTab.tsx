@@ -127,9 +127,7 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
         </Typography>
 
         {/* Annotation-type selector */}
-        <FormControl
-          size="small"
-        >
+        <FormControl size="small">
           <Select
             value={annotationType}
             onChange={(e) => {
@@ -174,13 +172,7 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
               }
             }}
             displayEmpty
-            renderValue={(s) =>
-              s ? (
-                formatLabels[s as ExportFormat]
-              ) : (
-                <Typography sx={{ color: '#777' }}>Select format…</Typography>
-              )
-            }
+            renderValue={(s) => (s ? formatLabels[s as ExportFormat] : <Typography sx={{ color: '#777' }}>Select format…</Typography>)}
             IconComponent={ExpandMoreIcon}
             sx={selectSx}
           >
