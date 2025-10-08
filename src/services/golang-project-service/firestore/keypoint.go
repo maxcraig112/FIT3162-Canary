@@ -2,6 +2,7 @@ package firestore
 
 import (
 	"context"
+	"errors"
 
 	fs "pkg/gcp/firestore"
 
@@ -50,6 +51,8 @@ type KeypointStore struct {
 	genericStore *fs.GenericStore
 }
 
+var ErrBoundingBoxRequired = errors.New("boundingBoxID is required for keypoints")
+
 func NewKeypointStore(client fs.FirestoreClientInterface) *KeypointStore {
 	return &KeypointStore{
 		genericStore: fs.NewGenericStore(client, keypointCollectionID),
@@ -58,15 +61,14 @@ func NewKeypointStore(client fs.FirestoreClientInterface) *KeypointStore {
 
 // CRUD operations
 func (s *KeypointStore) CreateKeypoint(ctx context.Context, req CreateKeypointRequest) (string, error) {
+	if req.BoundingBoxID == "" {
+		return "", ErrBoundingBoxRequired
+	}
+
 	qp := []fs.QueryParameter{
 		{Path: "keypointLabelID", Op: "==", Value: req.KeypointLabelID},
 		{Path: "imageID", Op: "==", Value: req.ImageID},
-	}
-
-	if req.BoundingBoxID != "" {
-		qp = append(qp, fs.QueryParameter{Path: "boundingBoxID", Op: "==", Value: req.BoundingBoxID})
-	} else {
-		qp = append(qp, fs.QueryParameter{Path: "boundingBoxID", Op: "==", Value: nil})
+		{Path: "boundingBoxID", Op: "==", Value: req.BoundingBoxID},
 	}
 
 	docs, err := s.genericStore.ReadCollection(ctx, qp)

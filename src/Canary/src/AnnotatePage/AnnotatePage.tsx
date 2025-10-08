@@ -72,7 +72,7 @@ const AnnotatePage: React.FC = () => {
   const [zoom, setZoom] = useState(1);
   const zoomHandlerRef = useRef<ZoomHandler | null>(null);
 
-  const computeAvailableKeypointLabels = React.useCallback((currentLabel?: string) => {
+  const computeAvailableKeypointLabels = React.useCallback((currentLabel?: string, boundingBoxID?: string) => {
     const handler = latestImageHandlerRef.current;
     const allNames = getKeypointLabelNames();
     if (!handler) {
@@ -83,6 +83,9 @@ const AnnotatePage: React.FC = () => {
     try {
       const keypoints = handler.getKeypoints();
       keypoints.forEach((kp) => {
+        if (boundingBoxID && kp.boundingBoxID !== boundingBoxID) {
+          return;
+        }
         const labelName = getKeypointLabelName(kp.labelID);
         if (labelName) {
           used.add(labelName);
@@ -179,7 +182,7 @@ const AnnotatePage: React.FC = () => {
   // Subscribe to label requests from handler
   useEffect(() => {
     const unsub = annotateHandler.subscribeLabelRequests((req) => {
-      const opts = req.kind === 'kp' ? computeAvailableKeypointLabels(req.currentLabel) : getBoundingBoxLabelNames();
+      const opts = req.kind === 'kp' ? computeAvailableKeypointLabels(req.currentLabel, req.boundingBoxID) : getBoundingBoxLabelNames();
 
       if (req.kind === 'kp') {
         setKpOptions(opts);
@@ -360,6 +363,8 @@ const AnnotatePage: React.FC = () => {
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
                     borderLeft: `4px solid ${item.type === 'keypoint' ? '#f97316' : '#2563eb'}`,
+                    ml: item.type === 'keypoint' ? 2 : 0,
+                    bgcolor: item.type === 'keypoint' ? 'rgba(249, 115, 22, 0.06)' : undefined,
                     '&:hover': {
                       elevation: 2,
                       bgcolor: 'action.hover',
@@ -383,11 +388,20 @@ const AnnotatePage: React.FC = () => {
                       {item.label}
                     </Typography>
                   </Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                    {item.type === 'keypoint'
-                      ? `Position: (${item.position.x}, ${item.position.y})`
-                      : `Center: (${item.center.x}, ${item.center.y}) | Size: ${item.bounds.maxX - item.bounds.minX}×${item.bounds.maxY - item.bounds.minY}`}
-                  </Typography>
+                  {item.type === 'keypoint' ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                        Position: ({item.position.x}, {item.position.y})
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                        Bounding Box: {item.boundingBoxLabel ?? 'Unassigned'}
+                      </Typography>
+                    </Box>
+                  ) : (
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                      Center: ({item.center.x}, {item.center.y}) | Size: {item.bounds.maxX - item.bounds.minX}×{item.bounds.maxY - item.bounds.minY}
+                    </Typography>
+                  )}
                 </Paper>
               ))}
             </Box>

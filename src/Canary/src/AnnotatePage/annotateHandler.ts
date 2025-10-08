@@ -6,7 +6,7 @@ import { createBoundingBoxAnnotation, createKeypointAnnotation, fabricBBColour }
 import { KeyPointFabricHandler, keypointDatabaseHandler } from './keypointHandler.ts';
 import { boundingBoxDatabaseHandler, BoundingBoxFabricHandler } from './boundingBoxHandler.ts';
 import { loadProjectLabels } from './labelLoader.ts';
-import { polygonCentroid, polygonFromTwoPoints } from './helper.ts';
+import { isPointInPolygon, polygonCentroid, polygonFromTwoPoints } from './helper.ts';
 import { type ImageHandler, imageDatabaseHandler } from './imageStateHandler.ts';
 import { getBoundingBoxLabelIdByName, getBoundingBoxLabelName, getKeypointLabelIdByName, getKeypointLabelName } from './labelRegistry.ts';
 import { UndoRedoHandler } from './undoRedoHandler.ts';
@@ -98,8 +98,58 @@ function updateAnnotationInteractivity() {
   }
 }
 
+function getCurrentAnnotations(): { kps: KeypointAnnotation[]; bbs: BoundingBoxAnnotation[] } {
+  if (!imageHandlerRef || !imageHandlerRef.currentImageURL) {
+    return { kps: [], bbs: [] };
+  }
+  const store = imageHandlerRef.annotationStore.get(imageHandlerRef.currentImageURL);
+  if (!store) {
+    return { kps: [], bbs: [] };
+  }
+  return store;
+}
+
+function isPointWithinBoundingBox(point: { x: number; y: number }, boundingBox: BoundingBoxAnnotation): boolean {
+  const xs = boundingBox.points.map((p) => p.x);
+  const ys = boundingBox.points.map((p) => p.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const epsilon = 1e-6;
+  return point.x >= minX - epsilon && point.x <= maxX + epsilon && point.y >= minY - epsilon && point.y <= maxY + epsilon;
+}
+
+function getBoundingBoxById(boundingBoxID: string): BoundingBoxAnnotation | null {
+  if (!boundingBoxID) return null;
+  const { bbs } = getCurrentAnnotations();
+  return bbs.find((bb) => bb.id === boundingBoxID) ?? null;
+}
+
+function findBoundingBoxContainingPoint(imagePoint: { x: number; y: number }): BoundingBoxAnnotation | null {
+  const { bbs } = getCurrentAnnotations();
+  for (const bb of bbs) {
+    if (isPointWithinBoundingBox(imagePoint, bb) || isPointInPolygon(imagePoint, bb.points)) {
+      return bb;
+    }
+  }
+  return null;
+}
+
+function isKeypointLabelUsedInBoundingBox(boundingBoxID: string, labelID: string, ignoreKeypointID?: string): boolean {
+  if (!boundingBoxID) return false;
+  const { kps } = getCurrentAnnotations();
+  return kps.some((kp) => kp.boundingBoxID === boundingBoxID && kp.labelID === labelID && kp.id !== ignoreKeypointID);
+}
+
 // Keypoint pending state
-let pendingKP: { x: number; y: number; marker?: fabric.Circle } | null = null;
+let pendingKP: {
+  x: number;
+  y: number;
+  imagePoint: { x: number; y: number };
+  boundingBox: BoundingBoxAnnotation;
+  marker?: fabric.Circle;
+} | null = null;
 
 // Bounding box drawing state
 let bbActive = false;
@@ -232,6 +282,10 @@ export const annotateHandler = {
 
         if (kind === 'kp' && isKeypointAnnotation(annotation) && isKeypointAnnotation(draft) && isKeypointAnnotation(original)) {
           const labelID = getKeypointLabelIdByName(label);
+          if (isKeypointLabelUsedInBoundingBox(annotation.boundingBoxID, labelID, annotation.id)) {
+            console.warn('[KP] Label already used within this bounding box');
+            return;
+          }
           draft.labelID = labelID;
           annotation.labelID = labelID;
           annotation.position = { ...draft.position };
@@ -263,16 +317,27 @@ export const annotateHandler = {
       if (!imageID) return;
 
       if (currentTool === 'kp' && pendingKP) {
-        const { x, y, marker } = pendingKP;
+  const { marker, imagePoint, boundingBox } = pendingKP;
         if (!marker) return;
+        const resolvedBoundingBox = getBoundingBoxById(boundingBox.id);
+        if (!resolvedBoundingBox) {
+          console.warn('[KP] Selected bounding box no longer exists; cancelling keypoint');
+          removePendingMarkers();
+          return;
+        }
 
-        const imgPt = canvasToImage({ x, y });
+        const labelID = getKeypointLabelIdByName(label);
+        if (isKeypointLabelUsedInBoundingBox(resolvedBoundingBox.id, labelID)) {
+          console.warn('[KP] Label already used within this bounding box');
+          return;
+        }
         const ann = createKeypointAnnotation({
           id: '',
-          position: { x: imgPt.x, y: imgPt.y },
-          labelID: getKeypointLabelIdByName(label),
+          position: { x: imagePoint.x, y: imagePoint.y },
+          labelID,
           projectID,
           imageID,
+          boundingBoxID: resolvedBoundingBox.id,
         });
 
         const createdAnn = await keypointDatabaseHandler.createdKeyPoint(ann);
@@ -379,6 +444,10 @@ export const annotateHandler = {
           const draft = cloneAnnotation(annotation);
           const focus = getAnnotationFocusPoint(kind, draft);
           const currentLabel = kind === 'kp' ? getKeypointLabelName(annotation.labelID) : getBoundingBoxLabelName(annotation.labelID);
+          const request: LabelRequest = { kind, x: focus.x, y: focus.y, mode: 'edit', currentLabel };
+          if (kind === 'kp' && isKeypointAnnotation(annotation) && annotation.boundingBoxID) {
+            request.boundingBoxID = annotation.boundingBoxID;
+          }
           pendingEdit = {
             group,
             kind,
@@ -389,7 +458,7 @@ export const annotateHandler = {
             startTop: group.top ?? 0,
           };
           canvasRef.setActiveObject(group);
-          labelRequestSubs.forEach((cb) => cb({ kind, x: focus.x, y: focus.y, mode: 'edit', currentLabel }));
+          labelRequestSubs.forEach((cb) => cb(request));
           return;
         }
         if (canvasRef.getActiveObject() === group) {
@@ -409,9 +478,17 @@ export const annotateHandler = {
 
       removePendingMarkers();
       if (currentTool === 'kp') {
+        const imagePoint = canvasToImage({ x: p.x, y: p.y });
+        const boundingBox = findBoundingBoxContainingPoint(imagePoint);
+        if (!boundingBox) {
+          console.warn('[KP] Keypoints must be placed inside a bounding box');
+          pendingKP = null;
+          return;
+        }
+
         const c = KeyPointFabricHandler.createPendingMarker(canvasRef, p.x, p.y);
-        pendingKP = { x: p.x, y: p.y, marker: c };
-        labelRequestSubs.forEach((cb) => cb({ kind: 'kp', x: p.x, y: p.y, mode: 'create', currentLabel: '' }));
+        pendingKP = { x: p.x, y: p.y, imagePoint, boundingBox, marker: c };
+        labelRequestSubs.forEach((cb) => cb({ kind: 'kp', x: p.x, y: p.y, mode: 'create', currentLabel: '', boundingBoxID: boundingBox.id }));
       } else if (currentTool === 'bb') {
         handleBoundingBoxClick(p.x, p.y);
       }
@@ -779,17 +856,32 @@ function updatePendingEditDraft() {
   const dyImage = dyCanvas / currentScale;
 
   if (kind === 'kp' && isKeypointAnnotation(original) && isKeypointAnnotation(draft)) {
-    draft.position = {
+    const nextPosition = {
       x: original.position.x + dxImage,
       y: original.position.y + dyImage,
     };
+    const boundingBox = getBoundingBoxById(original.boundingBoxID);
+  if (boundingBox && !(isPointWithinBoundingBox(nextPosition, boundingBox) || isPointInPolygon(nextPosition, boundingBox.points))) {
+      const group = pendingEdit.group;
+      group.set({ left: pendingEdit.startLeft, top: pendingEdit.startTop });
+      group.setCoords();
+      if (canvasRef) {
+        canvasRef.requestRenderAll();
+      }
+      return;
+    }
+    draft.position = nextPosition;
   } else if (kind === 'bb' && isBoundingBoxAnnotation(original) && isBoundingBoxAnnotation(draft)) {
     draft.points = original.points.map((pt) => ({ x: pt.x + dxImage, y: pt.y + dyImage }));
   }
 
   const focus = getAnnotationFocusPoint(kind, draft);
   const currentLabel = kind === 'kp' ? getKeypointLabelName(pendingEdit.annotation.labelID) : getBoundingBoxLabelName(pendingEdit.annotation.labelID);
-  labelRequestSubs.forEach((cb) => cb({ kind, x: focus.x, y: focus.y, mode: 'edit', currentLabel, preserveLabel: true }));
+  const request: LabelRequest = { kind, x: focus.x, y: focus.y, mode: 'edit', currentLabel, preserveLabel: true };
+  if (kind === 'kp' && isKeypointAnnotation(draft) && draft.boundingBoxID) {
+    request.boundingBoxID = draft.boundingBoxID;
+  }
+  labelRequestSubs.forEach((cb) => cb(request));
 }
 
 function getAnnotationFocusPoint(kind: 'kp' | 'bb', ann: KeypointAnnotation | BoundingBoxAnnotation): { x: number; y: number } {
@@ -810,6 +902,7 @@ function cloneKeypointAnnotation(ann: KeypointAnnotation): KeypointAnnotation {
     imageID: ann.imageID,
     id: ann.id,
     labelID: ann.labelID,
+    boundingBoxID: ann.boundingBoxID,
     position: { ...ann.position },
   };
 }

@@ -8,6 +8,8 @@ export interface SidebarKeypointItem {
   id: string;
   label: string;
   position: { x: number; y: number };
+  boundingBoxID: string | null;
+  boundingBoxLabel?: string;
   type: 'keypoint';
 }
 
@@ -90,18 +92,7 @@ class SidebarHandler {
 
   private buildSidebarItems(annotations: AnnotationCollection): SidebarAnnotationItem[] {
     const items: SidebarAnnotationItem[] = [];
-
-    for (const kp of annotations.kps) {
-      const labelName = getKeypointLabelName(kp.labelID);
-      if (labelName && kp.id) {
-        items.push({
-          id: kp.id,
-          label: labelName,
-          position: { x: Math.round(kp.position.x), y: Math.round(kp.position.y) },
-          type: 'keypoint',
-        });
-      }
-    }
+    const boundingBoxItems = new Map<string, SidebarBoundingBoxItem>();
 
     for (const bb of annotations.bbs) {
       const labelName = getBoundingBoxLabelName(bb.labelID);
@@ -115,7 +106,7 @@ class SidebarHandler {
         const centerX = Math.round((minX + maxX) / 2);
         const centerY = Math.round((minY + maxY) / 2);
 
-        items.push({
+        const item: SidebarBoundingBoxItem = {
           id: bb.id,
           label: labelName,
           center: { x: centerX, y: centerY },
@@ -126,16 +117,52 @@ class SidebarHandler {
             maxY: Math.round(maxY),
           },
           type: 'boundingbox',
-        });
+        };
+        boundingBoxItems.set(bb.id, item);
       }
     }
 
-    items.sort((a, b) => {
-      if (a.type !== b.type) {
-        return a.type === 'keypoint' ? -1 : 1;
+    const groupedKeypoints = new Map<string, SidebarKeypointItem[]>();
+    const orphanKeypoints: SidebarKeypointItem[] = [];
+
+    for (const kp of annotations.kps) {
+      const labelName = getKeypointLabelName(kp.labelID);
+      if (!labelName || !kp.id) continue;
+
+      const keypointItem: SidebarKeypointItem = {
+        id: kp.id,
+        label: labelName,
+        position: { x: Math.round(kp.position.x), y: Math.round(kp.position.y) },
+        boundingBoxID: kp.boundingBoxID || null,
+        type: 'keypoint',
+      };
+
+      if (kp.boundingBoxID && boundingBoxItems.has(kp.boundingBoxID)) {
+        const bboxItem = boundingBoxItems.get(kp.boundingBoxID)!;
+        keypointItem.boundingBoxLabel = bboxItem.label;
+        const arr = groupedKeypoints.get(kp.boundingBoxID) ?? [];
+        arr.push(keypointItem);
+        groupedKeypoints.set(kp.boundingBoxID, arr);
+      } else {
+        orphanKeypoints.push(keypointItem);
       }
-      return a.label.localeCompare(b.label);
-    });
+    }
+
+    const sortedBoundingBoxes = [...boundingBoxItems.values()].sort((a, b) => a.label.localeCompare(b.label));
+
+    for (const bboxItem of sortedBoundingBoxes) {
+      items.push(bboxItem);
+      const kps = groupedKeypoints.get(bboxItem.id);
+      if (kps && kps.length > 0) {
+        kps.sort((a, b) => a.label.localeCompare(b.label));
+        items.push(...kps);
+      }
+    }
+
+    if (orphanKeypoints.length > 0) {
+      orphanKeypoints.sort((a, b) => a.label.localeCompare(b.label));
+      items.push(...orphanKeypoints);
+    }
 
     return items;
   }
@@ -171,7 +198,12 @@ class SidebarHandler {
 
       // Check position/bounds for changes
       if (current.type === 'keypoint' && newItem.type === 'keypoint') {
-        if (current.position.x !== newItem.position.x || current.position.y !== newItem.position.y) {
+        if (
+          current.position.x !== newItem.position.x ||
+          current.position.y !== newItem.position.y ||
+          current.boundingBoxID !== newItem.boundingBoxID ||
+          current.boundingBoxLabel !== newItem.boundingBoxLabel
+        ) {
           return true;
         }
       } else if (current.type === 'boundingbox' && newItem.type === 'boundingbox') {
