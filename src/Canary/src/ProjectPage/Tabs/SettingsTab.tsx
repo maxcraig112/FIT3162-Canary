@@ -332,15 +332,18 @@ export function SettingsTab({ project: _project, onSessionSettingsSaved }: Setti
           >
             <TextField
               label="Password"
+              type="password"
               variant="outlined"
               color="primary"
               focused
               autoComplete="off"
               sx={{ minWidth: '48%' }}
-              value={sessionPassword}
               onChange={(e) => setSessionPassword(e.target.value)}
               InputProps={{ style: { color: '#000' } }}
-              inputProps={{ name: 'canary-session-password', autoComplete: 'off' }}
+              inputProps={{
+                name: 'canary-session-password',
+                autoComplete: 'off',
+              }}
             />
           </Box>
           <Button variant="contained" sx={{ width: '100%' }} onClick={handleSaveSessionSettings}>

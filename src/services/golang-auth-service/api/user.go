@@ -9,10 +9,10 @@ import (
 	fs "pkg/gcp/firestore"
 	"pkg/handler"
 	"pkg/jwt"
+	"pkg/password"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type UserHandler struct {
@@ -81,7 +81,7 @@ func (h *UserHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error().Str("email", req.Email).Msg("Email already in use for register")
 		return
 	}
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	hashedPassword, err := password.HashPassword(req.Password)
 	if err != nil {
 		http.Error(w, "Error hashing password", http.StatusInternalServerError)
 		log.Error().Err(err).Str("email", req.Email).Msg("Error hashing password for register")
@@ -115,7 +115,7 @@ func (h *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+	if err := password.CheckPasswordHash(req.Password, user.Password); err != nil {
 		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
 		log.Info().Str("email", req.Email).Msg("Password mismatch for login")
 		return

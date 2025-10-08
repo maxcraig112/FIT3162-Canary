@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"pkg/handler"
-
 	fs "pkg/gcp/firestore"
+	"pkg/handler"
+	"pkg/password"
 	"websocket-service/firestore"
 	wsjwt "websocket-service/jwt"
 	"websocket-service/websocket"
@@ -157,7 +157,7 @@ func (sh *SessionHandler) JoinSessionHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if session.Password != "" && session.Password != req.Password {
+	if err := password.CheckPasswordHash(req.Password, session.Password); err != nil {
 		http.Error(w, "Invalid session password", http.StatusForbidden)
 		log.Warn().Str("sessionID", sessionID).Str("userID", req.UserID).Msg("Invalid session password")
 		return
