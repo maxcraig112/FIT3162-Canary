@@ -77,3 +77,42 @@ tasks:
       - task: lintProjectService
       - task: lintWebsocketService
       - task: lintServiceRunner
+    
+  tidyPkgService:
+    desc: Tidy the Go package service
+    dir: src/pkg
+    cmds:
+      - go mod tidy
+  
+  tidyAuthService:
+    desc: Tidy the Go authentication service
+    dir: src/services/golang-auth-service
+    cmds:
+      - go mod tidy
+  
+  tidyProjectService:
+    desc: Tidy the Go project service
+    dir: src/services/golang-project-service
+    cmds:
+      - go mod tidy
+  
+  tidyWebsocketService:
+    desc: Tidy the Go websocket service
+    dir: src/services/golang-websocket-service
+    cmds:
+      - go mod tidy
+  
+  tidyServiceRunner:
+    desc: Tidy the Go service-runner
+    dir: src/services/service-runner
+    cmds:
+      - go mod tidy
+  
+  tidyAll:
+    desc: Tidy all Go services
+    cmds:
+      - task: tidyPkgService
+      - task: tidyAuthService
+      - task: tidyProjectService
+      - task: tidyWebsocketService
+      - task: tidyServiceRunner
