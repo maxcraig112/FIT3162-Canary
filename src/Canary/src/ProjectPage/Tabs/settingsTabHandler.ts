@@ -50,19 +50,7 @@ export function useSettingsTab(projectID?: string, initialSettings?: ProjectSett
   const canUseApi = !!projectID;
 
   const performRename = useCallback(
-    async ({
-      oldName,
-      newNameRaw,
-      labels,
-      setLabels,
-      map,
-      setMap,
-      setError,
-      duplicateMessage,
-      failureMessage,
-      loadFn,
-      renameRequest,
-    }: RenameOperation) => {
+    async ({ oldName, newNameRaw, labels, setLabels, map, setMap, setError, duplicateMessage, failureMessage, loadFn, renameRequest }: RenameOperation) => {
       const newName = newNameRaw.trim();
       if (!oldName || !newName || oldName === newName) {
         return;
