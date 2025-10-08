@@ -112,6 +112,13 @@ func (h *KeypointLabelHandler) DeleteKeypointLabelHandler(w http.ResponseWriter,
 		return
 	}
 
+	err = h.KeypointStore.DeleteKeypointsByKeypointLabelID(h.Ctx, keypointLabelID)
+	if err != nil {
+		http.Error(w, "Error deleting associated keypoints", http.StatusInternalServerError)
+		log.Error().Err(err).Str("projectID", projectID).Msg("Error deleting associated keypoints")
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 	log.Info().Str("keypointLabelID", keypointLabelID).Msg("Keypoint label deleted successfully")
 	if _, err := fmt.Fprintf(w, "Keypoint label %s deleted", keypointLabelID); err != nil {

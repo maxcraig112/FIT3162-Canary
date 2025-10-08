@@ -205,3 +205,12 @@ func (s *KeypointStore) DeleteKeypointsByImageIDs(ctx context.Context, imageIDs 
 	}
 	return nil
 }
+
+func (s *KeypointStore) DeleteKeypointsByKeypointLabelID(ctx context.Context, keypointLabelID string) error {
+	qp := []fs.QueryParameter{{Path: "keypointLabelID", Op: "==", Value: keypointLabelID}}
+	err := s.genericStore.DeleteDocsByQuery(ctx, qp)
+	if err != fs.ErrNotFound {
+		return err
+	}
+	return nil
+}

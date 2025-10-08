@@ -105,7 +105,7 @@ func (s *BoundingBoxLabelStore) UpdateBoundingBoxLabelName(ctx context.Context, 
 	}
 
 	updateParams := []firestore.Update{
-		{Path: "keypointLabel", Value: req.BoundingBoxLabel},
+		{Path: "boundingBoxLabel", Value: req.BoundingBoxLabel},
 	}
 
 	return s.genericStore.UpdateDoc(ctx, req.BoundingBoxLabelID, updateParams)
