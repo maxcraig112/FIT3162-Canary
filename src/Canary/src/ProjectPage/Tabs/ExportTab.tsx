@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Box, Stack, FormControl, Select, MenuItem, Button, Alert, Typography } from '@mui/material';
 import { getAuthTokenFromCookie } from '../../utils/cookieUtils';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import type { Project } from '../../utils/intefaces/interfaces';
+import type { Project } from '../../utils/interfaces/interfaces';
 import { projectServiceUrl } from '../../utils/apis';
 
 type ExportFormat = 'coco' | 'pascal-voc';

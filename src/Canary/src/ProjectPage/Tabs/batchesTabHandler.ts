@@ -3,9 +3,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 // We keep it generic here to avoid coupling this logic file to router implementation details.
 type NavigateFn = (path: string) => void;
 import { CallAPI, projectServiceUrl } from '../../utils/apis';
-import type { Batch } from '../../utils/intefaces/interfaces';
-import { getProject } from '../../utils/intefaces/project';
-import { createSession } from '../../utils/intefaces/session';
+import type { Batch } from '../../utils/interfaces/interfaces';
+import { getProject } from '../../utils/interfaces/project';
+import { createSession } from '../../utils/interfaces/session';
 import { setCookie } from '../../utils/cookieUtils';
 
 export async function fetchBatches(projectID: string): Promise<Batch[]> {

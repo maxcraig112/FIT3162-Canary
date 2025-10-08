@@ -2,7 +2,7 @@ import * as fabric from 'fabric';
 import { CallAPI, projectServiceUrl } from '../utils/apis';
 import { devRewriteURL } from './helper';
 import * as React from 'react';
-import type { BoundingBoxAnnotation, KeypointAnnotation } from '../utils/intefaces/interfaces';
+import type { BoundingBoxAnnotation, KeypointAnnotation } from '../utils/interfaces/interfaces';
 
 export type ImageMeta = {
   imageID: string;

@@ -2,7 +2,7 @@
 
 import { getBoundingBoxLabelName, getKeypointLabelName } from './labelRegistry';
 import type { ImageHandler } from './imageStateHandler';
-import type { BoundingBoxAnnotation, KeypointAnnotation } from '../utils/intefaces/interfaces';
+import type { BoundingBoxAnnotation, KeypointAnnotation } from '../utils/interfaces/interfaces';
 
 export interface SidebarKeypointItem {
   id: string;

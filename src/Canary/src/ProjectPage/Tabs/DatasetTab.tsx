@@ -4,7 +4,7 @@ import { Box, Paper, IconButton, Menu, MenuItem, Typography, Dialog, DialogTitle
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useDatasetTab } from './datasetTabHandler';
 import { useParams } from 'react-router-dom';
-import type { Project } from '../../utils/intefaces/interfaces';
+import type { Project } from '../../utils/interfaces/interfaces';
 
 export const DatasetTab: React.FC<{ project: Project | null }> = () => {
   const { projectID } = useParams<{ projectID: string }>();

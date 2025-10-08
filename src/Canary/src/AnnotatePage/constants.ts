@@ -1,5 +1,5 @@
 import * as fabric from 'fabric';
-import type { BoundingBoxAnnotation, KeypointAnnotation } from '../utils/intefaces/interfaces';
+import type { BoundingBoxAnnotation, KeypointAnnotation } from '../utils/interfaces/interfaces';
 
 export function createKeypointAnnotation(data: Omit<KeypointAnnotation, 'kind'>): KeypointAnnotation {
   return {

@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { CallAPI, projectServiceUrl } from '../../utils/apis';
-import type { Project } from '../../utils/intefaces/interfaces';
+import type { Project } from '../../utils/interfaces/interfaces';
 
 export function useUploadTab(project: Project | null) {
   const [uploading, setUploading] = useState(false);

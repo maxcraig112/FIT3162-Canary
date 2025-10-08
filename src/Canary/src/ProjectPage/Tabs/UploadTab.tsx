@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { Box, Button, Typography, LinearProgress, Alert, Fade, Stack, TextField } from '@mui/material';
 import { useUploadTab } from './uploadTabHandler';
-import type { Project } from '../../utils/intefaces/interfaces';
+import type { Project } from '../../utils/interfaces/interfaces';
 
 interface UploadTabProps {
   project: Project | null;
@@ -42,7 +42,7 @@ export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
           }}
           InputLabelProps={{
             sx: {
-              color: '#000',
+              color: '#999',
               '&.Mui-focused': { color: '#000' },
             },
           }}
@@ -50,10 +50,6 @@ export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
             alignSelf: 'center',
             maxWidth: 480,
             '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
-            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#666' },
-            '& .Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: '#666',
-            },
           }}
           placeholder={`Upload ${new Date().toLocaleDateString()}`}
         />

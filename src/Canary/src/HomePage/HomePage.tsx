@@ -9,7 +9,7 @@ import { handleProjectsPage } from './homeHandlers';
 import { clearCookie, setCookie } from '../utils/cookieUtils';
 import canaryImg from '../images/canary.jpg';
 import { useAuthGuard } from '../utils/authUtil';
-import { joinSession } from '../utils/intefaces/session';
+import { joinSession } from '../utils/interfaces/session';
 
 const HomePage: React.FC = () => {
   // validate the user authentication, otherwise redirect to login
@@ -135,7 +135,7 @@ const HomePage: React.FC = () => {
                 backgroundColor: CANARY_BUTTON_COLOR,
                 color: CANARY_BUTTON_TEXT_COLOR,
                 '&:hover': {
-                  backgroundColor: '#0097a7',
+                  backgroundColor: '#e6c200',
                   color: CANARY_BUTTON_TEXT_COLOR,
                 },
               }}
@@ -154,7 +154,7 @@ const HomePage: React.FC = () => {
                 backgroundColor: CANARY_BUTTON_COLOR,
                 color: CANARY_BUTTON_TEXT_COLOR,
                 '&:hover': {
-                  backgroundColor: '#0097a7',
+                  backgroundColor: '#e6c200',
                   color: CANARY_BUTTON_TEXT_COLOR,
                 },
               }}
@@ -175,7 +175,18 @@ const HomePage: React.FC = () => {
                 <TextField label="Password" variant="outlined" type="password" value={sessionPassword} onChange={(e) => setSessionPassword(e.target.value)} fullWidth autoComplete="off" />
                 <Button
                   variant="contained"
-                  sx={{ fontWeight: 700, fontSize: '1.2rem', borderRadius: 3, py: 1, backgroundColor: CANARY_BUTTON_COLOR, color: CANARY_BUTTON_TEXT_COLOR }}
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: '1.2rem',
+                    borderRadius: 3,
+                    py: 1,
+                    backgroundColor: CANARY_BUTTON_COLOR,
+                    color: CANARY_BUTTON_TEXT_COLOR,
+                    '&:hover': {
+                      backgroundColor: '#e6c200',
+                      color: CANARY_BUTTON_TEXT_COLOR,
+                    },
+                  }}
                   onClick={handleJoinSession}
                 >
                   Join
@@ -208,7 +219,7 @@ const HomePage: React.FC = () => {
               color: CANARY_BUTTON_TEXT_COLOR,
               backgroundColor: CANARY_BUTTON_COLOR,
               '&:hover': {
-                backgroundColor: '#0097a7',
+                backgroundColor: '#e6c200',
                 color: CANARY_BUTTON_TEXT_COLOR,
                 border: '2px solid #fff',
               },

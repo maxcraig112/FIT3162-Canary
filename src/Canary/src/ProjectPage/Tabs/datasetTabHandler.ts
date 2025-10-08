@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CallAPI, projectServiceUrl } from '../../utils/apis';
-import type { Batch } from '../../utils/intefaces/interfaces';
+import type { Batch } from '../../utils/interfaces/interfaces';
 
 export async function fetchBatches(projectID: string): Promise<Batch[]> {
   const url = `${projectServiceUrl()}/projects/${projectID}/batches`;

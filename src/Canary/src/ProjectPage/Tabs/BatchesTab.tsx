@@ -4,7 +4,7 @@ import { Box, Paper, IconButton, Menu, MenuItem, Typography, Dialog, DialogTitle
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useBatchesTab } from './batchesTabHandler';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { Project } from '../../utils/intefaces/interfaces';
+import type { Project } from '../../utils/interfaces/interfaces';
 
 export const BatchesTab: React.FC<{ project: Project | null }> = () => {
   const { projectID } = useParams<{ projectID: string }>();

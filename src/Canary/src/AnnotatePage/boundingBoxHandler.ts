@@ -4,7 +4,7 @@ import { getBoundingBoxLabelName } from './labelRegistry';
 import { polygonCentroid } from './helper';
 import { CallAPI, projectServiceUrl } from '../utils/apis';
 import { createBoundingBoxAnnotation } from './constants';
-import type { BoundingBoxAnnotation } from '../utils/intefaces/interfaces';
+import type { BoundingBoxAnnotation } from '../utils/interfaces/interfaces';
 
 export const BoundingBoxFabricHandler = {
   createFabricBoundingBox(canvas: fabric.Canvas, ann: BoundingBoxAnnotation, transform?: { scale: number; offsetX: number; offsetY: number }): { group: fabric.Group } {
