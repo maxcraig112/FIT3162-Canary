@@ -1,0 +1,54 @@
+name: Deploy all services (frontend + auth + project + websocket)
+
+on:
+  workflow_dispatch:
+    inputs:
+      imageTag:
+        description: "Optional image tag to deploy (defaults to commit SHA)"
+        required: false
+        type: string
+
+jobs:
+  frontend:
+    name: Frontend
+    uses: ./.github/workflows/deploy-canary-frontend.yml
+    with:
+      imageTag: ${{ github.event.inputs.imageTag }}
+    secrets: inherit
+
+  auth:
+    name: Auth Service
+    uses: ./.github/workflows/deploy-auth-service.yml
+    with:
+      imageTag: ${{ github.event.inputs.imageTag }}
+    secrets: inherit
+
+  project:
+    name: Project Service
+    uses: ./.github/workflows/deploy-project-service.yml
+    with:
+      imageTag: ${{ github.event.inputs.imageTag }}
+    secrets: inherit
+
+  websocket:
+    name: Websocket Service
+    uses: ./.github/workflows/deploy-websocket-service.yml
+    with:
+      imageTag: ${{ github.event.inputs.imageTag }}
+    secrets: inherit
+
+  summary:
+    name: Summary
+    runs-on: ubuntu-latest
+    needs: [frontend, auth, project, websocket]
+    steps:
+      - name: Deployment Summary
+        run: |
+          echo "All services deployed." \
+          && echo "Frontend job conclusion: ${{ needs.frontend.result }}" \
+          && echo "Auth job conclusion: ${{ needs.auth.result }}" \
+          && echo "Project job conclusion: ${{ needs.project.result }}" \
+          && echo "Websocket job conclusion: ${{ needs.websocket.result }}" \
+          && if [ '${{ needs.frontend.result }}' != 'success' ] || [ '${{ needs.auth.result }}' != 'success' ] || [ '${{ needs.project.result }}' != 'success' ] || [ '${{ needs.websocket.result }}' != 'success' ]; then \
+                echo 'One or more deployments failed.'; exit 1; \
+             fi
