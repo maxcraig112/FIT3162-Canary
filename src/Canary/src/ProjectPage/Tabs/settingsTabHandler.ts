@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { CallAPI, projectServiceUrl } from '../../utils/apis';
 
 type KeypointLabelDTO = {
@@ -14,6 +14,20 @@ type BoundingBoxLabelDTO = {
 };
 
 type ProjectSettingsDTO = { session?: { enabled?: boolean; password?: string } };
+
+type RenameOperation = {
+  oldName: string;
+  newNameRaw: string;
+  labels: string[];
+  setLabels: Dispatch<SetStateAction<string[]>>;
+  map: Record<string, string>;
+  setMap: Dispatch<SetStateAction<Record<string, string>>>;
+  setError: Dispatch<SetStateAction<string | null>>;
+  duplicateMessage: string;
+  failureMessage: string;
+  loadFn?: () => Promise<void>;
+  renameRequest?: (id: string, newName: string) => Promise<void>;
+};
 
 export function useSettingsTab(projectID?: string, initialSettings?: ProjectSettingsDTO | null) {
   // Session settings state
@@ -34,6 +48,67 @@ export function useSettingsTab(projectID?: string, initialSettings?: ProjectSett
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
   const canUseApi = !!projectID;
+
+  const performRename = useCallback(
+    async ({
+      oldName,
+      newNameRaw,
+      labels,
+      setLabels,
+      map,
+      setMap,
+      setError,
+      duplicateMessage,
+      failureMessage,
+      loadFn,
+      renameRequest,
+    }: RenameOperation) => {
+      const newName = newNameRaw.trim();
+      if (!oldName || !newName || oldName === newName) {
+        return;
+      }
+
+      if (labels.includes(newName)) {
+        setError(duplicateMessage);
+        return;
+      }
+
+      setError(null);
+
+      const prevLabels = [...labels];
+      const prevMap = { ...map };
+      const id = map[oldName];
+
+      setLabels((prev) => prev.map((label) => (label === oldName ? newName : label)));
+      setMap((prev) => {
+        if (!id) return prev;
+        const next = { ...prev };
+        delete next[oldName];
+        next[newName] = id;
+        return next;
+      });
+
+      if (!canUseApi || !renameRequest || !id) {
+        return;
+      }
+
+      try {
+        await renameRequest(id, newName);
+        await loadFn?.();
+        setError(null);
+      } catch (err) {
+        setLabels(prevLabels);
+        setMap(prevMap);
+        const message = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
+        if (message.includes('already exists')) {
+          setError(duplicateMessage);
+        } else {
+          setError(failureMessage);
+        }
+      }
+    },
+    [canUseApi],
+  );
 
   const loadKeypointLabels = useCallback(async () => {
     if (!projectID) return;
@@ -249,126 +324,56 @@ export function useSettingsTab(projectID?: string, initialSettings?: ProjectSett
 
   const renameKeypointLabel = useCallback(
     async (oldName: string, newNameRaw: string) => {
-      const newName = newNameRaw.trim();
-      if (!oldName || !newName || oldName === newName) return;
-
-      // Optimistic local update
-      const prevKpLabels = keypointLabels;
-      const prevKpMap = kpMap;
-      const id = kpMap[oldName];
-
-      if (prevKpLabels.includes(newName)) {
-        setKeypointError('Keypoint label already exists.');
-        return;
-      }
-
-      setKeypointError(null);
-
-      const applyLocal = () => {
-        setKeypointLabels((prev) => prev.map((n) => (n === oldName ? newName : n)));
-        setKpMap((prev) => {
-          const next = { ...prev };
-          if (id) {
-            delete next[oldName];
-            next[newName] = id;
-          }
-          return next;
-        });
-      };
-
-      const rollbackLocal = () => {
-        setKeypointLabels(prevKpLabels);
-        setKpMap(prevKpMap);
-      };
-
-      applyLocal();
-
-      if (!canUseApi || !projectID || !id) {
-        // No API, keep local
-        return;
-      }
-
-      try {
-        const url = `${projectServiceUrl()}/projects/${projectID}/keypointlabel/${id}`;
-        await CallAPI<string>(url, {
-          method: 'PATCH',
-          json: { keypointLabel: newName },
-          parseJson: false,
-        });
-        await loadKeypointLabels(); // ensure sync with server state/ids
-        setKeypointError(null);
-      } catch (err) {
-        rollbackLocal();
-        const message = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
-        if (message.includes('already exists')) {
-          setKeypointError('Keypoint label already exists.');
-        } else {
-          setKeypointError('Failed to rename keypoint label.');
-        }
-      }
+      await performRename({
+        oldName,
+        newNameRaw,
+        labels: keypointLabels,
+        setLabels: setKeypointLabels,
+        map: kpMap,
+        setMap: setKpMap,
+        setError: setKeypointError,
+        duplicateMessage: 'Keypoint label already exists.',
+        failureMessage: 'Failed to rename keypoint label.',
+        loadFn: loadKeypointLabels,
+        renameRequest:
+          canUseApi && projectID
+            ? (id: string, newName: string) =>
+                CallAPI<void>(`${projectServiceUrl()}/projects/${projectID}/keypointlabel/${id}`, {
+                  method: 'PATCH',
+                  json: { keypointLabel: newName },
+                  parseJson: false,
+                })
+            : undefined,
+      });
     },
-    [canUseApi, projectID, keypointLabels, kpMap, loadKeypointLabels],
+    [canUseApi, projectID, keypointLabels, kpMap, loadKeypointLabels, performRename],
   );
 
   const renameBboxLabel = useCallback(
     async (oldName: string, newNameRaw: string) => {
-      const newName = newNameRaw.trim();
-      if (!oldName || !newName || oldName === newName) return;
-
-      const prevBbLabels = bboxLabels;
-      const prevBbMap = bbMap;
-      const id = bbMap[oldName];
-
-      if (prevBbLabels.includes(newName)) {
-        setBboxError('Bounding box label already exists.');
-        return;
-      }
-
-      setBboxError(null);
-
-      const applyLocal = () => {
-        setBboxLabels((prev) => prev.map((n) => (n === oldName ? newName : n)));
-        setBbMap((prev) => {
-          const next = { ...prev };
-          if (id) {
-            delete next[oldName];
-            next[newName] = id;
-          }
-          return next;
-        });
-      };
-
-      const rollbackLocal = () => {
-        setBboxLabels(prevBbLabels);
-        setBbMap(prevBbMap);
-      };
-
-      applyLocal();
-
-      if (!canUseApi || !projectID || !id) {
-        return;
-      }
-
-      try {
-        const url = `${projectServiceUrl()}/projects/${projectID}/boundingboxlabel/${id}`;
-        await CallAPI<string>(url, {
-          method: 'PATCH',
-          json: { boundingBoxLabel: newName },
-          parseJson: false,
-        });
-        await loadBoundingBoxLabels();
-        setBboxError(null);
-      } catch (err) {
-        rollbackLocal();
-        const message = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
-        if (message.includes('already exists')) {
-          setBboxError('Bounding box label already exists.');
-        } else {
-          setBboxError('Failed to rename bounding box label.');
-        }
-      }
+      await performRename({
+        oldName,
+        newNameRaw,
+        labels: bboxLabels,
+        setLabels: setBboxLabels,
+        map: bbMap,
+        setMap: setBbMap,
+        setError: setBboxError,
+        duplicateMessage: 'Bounding box label already exists.',
+        failureMessage: 'Failed to rename bounding box label.',
+        loadFn: loadBoundingBoxLabels,
+        renameRequest:
+          canUseApi && projectID
+            ? (id: string, newName: string) =>
+                CallAPI<void>(`${projectServiceUrl()}/projects/${projectID}/boundingboxlabel/${id}`, {
+                  method: 'PATCH',
+                  json: { boundingBoxLabel: newName },
+                  parseJson: false,
+                })
+            : undefined,
+      });
     },
-    [canUseApi, projectID, bboxLabels, bbMap, loadBoundingBoxLabels],
+    [canUseApi, projectID, bboxLabels, bbMap, loadBoundingBoxLabels, performRename],
   );
 
   return {
