@@ -15,6 +15,7 @@ import { useAuthGuard } from '../utils/authUtil';
 // import { useSharedImageHandler } from './imagehandlercontext';
 import { useImageHandler } from './imageStateHandler';
 import { initialiseSessionWebSocket, getActiveSessionID, sendActiveImageID, closeSessionWebSocket, setNavigateAway } from './sessionHandler';
+import { sidebarHandler, type SidebarAnnotationItem } from './sidebarHandler';
 import Fade from '@mui/material/Fade';
 
 const AnnotatePage: React.FC = () => {
@@ -63,6 +64,7 @@ const AnnotatePage: React.FC = () => {
   const [bbOptions, setBbOptions] = useState<string[]>([]);
   const [hasPrev, setHasPrev] = useState(false);
   const [memberNotices, setMemberNotices] = useState<{ id: string; memberID: string; type: 'member_joined' | 'member_left' }[]>([]);
+  const [sidebarItems, setSidebarItems] = useState<SidebarAnnotationItem[]>([]);
 
   const lastRenderKeyRef = useRef<string | null>(null);
 
@@ -202,6 +204,12 @@ const AnnotatePage: React.FC = () => {
     };
   }, [computeAvailableKeypointLabels]);
 
+  // Subscribe to sidebar updates
+  useEffect(() => {
+    const unsubscribe = sidebarHandler.subscribe(setSidebarItems);
+    return unsubscribe;
+  }, []);
+
   // Undo/Redo keydown handler
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -313,18 +321,79 @@ const AnnotatePage: React.FC = () => {
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', bgcolor: '#f5f5f5' }}>
-      {/* Left Sidebar (now empty placeholder, centered) */}
+      {/* Left Sidebar - Annotations List */}
       <Paper
         elevation={2}
         sx={{
-          width: 200,
+          width: 280,
+          minWidth: 280,
+          maxWidth: 320,
           p: 2,
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
+          height: '100%',
+          overflow: 'hidden',
         }}
-      />
+      >
+        <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+          Annotations
+        </Typography>
+        <Box
+          sx={{
+            flexGrow: 1,
+            overflow: 'auto',
+            maxHeight: 'calc(100vh - 120px)',
+          }}
+        >
+          {sidebarItems.length === 0 ? (
+            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', textAlign: 'center', mt: 4 }}>
+              No annotations on this image
+            </Typography>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {sidebarItems.map((item) => (
+                <Paper
+                  key={item.id}
+                  elevation={1}
+                  sx={{
+                    p: 1.5,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    borderLeft: `4px solid ${item.type === 'keypoint' ? '#f97316' : '#2563eb'}`,
+                    '&:hover': {
+                      elevation: 2,
+                      bgcolor: 'action.hover',
+                    },
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                    <Box
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        bgcolor: item.type === 'keypoint' ? '#f97316' : '#2563eb',
+                        flexShrink: 0,
+                      }}
+                    />
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                      {item.type === 'keypoint' ? 'KP' : 'BB'}
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500, flexGrow: 1 }}>
+                      {item.label}
+                    </Typography>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                    {item.type === 'keypoint'
+                      ? `Position: (${item.position.x}, ${item.position.y})`
+                      : `Center: (${item.center.x}, ${item.center.y}) | Size: ${item.bounds.maxX - item.bounds.minX}×${item.bounds.maxY - item.bounds.minY}`}
+                  </Typography>
+                </Paper>
+              ))}
+            </Box>
+          )}
+        </Box>
+      </Paper>
 
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
