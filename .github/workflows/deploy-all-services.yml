@@ -8,33 +8,37 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   frontend:
     name: Frontend
     uses: ./.github/workflows/deploy-canary-frontend.yml
     with:
-      imageTag: ${{ inputs.imageTag || github.event.inputs.imageTag }}
+      imageTag: ${{ github.event.inputs.imageTag }}
     secrets: inherit
 
   auth:
     name: Auth Service
     uses: ./.github/workflows/deploy-auth-service.yml
     with:
-      imageTag: ${{ inputs.imageTag || github.event.inputs.imageTag }}
+      imageTag: ${{ github.event.inputs.imageTag }}
     secrets: inherit
 
   project:
     name: Project Service
     uses: ./.github/workflows/deploy-project-service.yml
     with:
-      imageTag: ${{ inputs.imageTag || github.event.inputs.imageTag }}
+      imageTag: ${{ github.event.inputs.imageTag }}
     secrets: inherit
 
   websocket:
     name: Websocket Service
     uses: ./.github/workflows/deploy-websocket-service.yml
     with:
-      imageTag: ${{ inputs.imageTag || github.event.inputs.imageTag }}
+      imageTag: ${{ github.event.inputs.imageTag }}
     secrets: inherit
 
   summary:
