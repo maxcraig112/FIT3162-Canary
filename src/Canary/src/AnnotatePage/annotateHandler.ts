@@ -181,7 +181,7 @@ export const annotateHandler = {
   // Resize canvas and maintain annotations positioning
   resizeCanvas(containerWidth: number, containerHeight: number) {
     if (!canvasRef || !imageHandlerRef) return;
-    
+
     const imageHandler = imageHandlerRef;
     const imageURL = imageHandler.currentImageURL;
     if (!imageURL || currentImageW <= 0 || currentImageH <= 0) return;
@@ -208,14 +208,14 @@ export const annotateHandler = {
         left: offsetX,
         top: offsetY,
         scaleX: scale,
-        scaleY: scale
+        scaleY: scale,
       });
     }
 
     // Clear and redraw all annotations with new transform
     clearAnnotationGroups();
     drawAnnotationsForCurrentImage(imageHandler, imageURL);
-    
+
     canvasRef.requestRenderAll();
   },
   // When you press OK to confirm the name of a label
@@ -281,8 +281,8 @@ export const annotateHandler = {
           offsetX: currentOffsetX,
           offsetY: currentOffsetY,
         });
-  groupToAnnotation.set(group, { kind: 'kp', ann: createdAnn });
-  registerAnnotationGroup(group, 'kp');
+        groupToAnnotation.set(group, { kind: 'kp', ann: createdAnn });
+        registerAnnotationGroup(group, 'kp');
         const s = imageHandler.annotationStore.get(imageHandler.currentImageURL) ?? { kps: [], bbs: [] };
         s.kps.push(createdAnn);
         imageHandler.annotationStore.set(imageHandler.currentImageURL, s);
@@ -309,8 +309,8 @@ export const annotateHandler = {
           offsetX: currentOffsetX,
           offsetY: currentOffsetY,
         });
-  groupToAnnotation.set(group, { kind: 'bb', ann: createdAnn });
-  registerAnnotationGroup(group, 'bb');
+        groupToAnnotation.set(group, { kind: 'bb', ann: createdAnn });
+        registerAnnotationGroup(group, 'bb');
         const s = imageHandler.annotationStore.get(imageHandler.currentImageURL) ?? { kps: [], bbs: [] };
         s.bbs.push(createdAnn);
         imageHandler.annotationStore.set(imageHandler.currentImageURL, s);
@@ -421,7 +421,7 @@ export const annotateHandler = {
       if (!pendingEdit) return;
       const target = (opt as unknown as { target?: fabric.Object }).target;
       if (!target || !isGroup(target) || target !== pendingEdit.group) return;
-      
+
       // Ensure we can only move annotations when the correct tool is selected
       const mapped = groupToAnnotation.get(target as fabric.Group);
       if (mapped) {
@@ -436,7 +436,7 @@ export const annotateHandler = {
           return;
         }
       }
-      
+
       updatePendingEditDraft();
     });
 
@@ -549,18 +549,22 @@ export const annotateHandler = {
     // Fetch both keypoints and bounding boxes in parallel to avoid flickering
     const needsKpsFetch = !store.has(meta.imageURL) || (store.get(meta.imageURL)?.kps.length ?? 0) === 0;
     const needsBbsFetch = !store.has(meta.imageURL) || (store.get(meta.imageURL)?.bbs.length ?? 0) === 0;
-    
+
     if (needsKpsFetch || needsBbsFetch) {
       try {
         const [kps, bbs] = await Promise.all([
-          needsKpsFetch ? keypointDatabaseHandler.getAllKeyPoints(projectID, meta.imageID).catch((e) => {
-            console.error('[KP] Failed to fetch existing keypoints:', e);
-            return [];
-          }) : Promise.resolve([]),
-          needsBbsFetch ? boundingBoxDatabaseHandler.getAllBoundingBoxes(projectID, meta.imageID).catch((e) => {
-            console.error('[BB] Failed to fetch existing bounding boxes:', e);
-            return [];
-          }) : Promise.resolve([])
+          needsKpsFetch
+            ? keypointDatabaseHandler.getAllKeyPoints(projectID, meta.imageID).catch((e) => {
+                console.error('[KP] Failed to fetch existing keypoints:', e);
+                return [];
+              })
+            : Promise.resolve([]),
+          needsBbsFetch
+            ? boundingBoxDatabaseHandler.getAllBoundingBoxes(projectID, meta.imageID).catch((e) => {
+                console.error('[BB] Failed to fetch existing bounding boxes:', e);
+                return [];
+              })
+            : Promise.resolve([]),
         ]);
 
         // Update store with fetched annotations
@@ -612,7 +616,7 @@ export const annotateHandler = {
 
     // Draw annotations using current transform
     drawAnnotationsForCurrentImage(imageHandler, meta.imageURL);
-  sidebarHandler.updateSidebar(imageHandler, { imageURL: meta.imageURL });
+    sidebarHandler.updateSidebar(imageHandler, { imageURL: meta.imageURL });
     canvasRef.requestRenderAll();
 
     return { current: imageHandler.currentImageNumber, total };
@@ -647,7 +651,7 @@ export const annotateHandler = {
       imageHandler.annotationStore.set(imageURL, { kps, bbs });
       clearAnnotationGroups();
       drawAnnotationsForCurrentImage(imageHandler, imageURL);
-  sidebarHandler.updateSidebar(imageHandler, { imageURL });
+      sidebarHandler.updateSidebar(imageHandler, { imageURL });
       canvasRef.requestRenderAll();
     } catch (e) {
       console.warn('[Annotate] refreshAnnotations failed', e);

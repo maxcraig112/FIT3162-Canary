@@ -159,30 +159,35 @@ class SidebarHandler {
     if (this.currentItems.length !== newItems.length) {
       return true;
     }
-    
+
     // Check if any item has changed
     for (let i = 0; i < newItems.length; i++) {
       const current = this.currentItems[i];
       const newItem = newItems[i];
-      
+
       if (!current || current.id !== newItem.id || current.label !== newItem.label || current.type !== newItem.type) {
         return true;
       }
-      
+
       // Check position/bounds for changes
       if (current.type === 'keypoint' && newItem.type === 'keypoint') {
         if (current.position.x !== newItem.position.x || current.position.y !== newItem.position.y) {
           return true;
         }
       } else if (current.type === 'boundingbox' && newItem.type === 'boundingbox') {
-        if (current.center.x !== newItem.center.x || current.center.y !== newItem.center.y ||
-            current.bounds.minX !== newItem.bounds.minX || current.bounds.minY !== newItem.bounds.minY ||
-            current.bounds.maxX !== newItem.bounds.maxX || current.bounds.maxY !== newItem.bounds.maxY) {
+        if (
+          current.center.x !== newItem.center.x ||
+          current.center.y !== newItem.center.y ||
+          current.bounds.minX !== newItem.bounds.minX ||
+          current.bounds.minY !== newItem.bounds.minY ||
+          current.bounds.maxX !== newItem.bounds.maxX ||
+          current.bounds.maxY !== newItem.bounds.maxY
+        ) {
           return true;
         }
       }
     }
-    
+
     return false;
   }
 
