@@ -14,7 +14,7 @@ import MenuItem from '@mui/material/MenuItem';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import InputBase from '@mui/material/InputBase';
 import { useSettingsTab } from './settingsTabHandler';
-import type { Project } from '../../utils/intefaces/interfaces';
+import type { Project, Session } from '../../utils/intefaces/interfaces';
 
 type ListPanelProps = {
   inputValue: string;
@@ -210,7 +210,12 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
   );
 });
 
-export function SettingsTab({ project: _project }: { project: Project | null }) {
+type SettingsTabProps = {
+  project: Project | null;
+  onSessionSettingsSaved?: (session: Session) => void;
+};
+
+export function SettingsTab({ project: _project, onSessionSettingsSaved }: SettingsTabProps) {
   const projectID = _project?.projectID;
   const {
     sessionEnabled,
@@ -237,6 +242,17 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
     renameKeypointLabel,
     renameBboxLabel,
   } = useSettingsTab(projectID, (_project as unknown as { settings?: { session?: { enabled?: boolean; password?: string } } } | null)?.settings ?? null);
+
+  const handleSaveSessionSettings = async () => {
+    try {
+      await saveSessionSettings();
+      onSessionSettingsSaved?.({ enabled: sessionEnabled, password: sessionPassword });
+      setTimeout(() => clearSaveSuccess(), 2500);
+    } catch (e) {
+      console.error('Failed to save settings', e);
+      alert(e instanceof Error ? e.message : 'Failed to save settings');
+    }
+  };
 
   return (
     <Box
@@ -327,20 +343,7 @@ export function SettingsTab({ project: _project }: { project: Project | null }) 
               inputProps={{ name: 'canary-session-password', autoComplete: 'off' }}
             />
           </Box>
-          <Button
-            variant="contained"
-            sx={{ width: '100%' }}
-            onClick={async () => {
-              try {
-                await saveSessionSettings();
-                // Auto clear after 2.5s
-                setTimeout(() => clearSaveSuccess(), 2500);
-              } catch (e) {
-                console.error('Failed to save settings', e);
-                alert(e instanceof Error ? e.message : 'Failed to save settings');
-              }
-            }}
-          >
+          <Button variant="contained" sx={{ width: '100%' }} onClick={handleSaveSessionSettings}>
             Save
           </Button>
           {saveSuccess && (
