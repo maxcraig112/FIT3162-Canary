@@ -317,7 +317,7 @@ export const annotateHandler = {
       if (!imageID) return;
 
       if (currentTool === 'kp' && pendingKP) {
-  const { marker, imagePoint, boundingBox } = pendingKP;
+        const { marker, imagePoint, boundingBox } = pendingKP;
         if (!marker) return;
         const resolvedBoundingBox = getBoundingBoxById(boundingBox.id);
         if (!resolvedBoundingBox) {
@@ -861,7 +861,7 @@ function updatePendingEditDraft() {
       y: original.position.y + dyImage,
     };
     const boundingBox = getBoundingBoxById(original.boundingBoxID);
-  if (boundingBox && !(isPointWithinBoundingBox(nextPosition, boundingBox) || isPointInPolygon(nextPosition, boundingBox.points))) {
+    if (boundingBox && !(isPointWithinBoundingBox(nextPosition, boundingBox) || isPointInPolygon(nextPosition, boundingBox.points))) {
       const group = pendingEdit.group;
       group.set({ left: pendingEdit.startLeft, top: pendingEdit.startTop });
       group.setCoords();
