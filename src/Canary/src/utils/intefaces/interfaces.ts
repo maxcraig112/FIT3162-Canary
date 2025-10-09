@@ -32,6 +32,7 @@ export interface KeypointAnnotation {
   imageID: string;
   id: string;
   labelID: string;
+  boundingBoxID: string;
   position: { x: number; y: number };
   // addToDatabase(): Promise<void>;
   // removeFromDatabase(): Promise<void>;

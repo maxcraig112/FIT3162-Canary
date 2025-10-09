@@ -21,6 +21,7 @@ export type LabelRequest = {
   y: number;
   mode: 'create' | 'edit';
   currentLabel?: string;
+  boundingBoxID?: string;
   /**
    * When true, the request is only to reposition the existing open label/OK overlay (e.g. while dragging)
    * and the current typed value in the UI should be preserved (don't reset the input to currentLabel).

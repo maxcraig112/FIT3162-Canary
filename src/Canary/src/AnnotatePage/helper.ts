@@ -48,6 +48,23 @@ export function getCentreOfCanvas(canvas: fabric.Canvas): { x: number; y: number
   };
 }
 
+export function isPointInPolygon(point: { x: number; y: number }, polygon: Array<{ x: number; y: number }>): boolean {
+  if (polygon.length < 3) {
+    return false;
+  }
+
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const pi = polygon[i];
+    const pj = polygon[j];
+
+    const intersect = pi.y > point.y !== pj.y > point.y && point.x < ((pj.x - pi.x) * (point.y - pi.y)) / (pj.y - pi.y) + pi.x;
+    if (intersect) inside = !inside;
+  }
+
+  return inside;
+}
+
 // Route all GCS requests through same-origin /gcs proxy (handled by Vite dev or NGINX) to avoid CORS
 export function devRewriteURL(url: string): string {
   return url.replace(/^https?:\/\/storage\.googleapis\.com/, '/gcs');
