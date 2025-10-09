@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Toolbar, AppBar, Button, TextField, Paper, IconButton, InputAdornment, Modal, Menu, MenuItem, Checkbox, FormControlLabel } from '@mui/material';
-import ExitToAppIcon from '@mui/icons-material/ExitToApp';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SearchIcon from '@mui/icons-material/Search';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import * as projectHandler from './projectHandler';
 import { useNavigate } from 'react-router-dom';
 import { useAuthGuard } from '../utils/authUtil';
-import type { Project } from '../utils/intefaces/interfaces';
+import type { Project } from '../utils/interfaces/interfaces';
 
 const ProjectsPage: React.FC = () => {
   // validate the user authentication, otherwise redirect to login
@@ -68,26 +68,17 @@ const ProjectsPage: React.FC = () => {
       sx={{
         width: '100%',
         minHeight: '100vh',
-        bgcolor: '#f5f5f5',
+        bgcolor: '#f9fafc',
       }}
     >
       <AppBar
         position="static"
         elevation={0}
         sx={{
-          background: 'linear-gradient(135deg,#2c3a47 0%, #1f2732 55%, #192029 100%)',
-          color: '#f1f5f9',
-          boxShadow: '0 4px 14px rgba(0,0,0,0.4)',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-          position: 'relative',
-          '&:before': {
-            content: '""',
-            position: 'absolute',
-            inset: 0,
-            background: 'radial-gradient(circle at 25% 20%, rgba(255,255,255,0.09), transparent 60%)',
-            pointerEvents: 'none',
-            mixBlendMode: 'overlay',
-          },
+          backgroundColor: '#ffffff',
+          color: '#0f172a',
+          borderBottom: '1px solid #e5e7eb',
+          boxShadow: '0 2px 8px rgba(15, 23, 42, 0.06)',
         }}
       >
         <Toolbar
@@ -95,34 +86,34 @@ const ProjectsPage: React.FC = () => {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            minHeight: { xs: 92, md: 104 },
+            minHeight: { xs: 88, md: 100 },
             px: { xs: 2.5, md: 6 },
             gap: 4,
           }}
         >
           <Button
-            startIcon={<ExitToAppIcon sx={{ fontSize: 32 }} />}
             onClick={handleBackToAllProjects}
             sx={{
-              color: '#f1f5f9',
+              color: '#0f172a',
               display: 'flex',
               alignItems: 'center',
-              minWidth: 80,
-              minHeight: 56,
-              p: 1,
-              borderRadius: 3,
               justifyContent: 'center',
-              backgroundColor: 'rgba(255,255,255,0.04)',
-              '&:hover': { backgroundColor: 'rgba(255,255,255,0.10)' },
+              minWidth: 40,
+              minHeight: 40,
+              p: 1.5,
+              mx: 'auto',
+              '&:hover': { backgroundColor: '#f1f5f9' },
             }}
-          ></Button>
+          >
+            <ArrowBackIcon sx={{ fontSize: 50 }} />
+          </Button>
           <Typography
             variant="h3"
             sx={{
               fontWeight: 800,
               letterSpacing: 0.5,
-              textShadow: '0 2px 6px rgba(0,0,0,0.45)',
               lineHeight: 1,
+              color: '#0f172a',
               fontSize: { xs: '2.1rem', md: '2.6rem' },
             }}
           >
@@ -138,21 +129,21 @@ const ProjectsPage: React.FC = () => {
               fullWidth
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  color: '#f1f5f9',
+                  color: '#0f172a',
                   fontWeight: 500,
-                  background: 'rgba(255,255,255,0.06)',
-                  borderRadius: 2.5,
-                  '& fieldset': { borderColor: 'rgba(255,255,255,0.25)' },
-                  '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.4)' },
-                  '&.Mui-focused fieldset': { borderColor: '#ffffff' },
+                  background: '#ffffff',
+                  borderRadius: 2,
+                  '& fieldset': { borderColor: '#d1d5db' },
+                  '&:hover fieldset': { borderColor: '#94a3b8' },
+                  '&.Mui-focused fieldset': { borderColor: '#ffdf01' },
                   height: 52,
                 },
-                '& input::placeholder': { color: '#e2e8f0', opacity: 0.7 },
+                '& input::placeholder': { color: '#64748b', opacity: 0.8 },
               }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <IconButton sx={{ color: '#e2e8f0' }}>
+                    <IconButton sx={{ color: '#64748b' }}>
                       <SearchIcon />
                     </IconButton>
                   </InputAdornment>
@@ -171,18 +162,18 @@ const ProjectsPage: React.FC = () => {
               sx={{
                 minWidth: { xs: 160, sm: 200 },
                 '& .MuiOutlinedInput-root': {
-                  color: '#f1f5f9',
-                  background: 'rgba(255,255,255,0.06)',
-                  borderRadius: 2.5,
-                  '& fieldset': { borderColor: 'rgba(255,255,255,0.25)' },
-                  '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.4)' },
-                  '&.Mui-focused fieldset': { borderColor: '#ffffff' },
+                  color: '#0f172a',
+                  background: '#ffffff',
+                  borderRadius: 2,
+                  '& fieldset': { borderColor: '#d1d5db' },
+                  '&:hover fieldset': { borderColor: '#94a3b8' },
+                  '&.Mui-focused fieldset': { borderColor: '#ffdf01' },
                   height: 52,
                 },
                 '& select': { paddingTop: '14px', paddingBottom: '14px' },
-                '& .MuiSelect-icon': { color: '#f1f5f9' },
-                '& .MuiInputLabel-root': { color: '#e2e8f0' },
-                '& .MuiInputLabel-root.Mui-focused': { color: '#ffffff' },
+                '& .MuiSelect-icon': { color: '#64748b' },
+                '& .MuiInputLabel-root': { color: '#64748b' },
+                '& .MuiInputLabel-root.Mui-focused': { color: '#ffdf01' },
               }}
               SelectProps={{ native: true }}
             >
@@ -212,15 +203,16 @@ const ProjectsPage: React.FC = () => {
             sx={{
               fontWeight: 600,
               letterSpacing: 0.5,
-              boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
               textTransform: 'none',
               px: 4,
               py: 1.5,
-              borderRadius: 3.5,
-              backgroundColor: '#0ea5b6',
+              borderRadius: 3,
+              backgroundColor: '#ffdf01',
+              boxShadow: '0 4px 12px rgba(255,223,1,0.35)',
+              color: '#000',
               '&:hover': {
-                backgroundColor: '#0d93a2',
-                boxShadow: '0 4px 14px rgba(0,0,0,0.4)',
+                backgroundColor: '#e6c200',           // darker hover
+                boxShadow: '0 6px 16px rgba(230,194,0,0.45)',
               },
             }}
             onClick={handleNewProject}
@@ -233,10 +225,11 @@ const ProjectsPage: React.FC = () => {
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-            columnGap: '4%',
-            rowGap: 6,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            columnGap: 2,
+            rowGap: 4,
             alignItems: 'start',
+            justifyItems: 'center',
           }}
         >
           {filteredProjects.map((project) => {
@@ -249,42 +242,28 @@ const ProjectsPage: React.FC = () => {
               <Box key={project.projectID} sx={{ minHeight: '10vh' }}>
                 <Paper
                   sx={{
-                    p: 3,
+                    p: 2,
+                    width: '100%',
+                    maxWidth: 240,
                     textAlign: 'center',
                     position: 'relative',
-                    height: 240,
+                    height: 200,
                     cursor: 'pointer',
-                    boxShadow: '0 10px 28px rgba(0,0,0,0.35), 0 4px 12px -2px rgba(0,0,0,0.25)',
-                    transition: 'box-shadow 0.35s ease, transform 0.35s ease',
-                    borderRadius: 10,
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    boxShadow: '0 8px 18px rgba(15, 23, 42, 0.08)',
+                    transition: 'box-shadow 0.3s ease, transform 0.3s ease, border-color 0.3s ease',
+                    borderRadius: 8,
+                    border: '1px solid #e2e8f0',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     pt: 2,
-                    pb: 7, // reserve space for bottom batch text
-                    background: 'linear-gradient(135deg,#2c3a47 0%, #1f2732 55%, #192029 100%)',
-                    color: '#f1f5f9',
-                    overflow: 'hidden',
-                    '&:before': {
-                      content: '""',
-                      position: 'absolute',
-                      inset: 0,
-                      background: 'radial-gradient(circle at 30% 20%, rgba(255,255,255,0.08), transparent 60%)',
-                      pointerEvents: 'none',
-                      mixBlendMode: 'overlay',
-                    },
-                    '&:after': {
-                      content: '""',
-                      position: 'absolute',
-                      inset: 0,
-                      boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.06)',
-                      borderRadius: 10,
-                      pointerEvents: 'none',
-                    },
+                    pb: 5,
+                    background: '#ffffff',
+                    color: '#0f172a',
                     '&:hover': {
-                      boxShadow: '0 16px 42px rgba(0,0,0,0.55), 0 6px 18px -2px rgba(0,0,0,0.35)',
+                      boxShadow: '0 14px 28px rgba(15,23,42,0.14)',
                       transform: 'translateY(-4px)',
+                      borderColor: '#ffdf01',
                     },
                   }}
                   onClick={() => handleProjectClick(project.projectID)}
@@ -336,10 +315,10 @@ const ProjectsPage: React.FC = () => {
                       slotProps={{
                         paper: {
                           sx: {
-                            bgcolor: '#fff',
-                            color: '#000',
+                            bgcolor: '#ffffff',
+                            color: '#0f172a',
                             border: '1px solid #e0e0e0',
-                            boxShadow: 8,
+                            boxShadow: 6,
                           },
                         },
                       }}
@@ -375,7 +354,7 @@ const ProjectsPage: React.FC = () => {
                         fontSize: '2.0rem',
                         letterSpacing: 0.5,
                         lineHeight: 1.05,
-                        textShadow: '0 2px 4px rgba(0,0,0,0.45)',
+                        color: '#0f172a',
                         px: 1,
                         maxWidth: '100%',
                         whiteSpace: 'nowrap',
@@ -389,7 +368,7 @@ const ProjectsPage: React.FC = () => {
                     <Typography
                       sx={{
                         mt: 1,
-                        color: '#cbd5e1',
+                        color: '#475569',
                         fontSize: '1.05rem',
                         fontWeight: 500,
                         letterSpacing: 0.25,
@@ -404,7 +383,7 @@ const ProjectsPage: React.FC = () => {
                     </Typography>
                   </Box>
                   <Box sx={{ position: 'absolute', bottom: 16, left: 0, right: 0 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 500, fontSize: '1.05rem', color: '#e2e8f0', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 500, fontSize: '1.05rem', color: '#334155' }}>
                       {project.numberOfBatches} {project.numberOfBatches === 1 ? 'batch' : 'batches'}
                     </Typography>
                   </Box>
@@ -595,5 +574,6 @@ const ProjectsPage: React.FC = () => {
     </Box>
   );
 };
+
 
 export default ProjectsPage;

@@ -8,11 +8,11 @@ export const darkTheme = createTheme({
       paper: '#23272F',
     },
     primary: {
-      main: '#00bcd4',
-      contrastText: '#fff',
+      main: '#ffdf01',
+      contrastText: '#000',
     },
     secondary: {
-      main: '#ff9800',
+      main: '#008080',
       contrastText: '#fff',
     },
   },
@@ -24,12 +24,9 @@ export const darkTheme = createTheme({
       styleOverrides: {
         root: {
           opacity: 1,
-          '& svg': {
-            // unchecked icon color
-            color: '#000000',
-          },
+          '& svg': { color: '#000000' },
           '&.Mui-checked svg': {
-            color: '#00bcd4',
+            color: '#ffdf01',
           },
         },
       },

@@ -220,7 +220,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   textTransform: 'none',
                   boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
                   '&:hover': {
-                    backgroundColor: '#0097a7',
+                    backgroundColor: '#e6c200', // darker yellow hover
                     color: CANARY_BUTTON_TEXT_COLOR,
                     boxShadow: '0 4px 14px rgba(0,0,0,0.18)',
                   },
@@ -243,7 +243,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   textTransform: 'none',
                   boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
                   '&:hover': {
-                    backgroundColor: '#0097a7',
+                    backgroundColor: '#e6c200',
                     color: CANARY_BUTTON_TEXT_COLOR,
                     boxShadow: '0 4px 14px rgba(0,0,0,0.18)',
                   },
