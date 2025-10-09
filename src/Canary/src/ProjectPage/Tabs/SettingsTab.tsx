@@ -14,7 +14,7 @@ import MenuItem from '@mui/material/MenuItem';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import InputBase from '@mui/material/InputBase';
 import { useSettingsTab } from './settingsTabHandler';
-import type { Project, Session } from '../../utils/intefaces/interfaces';
+import type { Project, Session } from '../../utils/interfaces/interfaces';
 
 type ListPanelProps = {
   inputValue: string;
@@ -85,6 +85,30 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
     onAdd();
   };
 
+  const fieldLabel = placeholder || 'Label';
+  const outlinedSx = { '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' } };
+  const addInputSx = {
+    color: '#000',
+    bgcolor: '#fff',
+    borderRadius: 2,
+    '& input': { fontSize: '0.875rem' },
+  };
+  const labelSx = {
+    fontSize: '0.875rem',
+    color: '#4f4f4fff',
+    '&.Mui-focused': { color: '#000' },
+  };
+  const renameInputSx = {
+    color: '#000',
+    bgcolor: '#fff',
+    borderRadius: 2,
+    '& input': {
+      fontSize: (t: { typography: { body2: { fontSize: any; }; }; }) => t.typography.body2.fontSize,
+      lineHeight: (t: { typography: { body2: { lineHeight: any; }; }; }) => t.typography.body2.lineHeight,
+      py: 0.5,
+    },
+  };
+
   return (
     <Paper
       sx={{
@@ -102,21 +126,19 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
         <TextField
           fullWidth
           size="small"
-          placeholder={placeholder || 'Add new label'}
+          label={fieldLabel}
+          placeholder={placeholder}
           value={inputValue}
           onChange={(e) => {
             onClearError?.();
             onInputChange(e.target.value);
           }}
+          InputProps={{ sx: addInputSx }}
+          InputLabelProps={{ sx: labelSx }}
+          sx={outlinedSx}
           error={Boolean(error)}
-          InputProps={{
-            style: { color: '#000', fontSize: '0.875rem' }, // Smaller text
-          }}
-          InputLabelProps={{
-            style: { fontSize: '0.875rem' }, // Smaller label text
-          }}
         />
-        <Button variant="contained" onClick={handleAddClick} disabled={!inputValue.trim()}>
+        <Button variant="contained" onClick={handleAddClick} disabled={!inputValue.trim()} sx={{ color: '#000' }}>
           Add
         </Button>
       </Box>
@@ -139,9 +161,11 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
             >
               <Box sx={{ minWidth: 0 }}>
                 {editingItem === it ? (
-                  <InputBase
+                  <TextField
                     fullWidth
+                    size="small"
                     autoFocus
+                    label={fieldLabel}
                     value={editValue}
                     onChange={(e) => {
                       onClearError?.();
@@ -157,13 +181,9 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
                       }
                     }}
                     onBlur={commitEditing}
-                    inputProps={{ style: { padding: 0 } }}
-                    sx={{
-                      m: 0,
-                      color: '#000',
-                      fontSize: (t) => t.typography.body2.fontSize,
-                      lineHeight: (t) => t.typography.body2.lineHeight,
-                    }}
+                    InputProps={{ sx: renameInputSx }}
+                    InputLabelProps={{ sx: labelSx }}
+                    sx={outlinedSx}
                   />
                 ) : (
                   <Typography variant="body2" color="#000" noWrap sx={{ m: 0, lineHeight: (t) => t.typography.body2.lineHeight }}>
@@ -333,17 +353,30 @@ export function SettingsTab({ project: _project, onSessionSettingsSaved }: Setti
             <TextField
               label="Password"
               variant="outlined"
-              color="primary"
-              focused
               autoComplete="off"
-              sx={{ minWidth: '48%' }}
+              sx={{
+                minWidth: '48%',
+                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+              }}
               value={sessionPassword}
               onChange={(e) => setSessionPassword(e.target.value)}
-              InputProps={{ style: { color: '#000' } }}
+              InputProps={{
+                sx: {
+                  color: '#000',
+                  bgcolor: '#fff',
+                  borderRadius: 2,
+                },
+              }}
+              InputLabelProps={{
+                sx: {
+                  color: '#4f4f4fff',
+                  '&.Mui-focused': { color: '#000' },
+                },
+              }}
               inputProps={{ name: 'canary-session-password', autoComplete: 'off' }}
             />
           </Box>
-          <Button variant="contained" sx={{ width: '100%' }} onClick={handleSaveSessionSettings}>
+          <Button variant="contained" sx={{ width: '100%', color: '#000' }} onClick={handleSaveSessionSettings}>
             Save
           </Button>
           {saveSuccess && (

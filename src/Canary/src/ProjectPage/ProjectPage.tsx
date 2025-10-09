@@ -9,12 +9,12 @@ import { ExportTab } from './Tabs/ExportTab';
 import { SettingsTab } from './Tabs/SettingsTab';
 import { UploadTab } from './Tabs/UploadTab';
 import CloudUploadOutlined from '@mui/icons-material/CloudUploadOutlined';
-import GpsFixedOutlined from '@mui/icons-material/GpsFixedOutlined';
-import BarChartOutlined from '@mui/icons-material/BarChartOutlined';
+import ShapeLineIcon from '@mui/icons-material/ShapeLine';
+import BurstModeIcon from '@mui/icons-material/BurstMode';
 import IosShareOutlined from '@mui/icons-material/IosShareOutlined';
 import SettingsOutlined from '@mui/icons-material/SettingsOutlined';
-import ExitToAppIcon from '@mui/icons-material/ExitToApp';
-import type { Project, Session } from '../utils/intefaces/interfaces';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import type { Project, Session } from '../utils/interfaces/interfaces';
 
 const ProjectPage: React.FC = () => {
   const navigate = useNavigate();
@@ -197,7 +197,7 @@ const ProjectPage: React.FC = () => {
           }}
         >
           <Button
-            startIcon={<ExitToAppIcon />}
+            startIcon={<ArrowBackIcon />}
             onClick={handleBackToAllProjects}
             sx={{
               color: '#000000',
@@ -268,8 +268,8 @@ const ProjectPage: React.FC = () => {
                 }}
               >
                 <Tab icon={<CloudUploadOutlined />} iconPosition="start" label="Upload" aria-label="Upload" />
-                <Tab icon={<GpsFixedOutlined />} iconPosition="start" label="Datasets" aria-label="Datasets" />
-                <Tab icon={<BarChartOutlined />} iconPosition="start" label="Batches" aria-label="Batches" />
+                <Tab icon={<ShapeLineIcon />} iconPosition="start" label="Datasets" aria-label="Datasets" />
+                <Tab icon={<BurstModeIcon />} iconPosition="start" label="Batches" aria-label="Batches" />
                 <Tab icon={<IosShareOutlined />} iconPosition="start" label="Export" aria-label="Export" />
               </Tabs>
             </Box>

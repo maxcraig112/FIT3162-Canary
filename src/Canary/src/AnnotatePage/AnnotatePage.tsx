@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Box, AppBar, Toolbar, Typography, ToggleButtonGroup, ToggleButton, Paper, IconButton, Button, FormControl, InputLabel, Select, MenuItem, TextField } from '@mui/material';
-import { MyLocation, SelectAll, NotInterested, KeyboardArrowLeft, KeyboardArrowRight } from '@mui/icons-material';
-import ExitToAppIcon from '@mui/icons-material/ExitToApp';
+import { MyLocation, SelectAll, NotInterested, KeyboardArrowLeft, KeyboardArrowRight, ArrowBack } from '@mui/icons-material';
 import { annotateHandler, getCanvas, handleUndoRedo } from './annotateHandler';
 import { ZoomHandler } from './zoomHandler';
 import AddIcon from '@mui/icons-material/Add';
@@ -404,12 +403,12 @@ const AnnotatePage: React.FC = () => {
             <IconButton
               aria-label="back"
               edge="start"
-              sx={{ position: 'absolute', left: 8, top: 8 }}
+              sx={{ position: 'absolute', left: 8, top: 8, mx: 'auto', }}
               onClick={() => {
                 closeSessionWebSocket(1000, 'navigate away');
               }}
             >
-              <ExitToAppIcon />
+              <ArrowBack/>
             </IconButton>
             <Box
               sx={{
