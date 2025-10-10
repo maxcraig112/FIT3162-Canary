@@ -19,6 +19,7 @@ import {
   DialogContent,
   DialogActions,
   Alert,
+  Snackbar,
 } from '@mui/material';
 import { MyLocation, SelectAll, NotInterested, KeyboardArrowLeft, KeyboardArrowRight } from '@mui/icons-material';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
@@ -93,6 +94,7 @@ const AnnotatePage: React.FC = () => {
   const [kickingMemberID, setKickingMemberID] = useState<string | null>(null);
   const [memberManagementError, setMemberManagementError] = useState<string | null>(null);
   const [sidebarItems, setSidebarItems] = useState<SidebarAnnotationItem[]>([]);
+  const [copyToast, setCopyToast] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
   const lastRenderKeyRef = useRef<string | null>(null);
 
@@ -445,6 +447,30 @@ const AnnotatePage: React.FC = () => {
     NavigateAway();
   }, [NavigateAway, closeManageMembers, closeViewMembers]);
 
+  const handleCopySessionID = React.useCallback(async (event: React.MouseEvent, sessionIDToCopy?: string) => {
+    event.stopPropagation();
+    if (!sessionIDToCopy) return;
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(sessionIDToCopy);
+      } else {
+        const el = document.createElement('textarea');
+        el.value = sessionIDToCopy;
+        el.style.position = 'fixed';
+        el.style.opacity = '0';
+        document.body.appendChild(el);
+        el.focus();
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+      }
+      setCopyToast({ open: true, message: `Session ID copied: ${sessionIDToCopy}` });
+    } catch (err) {
+      console.warn('Failed to copy session ID', err);
+      setCopyToast({ open: true, message: 'Unable to copy session ID' });
+    }
+  }, []);
+
   // Listen for member join/left events dispatched by sessionHandler and show ephemeral notices
   useEffect(() => {
     const handler = (e: Event) => {
@@ -582,8 +608,29 @@ const AnnotatePage: React.FC = () => {
               }}
             >
               {sessionID && (
-                <Paper elevation={2} sx={{ px: 2, py: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                <Paper 
+                  elevation={2} 
+                  sx={{ 
+                    px: 2, 
+                    py: 1, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 1, 
+                    cursor: 'pointer',
+                    '&:hover': {
+                      bgcolor: 'action.hover',
+                    },
+                  }}
+                  onClick={(e) => handleCopySessionID(e, sessionID)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      handleCopySessionID(e as unknown as React.MouseEvent, sessionID);
+                    }
+                  }}
+                >
+                  <Typography variant="body2" sx={{ fontWeight: 'bold' }} title="Click to copy session ID">
                     Session: {sessionID}
                     {sessionRole ? ` (${sessionRole})` : ''}
                   </Typography>
@@ -977,6 +1024,14 @@ const AnnotatePage: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar
+        open={copyToast.open}
+        autoHideDuration={3000}
+        onClose={() => setCopyToast((prev) => ({ ...prev, open: false }))}
+        message={copyToast.message}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 };

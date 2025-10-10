@@ -187,13 +187,6 @@ func (h *WebSocketHub) KickMember(sessionID, memberID string) bool {
 	return true
 }
 
-// markTerminating marks a session as being closed by the owner disconnecting.
-func (h *WebSocketHub) markTerminating(sessionID string) {
-	h.mu.Lock()
-	h.TerminatingSessions[sessionID] = struct{}{}
-	h.mu.Unlock()
-}
-
 // isTerminating checks if a session is currently being closed by the owner.
 func (h *WebSocketHub) isTerminating(sessionID string) bool {
 	h.mu.RLock()
