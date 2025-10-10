@@ -57,7 +57,7 @@ func AuthMiddleware(clients *gcp.Clients) func(http.Handler) http.Handler {
 }
 
 // JWT and validation helpers
-func GenerateJWT(ctx context.Context, clients *gcp.Clients, userID string) (string, error) {
+func GenerateJWT(ctx context.Context, clients *gcp.Clients, userID string, email string) (string, error) {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
 		log.Error().Msg("JWT_SECRET environment variable not set for JWT generation")
@@ -65,6 +65,7 @@ func GenerateJWT(ctx context.Context, clients *gcp.Clients, userID string) (stri
 	}
 	claims := jwt.MapClaims{
 		"userID": userID,
+		"email":  email,
 		"exp":    time.Now().Add(720 * time.Hour).Unix(),
 		"iat":    time.Now().Unix(),
 	}

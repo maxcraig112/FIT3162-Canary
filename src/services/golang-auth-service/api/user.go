@@ -120,7 +120,7 @@ func (h *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		log.Info().Str("email", req.Email).Msg("Password mismatch for login")
 		return
 	}
-	token, err := jwt.GenerateJWT(r.Context(), h.Clients, userID)
+	token, err := jwt.GenerateJWT(r.Context(), h.Clients, userID, req.Email)
 	if err != nil {
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		log.Error().Err(err).Str("email", req.Email).Msg("Failed to generate JWT for login")
@@ -189,7 +189,29 @@ func (h *UserHandler) RefreshHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error().Err(err).Msg("Invalid JWT token")
 		return
 	}
-	token, err := jwt.GenerateJWT(r.Context(), h.Clients, userID)
+
+	// Get email from existing JWT or lookup by userID
+	tokenString, _ := jwt.GetAuthTokenString(r)
+	claims, _ := jwt.GetJWTClaims(tokenString)
+	email := ""
+	if claims != nil {
+		if emailClaim, ok := claims["email"].(string); ok {
+			email = emailClaim
+		}
+	}
+
+	// If no email in token, look it up
+	if email == "" {
+		user, err := h.UserStore.GetUserByID(r.Context(), userID)
+		if err != nil {
+			http.Error(w, "Failed to get user info", http.StatusInternalServerError)
+			log.Error().Err(err).Str("userID", userID).Msg("Failed to get user for refresh")
+			return
+		}
+		email = user.Email
+	}
+
+	token, err := jwt.GenerateJWT(r.Context(), h.Clients, userID, email)
 	if err != nil {
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		log.Error().Err(err).Str("userID", userID).Msg("Failed to generate JWT for login")

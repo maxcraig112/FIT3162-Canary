@@ -48,6 +48,20 @@ func (s *UserStore) CreateUser(ctx context.Context, email, hashedPassword string
 	return s.genericStore.CreateDoc(ctx, user)
 }
 
+func (s *UserStore) GetUserByID(ctx context.Context, userID string) (*User, error) {
+	doc, err := s.genericStore.GetDoc(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var user User
+	if err := doc.DataTo(&user); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
 func (s *UserStore) DeleteUser(ctx context.Context, email string, hashedPassword string) error {
 	queryParams := []fs.QueryParameter{
 		{Path: "email", Op: "==", Value: email},

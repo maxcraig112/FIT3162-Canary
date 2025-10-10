@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-// If you need stronger typing for the navigate function you can import from react-router-dom.
-// We keep it generic here to avoid coupling this logic file to router implementation details.
-type NavigateFn = (path: string) => void;
 import { CallAPI, projectServiceUrl } from '../../utils/apis';
 import type { Batch } from '../../utils/intefaces/interfaces';
 import { getProject } from '../../utils/intefaces/project';
-import { createSession } from '../../utils/intefaces/session';
-import { setCookie } from '../../utils/cookieUtils';
+import { createSession, endSession, fetchActiveSessions, joinSession, type ActiveSessionResponse } from '../../utils/intefaces/session';
+import { setCookie, clearCookie, getUserIDFromCookie } from '../../utils/cookieUtils';
+
+// If you need stronger typing for the navigate function you can import from react-router-dom.
+// We keep it generic here to avoid coupling this logic file to router implementation details.
+type NavigateFn = (path: string) => void;
 
 export async function fetchBatches(projectID: string): Promise<Batch[]> {
   const url = `${projectServiceUrl()}/projects/${projectID}/batches`;
@@ -97,6 +98,9 @@ export function useBatchesTab(projectID?: string) {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessionsEnabled, setSessionsEnabled] = useState(false);
+  const [sessionPasswordSet, setSessionPasswordSet] = useState(false);
+  const [sessionPending, setSessionPending] = useState(false);
 
   // menu state
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
@@ -111,7 +115,30 @@ export function useBatchesTab(projectID?: string) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // session end warning state
+  const [sessionEndWarningOpen, setSessionEndWarningOpen] = useState(false);
+
   const selectedBatch = useMemo(() => batches.find((b) => b.batchID === menuBatchId) || null, [batches, menuBatchId]);
+  const [activeSessionsByBatch, setActiveSessionsByBatch] = useState<Record<string, ActiveSessionResponse>>({});
+
+  const refreshActiveSessions = useCallback(async () => {
+    if (!projectID || !sessionsEnabled) {
+      setActiveSessionsByBatch({});
+      return;
+    }
+    try {
+      const sessions = await fetchActiveSessions(projectID);
+      const next = sessions.reduce<Record<string, ActiveSessionResponse>>((acc, session) => {
+        if (session.batchID) {
+          acc[session.batchID] = session;
+        }
+        return acc;
+      }, {});
+      setActiveSessionsByBatch(next);
+    } catch (e) {
+      console.error('Failed to refresh active sessions', e);
+    }
+  }, [projectID, sessionsEnabled]);
 
   const load = useCallback(async () => {
     if (!projectID) return;
@@ -150,6 +177,46 @@ export function useBatchesTab(projectID?: string) {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!projectID) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const project = await getProject(projectID);
+        if (cancelled) return;
+        const sessionSettings = project.settings?.session;
+        const enabled = sessionSettings?.enabled ?? false;
+        setSessionsEnabled(enabled);
+        setSessionPasswordSet(Boolean(sessionSettings?.password));
+        if (!enabled) {
+          setActiveSessionsByBatch({});
+        }
+      } catch {
+        if (cancelled) return;
+        setSessionsEnabled(false);
+        setSessionPasswordSet(false);
+        setActiveSessionsByBatch({});
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [projectID]);
+
+  useEffect(() => {
+    if (!sessionsEnabled) {
+      setActiveSessionsByBatch({});
+      return;
+    }
+    refreshActiveSessions();
+    const timer = window.setInterval(() => {
+      refreshActiveSessions();
+    }, 20000);
+    return () => window.clearInterval(timer);
+  }, [sessionsEnabled, projectID, refreshActiveSessions]);
 
   // menu handlers
   const openMenu = useCallback((evt: React.MouseEvent<HTMLElement>, batchID: string) => {
@@ -223,26 +290,138 @@ export function useBatchesTab(projectID?: string) {
     }
   }, [menuBatchId]);
 
+  const startSession = useCallback(async () => {
+    if (!sessionsEnabled) {
+      setError('Sessions are not enabled for this project.');
+      return;
+    }
+    if (!selectedBatch || sessionPending) return;
+    closeMenu();
+    setSessionPending(true);
+    setError(null);
+    try {
+      if (activeSessionsByBatch[selectedBatch.batchID]) {
+        setError('This batch already has an active session running.');
+        return;
+      }
+      const result = await createSession(selectedBatch.batchID);
+      if (!result.ok) {
+        setError(result.error || 'Failed to start session');
+        return;
+      }
+      const batchID = result.data.batchID || selectedBatch.batchID;
+      const projectForSession = result.data.projectID || projectID || selectedBatch.projectID;
+      const sessionID = result.data.sessionID;
+      const ownerID = getUserIDFromCookie();
+      if (ownerID && sessionID && batchID && projectForSession) {
+        setActiveSessionsByBatch((prev) => ({
+          ...prev,
+          [batchID]: {
+            sessionID,
+            batchID,
+            projectID: projectForSession,
+            owner: { id: ownerID, email: '' }, // We'll get the email from the server refresh
+            members: [],
+            ownerConnected: true,
+            lastUpdated: new Date().toISOString(),
+          },
+        }));
+      }
+      await refreshActiveSessions();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to start session');
+    } finally {
+      setSessionPending(false);
+    }
+  }, [sessionsEnabled, selectedBatch, sessionPending, closeMenu, projectID, activeSessionsByBatch, refreshActiveSessions]);
+
+  const performStopSession = useCallback(async () => {
+    if (!menuBatchId || sessionPending) return;
+    const sessionToStop = activeSessionsByBatch[menuBatchId];
+    if (!sessionToStop) return;
+    closeMenu();
+    setSessionPending(true);
+    setError(null);
+    try {
+      const result = await endSession(sessionToStop.sessionID);
+      if (!result.ok) {
+        setError(result.error || 'Failed to stop session');
+        return;
+      }
+      clearCookie('create_session_cookie');
+      clearCookie('session_id_cookie');
+      clearCookie('join_session_cookie');
+      setActiveSessionsByBatch((prev) => {
+        const next = { ...prev };
+        delete next[menuBatchId];
+        return next;
+      });
+      await refreshActiveSessions();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to stop session');
+    } finally {
+      setSessionPending(false);
+    }
+  }, [menuBatchId, activeSessionsByBatch, sessionPending, closeMenu, refreshActiveSessions]);
+
+  const stopSession = useCallback(async () => {
+    if (!menuBatchId || sessionPending) return;
+    const sessionToStop = activeSessionsByBatch[menuBatchId];
+    if (!sessionToStop) return;
+    
+    // Check if current user is the owner
+    const currentUserID = getUserIDFromCookie();
+    const isOwner = currentUserID && sessionToStop.owner.id === currentUserID;
+    
+    if (!isOwner) {
+      // Show warning dialog for non-owners
+      setSessionEndWarningOpen(true);
+      return;
+    }
+    
+    // Direct stop for owners
+    await performStopSession();
+  }, [menuBatchId, activeSessionsByBatch, sessionPending, performStopSession]);
+
+  const openSessionEndWarning = useCallback(() => {
+    setSessionEndWarningOpen(true);
+    setMenuAnchorEl(null);
+  }, []);
+
+  const closeSessionEndWarning = useCallback(() => {
+    setSessionEndWarningOpen(false);
+  }, []);
+
+  const confirmStopSession = useCallback(async () => {
+    setSessionEndWarningOpen(false);
+    await performStopSession();
+  }, [performStopSession]);
+
   // Batch selection (navigate to annotate) centralised so we can add pre-navigation logic (e.g. analytics, session checks, prefetch) later
   const openBatch = useCallback(
     async (batch: Batch, navigate: NavigateFn) => {
       if (!batch) return;
-      const navigateURL = `/annotate?batchID=${encodeURIComponent(batch.batchID)}&projectID=${encodeURIComponent(projectID ?? batch.projectID)}`;
-
-      const project = await getProject(projectID!);
-      if (!project.settings || !project.settings.session) {
-        // Sessions aren't enabled by default
-        navigate(navigateURL);
-      } else if (project.settings.session.enabled) {
-        const result = await createSession(batch.batchID);
-        if (result.ok) {
-          setCookie('create_session_cookie', result.data.token);
-          setCookie('session_id_cookie', result.data.sessionID);
+      const targetProjectID = projectID ?? batch.projectID;
+      const navigateURL = `/annotate?batchID=${encodeURIComponent(batch.batchID)}&projectID=${encodeURIComponent(targetProjectID)}`;
+      const activeSessionForBatch = activeSessionsByBatch[batch.batchID];
+      const currentUserID = getUserIDFromCookie();
+      if (currentUserID && activeSessionForBatch && activeSessionForBatch.owner.id === currentUserID) {
+        try {
+          const joinResult = await joinSession(activeSessionForBatch.sessionID, '');
+          if (joinResult.ok) {
+            const { token, sessionID } = joinResult.data;
+            if (token) setCookie('create_session_cookie', token);
+            if (sessionID) setCookie('session_id_cookie', sessionID);
+          } else {
+            console.warn('[BatchesTab] failed to refresh owner session token', joinResult.error);
+          }
+        } catch (err) {
+          console.warn('[BatchesTab] owner token refresh failed', err);
         }
       }
       navigate(navigateURL);
     },
-    [projectID],
+    [projectID, activeSessionsByBatch],
   );
 
   return {
@@ -270,6 +449,19 @@ export function useBatchesTab(projectID?: string) {
     closeDelete,
     confirmDelete,
     deleting,
+    // sessions
+    sessionsEnabled,
+    sessionPasswordSet,
+    sessionPending,
+    activeSessionsByBatch,
+    startSession,
+    stopSession,
+    refreshActiveSessions,
+    // session end warning
+    sessionEndWarningOpen,
+    openSessionEndWarning,
+    closeSessionEndWarning,
+    confirmStopSession,
     // selection
     openBatch,
     // utils

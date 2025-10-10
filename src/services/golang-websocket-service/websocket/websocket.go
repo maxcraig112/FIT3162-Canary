@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	fs "pkg/gcp/firestore"
 	wsfs "websocket-service/firestore"
 
 	"cloud.google.com/go/firestore"
@@ -13,14 +15,17 @@ import (
 )
 
 type CreateSessionConnectionRequest struct {
-	OwnerID   string `json:"ownerID"`
-	SessionID string `json:"sessionID"`
-	BatchID   string `json:"batchID"`
+	OwnerID    string `json:"ownerID"`
+	OwnerEmail string `json:"ownerEmail"`
+	SessionID  string `json:"sessionID"`
+	BatchID    string `json:"batchID"`
 }
 
 type JoinSessionConnectionRequest struct {
-	MemberID  string `json:"memberID"`
-	SessionID string `json:"sessionID"`
+	MemberID    string `json:"memberID"`
+	MemberEmail string `json:"memberEmail"`
+	SessionID   string `json:"sessionID"`
+	BatchID     string `json:"batchID,omitempty"`
 }
 
 var upgrader = websocket.Upgrader{
@@ -79,6 +84,109 @@ func NewWebSocketHub(sessionStore *wsfs.SessionStore) *WebSocketHub {
 	}
 }
 
+// EnsureSession initialises an in-memory session entry, creating it if needed.
+func (h *WebSocketHub) EnsureSession(sessionID, batchID string) *Session {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	s, ok := h.Sessions[sessionID]
+	if !ok {
+		s = &Session{Members: make(map[*Client]struct{}), BatchID: batchID}
+		h.Sessions[sessionID] = s
+	} else if batchID != "" && s.BatchID == "" {
+		s.BatchID = batchID
+	}
+	return s
+}
+
+// IsOwnerConnected reports whether the session currently has an active owner websocket.
+func (h *WebSocketHub) IsOwnerConnected(sessionID string) bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	s, ok := h.Sessions[sessionID]
+	if !ok || s.Owner == nil {
+		return false
+	}
+	return s.Owner.conn != nil
+}
+
+// StopSession notifies all clients, disconnects sockets and clears session state.
+func (h *WebSocketHub) StopSession(sessionID string) {
+	h.mu.Lock()
+	s, ok := h.Sessions[sessionID]
+	if !ok {
+		h.mu.Unlock()
+		return
+	}
+	h.TerminatingSessions[sessionID] = struct{}{}
+	owner := s.Owner
+	members := make([]*Client, 0, len(s.Members))
+	s.Mu.RLock()
+	for member := range s.Members {
+		members = append(members, member)
+	}
+	s.Mu.RUnlock()
+	delete(h.Sessions, sessionID)
+	h.mu.Unlock()
+
+	notif := StandardNotification{
+		Type:      "session_closed",
+		SessionID: sessionID,
+		Time:      time.Now().UTC().Format(time.RFC3339),
+	}
+	if owner != nil {
+		_ = h.safeEnqueue(owner, notif)
+	}
+	for _, member := range members {
+		_ = h.safeEnqueue(member, notif)
+	}
+
+	if owner != nil {
+		owner.Close()
+	}
+	for _, member := range members {
+		member.Close()
+	}
+
+	if err := h.SessionStore.DeleteSession(context.Background(), sessionID); err != nil && err != fs.ErrNotFound {
+		log.Error().Err(err).Str("sessionID", sessionID).Msg("failed to delete session during stop")
+	}
+	h.mu.Lock()
+	delete(h.TerminatingSessions, sessionID)
+	h.mu.Unlock()
+}
+
+// KickMember disconnects a specific member from the session if connected.
+func (h *WebSocketHub) KickMember(sessionID, memberID string) bool {
+	h.mu.RLock()
+	s, ok := h.Sessions[sessionID]
+	h.mu.RUnlock()
+	if !ok {
+		return false
+	}
+	s.Mu.Lock()
+	var target *Client
+	for member := range s.Members {
+		if member.id == memberID {
+			target = member
+			break
+		}
+	}
+	if target != nil {
+		delete(s.Members, target)
+	}
+	s.Mu.Unlock()
+	if target == nil {
+		return false
+	}
+	_ = h.safeEnqueue(target, StandardNotification{
+		Type:      "member_kicked",
+		SessionID: sessionID,
+		Time:      time.Now().UTC().Format(time.RFC3339),
+	})
+	target.Close()
+	return true
+}
+
 // markTerminating marks a session as being closed by the owner disconnecting.
 func (h *WebSocketHub) markTerminating(sessionID string) {
 	h.mu.Lock()
@@ -103,27 +211,19 @@ func (h *WebSocketHub) CreateSession(w http.ResponseWriter, r *http.Request, req
 		log.Error().Err(err).Str("sessionID", req.SessionID).Msg("websocket upgrade failed for owner")
 		return err
 	}
-	// Only create if not present; if present and owner exists, reject by closing.
-	h.mu.Lock()
-	s, ok := h.Sessions[req.SessionID]
-	if !ok {
-		s = &Session{Members: make(map[*Client]struct{})}
-		h.Sessions[req.SessionID] = s
-	}
+	s := h.EnsureSession(req.SessionID, req.BatchID)
 
-	// If an owner already exists we may be in a dev hot-reload or reconnect scenario.
-	// If the same user is reconnecting, replace the old connection gracefully; otherwise reject.
+	h.mu.Lock()
 	if s.Owner != nil {
 		if s.Owner.id != req.OwnerID {
 			h.mu.Unlock()
 			_ = conn.Close()
 			return http.ErrUseLastResponse
 		}
-		// Same owner userID: swap connections (close old after swap to avoid race)
 		oldOwner := s.Owner
 		newOwner := &Client{conn: conn, out: make(chan any, 16), id: req.OwnerID}
 		s.Owner = newOwner
-		s.BatchID = req.BatchID // keep batchID consistent
+		s.BatchID = req.BatchID
 		h.mu.Unlock()
 		oldOwner.Close()
 		if err := h.startWebhookWriter(newOwner, "owner", req.SessionID); err != nil {
@@ -132,12 +232,17 @@ func (h *WebSocketHub) CreateSession(w http.ResponseWriter, r *http.Request, req
 		if err := h.startWebhookReader(newOwner, req.SessionID); err != nil {
 			log.Error().Err(err).Str("sessionID", req.SessionID).Msg("Failed to start webhook reader for new owner")
 		}
+		h.sendOwnerStatusNotification(OwnerStatusNotification{
+			Type:       "owner_joined",
+			SessionID:  req.SessionID,
+			OwnerID:    req.OwnerID,
+			OwnerEmail: req.OwnerEmail,
+			Time:       time.Now().UTC(),
+		})
 		return nil
 	}
-
 	owner := &Client{conn: conn, out: make(chan any, 16), id: req.OwnerID}
 	s.Owner = owner
-	// we should keep track of the batchID potentially for validation that an image watch request is valid
 	s.BatchID = req.BatchID
 	h.mu.Unlock()
 	// This handles websocket communication for the owner
@@ -147,23 +252,21 @@ func (h *WebSocketHub) CreateSession(w http.ResponseWriter, r *http.Request, req
 	if err := h.startWebhookReader(owner, req.SessionID); err != nil {
 		return err
 	}
+	h.sendOwnerStatusNotification(OwnerStatusNotification{
+		Type:       "owner_joined",
+		SessionID:  req.SessionID,
+		OwnerID:    req.OwnerID,
+		OwnerEmail: req.OwnerEmail,
+		Time:       time.Now().UTC(),
+	})
 	return nil
 }
 
 // JoinSession upgrades the HTTP connection and registers the member client for the session.
 func (h *WebSocketHub) JoinSession(w http.ResponseWriter, r *http.Request, req JoinSessionConnectionRequest) error {
-	// Ensure session exists first
-	h.mu.RLock()
-	s, exists := h.Sessions[req.SessionID]
-	h.mu.RUnlock()
+	s := h.EnsureSession(req.SessionID, req.BatchID)
 
-	if !exists {
-		http.Error(w, "session not found", http.StatusNotFound)
-		log.Warn().Str("sessionID", req.SessionID).Msg("join session failed; session not found")
-		return http.ErrNoLocation
-	}
-
-	// updgrade the connection to a websocket
+	// upgrade the connection to a websocket
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Error().Err(err).Str("sessionID", req.SessionID).Msg("websocket upgrade failed for member")
@@ -178,10 +281,11 @@ func (h *WebSocketHub) JoinSession(w http.ResponseWriter, r *http.Request, req J
 
 	// notify all other session clients that a new member has joined
 	h.sendMemberStatusNotification(MemberStatusNotification{
-		Type:      "member_joined",
-		SessionID: req.SessionID,
-		MemberID:  req.MemberID,
-		Time:      time.Now().UTC(),
+		Type:        "member_joined",
+		SessionID:   req.SessionID,
+		MemberID:    req.MemberID,
+		MemberEmail: req.MemberEmail,
+		Time:        time.Now().UTC(),
 	})
 
 	if err := h.startWebhookWriter(member, "member", req.SessionID); err != nil {
