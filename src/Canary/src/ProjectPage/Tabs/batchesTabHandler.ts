@@ -230,13 +230,42 @@ export function useBatchesTab(projectID?: string) {
     setMenuBatchId(null);
   }, []);
 
-  const handleFinish = useCallback(() => {
+  const handleFinish = useCallback(async () => {
     closeMenu();
     if (!selectedBatch) return;
-    setBatchFinishState(selectedBatch.batchID, true).then(() => {
+    
+    // Check if there's an active session for this batch and end it first
+    const activeSession = activeSessionsByBatch[selectedBatch.batchID];
+    if (activeSession) {
+      try {
+        const result = await endSession(activeSession.sessionID);
+        if (!result.ok) {
+          setError(result.error || 'Failed to stop session before finishing batch');
+          return;
+        }
+        // Clear session cookies and update state
+        clearCookie('create_session_cookie');
+        clearCookie('session_id_cookie');
+        clearCookie('join_session_cookie');
+        setActiveSessionsByBatch((prev) => {
+          const next = { ...prev };
+          delete next[selectedBatch.batchID];
+          return next;
+        });
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to stop session before finishing batch');
+        return;
+      }
+    }
+    
+    // Now finish the batch
+    try {
+      await setBatchFinishState(selectedBatch.batchID, true);
       load();
-    });
-  }, [closeMenu, selectedBatch, load]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to finish batch');
+    }
+  }, [closeMenu, selectedBatch, activeSessionsByBatch, load]);
 
   // rename flow
   const openRename = useCallback(() => {
@@ -278,7 +307,28 @@ export function useBatchesTab(projectID?: string) {
   const confirmDelete = useCallback(async () => {
     if (!menuBatchId) return;
     setDeleting(true);
+    
     try {
+      // Check if there's an active session for this batch and end it first
+      const activeSession = activeSessionsByBatch[menuBatchId];
+      if (activeSession) {
+        const result = await endSession(activeSession.sessionID);
+        if (!result.ok) {
+          setError(result.error || 'Failed to stop session before deleting batch');
+          return;
+        }
+        // Clear session cookies and update state
+        clearCookie('create_session_cookie');
+        clearCookie('session_id_cookie');
+        clearCookie('join_session_cookie');
+        setActiveSessionsByBatch((prev) => {
+          const next = { ...prev };
+          delete next[menuBatchId];
+          return next;
+        });
+      }
+      
+      // Now delete the batch
       await deleteBatch(menuBatchId);
       setBatches((prev) => prev.filter((b) => b.batchID !== menuBatchId));
       setDeleteOpen(false);
@@ -288,7 +338,7 @@ export function useBatchesTab(projectID?: string) {
     } finally {
       setDeleting(false);
     }
-  }, [menuBatchId]);
+  }, [menuBatchId, activeSessionsByBatch]);
 
   const startSession = useCallback(async () => {
     if (!sessionsEnabled) {
