@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Button, Typography, Paper, Tabs, Tab, Divider } from '@mui/material';
 import AppThemeProvider from '../assets/AppThemeProvider';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -14,7 +14,7 @@ import BarChartOutlined from '@mui/icons-material/BarChartOutlined';
 import IosShareOutlined from '@mui/icons-material/IosShareOutlined';
 import SettingsOutlined from '@mui/icons-material/SettingsOutlined';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
-import type { Project, Session } from '../utils/intefaces/interfaces';
+import type { Project } from '../utils/intefaces/interfaces';
 import { useAuthGuard } from '../utils/authUtil';
 
 const ProjectPage: React.FC = () => {
@@ -31,19 +31,6 @@ const ProjectPage: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState(0); // 0..3 for the main tabs
   const [settingsTab, setSettingsTab] = useState(false); // separate flag for settings so layout stays identical
   const [error, setError] = useState<string | null>(null);
-
-  const handleSessionSettingsSaved = useCallback((session: Session) => {
-    setProjectData((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        settings: {
-          ...(prev.settings ?? {}),
-          session: { ...session },
-        },
-      };
-    });
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -359,7 +346,7 @@ const ProjectPage: React.FC = () => {
                 {(!loading || projectData) && !error && (
                   <>
                     {settingsTab ? (
-                      <SettingsTab project={projectData} onSessionSettingsSaved={handleSessionSettingsSaved} />
+                      <SettingsTab project={projectData} />
                     ) : (
                       <>
                         {selectedTab === 0 && <UploadTab project={projectData} />}

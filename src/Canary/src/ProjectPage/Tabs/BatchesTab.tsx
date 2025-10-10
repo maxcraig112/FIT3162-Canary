@@ -37,12 +37,14 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
     closeRename,
     closeDelete,
     openBatch,
-    sessionsEnabled,
-    sessionPasswordSet,
     sessionPending,
     activeSessionsByBatch,
     startSession,
     stopSession,
+    sessionDialogOpen,
+    sessionCreationBatch,
+    cancelSessionCreation,
+    handleCreateSessionWithPassword,
     // session end warning
     sessionEndWarningOpen,
     closeSessionEndWarning,
@@ -68,10 +70,17 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
     if (!session) return false;
     return session.owner.id === currentUserID;
   }, [activeSessionsByBatch, menuBatchId, currentUserID]);
-  const isSessionMenuVisible = Boolean(sessionsEnabled && menuBatchId);
-  const startLabel = sessionPasswordSet ? 'Start Session (password required)' : 'Start Session';
+  const isSessionMenuVisible = Boolean(menuBatchId);
+  const startLabel = 'Start Session';
 
   const [copyToast, setCopyToast] = React.useState<{ open: boolean; message: string }>({ open: false, message: '' });
+  const [sessionPasswordValue, setSessionPasswordValue] = React.useState('');
+
+  React.useEffect(() => {
+    if (!sessionDialogOpen) {
+      setSessionPasswordValue('');
+    }
+  }, [sessionDialogOpen]);
 
   const handleCopySessionID = React.useCallback(async (event: React.MouseEvent, sessionID?: string) => {
     event.stopPropagation();
@@ -365,6 +374,49 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
           <Button onClick={closeDelete}>Cancel</Button>
           <Button onClick={confirmDelete} disabled={deleting} color="error" variant="contained">
             {deleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Session Password Dialog */}
+      <Dialog
+        open={sessionDialogOpen}
+        onClose={() => {
+          if (!sessionPending) cancelSessionCreation();
+        }}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Start Session</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Typography>
+            {sessionCreationBatch ? `Start a new session for "${sessionCreationBatch.batchName}".` : 'Start a new session.'}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Set an optional password so only people with the password can join. Leave blank to allow anyone with the session ID to join.
+          </Typography>
+          <TextField
+            label="Session password"
+            type="password"
+            value={sessionPasswordValue}
+            onChange={(e) => setSessionPasswordValue(e.target.value)}
+            disabled={sessionPending}
+            fullWidth
+            autoFocus
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelSessionCreation} disabled={sessionPending}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              void handleCreateSessionWithPassword(sessionPasswordValue.trim() || undefined);
+            }}
+            disabled={sessionPending}
+            variant="contained"
+          >
+            {sessionPending ? 'Starting…' : 'Start Session'}
           </Button>
         </DialogActions>
       </Dialog>

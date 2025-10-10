@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CallAPI, projectServiceUrl } from '../../utils/apis';
 import type { Batch } from '../../utils/intefaces/interfaces';
-import { getProject } from '../../utils/intefaces/project';
 import { createSession, endSession, fetchActiveSessions, joinSession, type ActiveSessionResponse } from '../../utils/intefaces/session';
 import { setCookie, clearCookie, getUserIDFromCookie } from '../../utils/cookieUtils';
 
@@ -98,9 +97,9 @@ export function useBatchesTab(projectID?: string) {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sessionsEnabled, setSessionsEnabled] = useState(false);
-  const [sessionPasswordSet, setSessionPasswordSet] = useState(false);
   const [sessionPending, setSessionPending] = useState(false);
+  const [sessionDialogOpen, setSessionDialogOpen] = useState(false);
+  const [sessionCreationBatchId, setSessionCreationBatchId] = useState<string | null>(null);
 
   // menu state
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
@@ -122,7 +121,7 @@ export function useBatchesTab(projectID?: string) {
   const [activeSessionsByBatch, setActiveSessionsByBatch] = useState<Record<string, ActiveSessionResponse>>({});
 
   const refreshActiveSessions = useCallback(async () => {
-    if (!projectID || !sessionsEnabled) {
+    if (!projectID) {
       setActiveSessionsByBatch({});
       return;
     }
@@ -138,7 +137,7 @@ export function useBatchesTab(projectID?: string) {
     } catch (e) {
       console.error('Failed to refresh active sessions', e);
     }
-  }, [projectID, sessionsEnabled]);
+  }, [projectID]);
 
   const load = useCallback(async () => {
     if (!projectID) return;
@@ -179,35 +178,7 @@ export function useBatchesTab(projectID?: string) {
   }, [load]);
 
   useEffect(() => {
-    if (!projectID) return;
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const project = await getProject(projectID);
-        if (cancelled) return;
-        const sessionSettings = project.settings?.session;
-        const enabled = sessionSettings?.enabled ?? false;
-        setSessionsEnabled(enabled);
-        setSessionPasswordSet(Boolean(sessionSettings?.password));
-        if (!enabled) {
-          setActiveSessionsByBatch({});
-        }
-      } catch {
-        if (cancelled) return;
-        setSessionsEnabled(false);
-        setSessionPasswordSet(false);
-        setActiveSessionsByBatch({});
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [projectID]);
-
-  useEffect(() => {
-    if (!sessionsEnabled) {
+    if (!projectID) {
       setActiveSessionsByBatch({});
       return;
     }
@@ -216,7 +187,7 @@ export function useBatchesTab(projectID?: string) {
       refreshActiveSessions();
     }, 20000);
     return () => window.clearInterval(timer);
-  }, [sessionsEnabled, projectID, refreshActiveSessions]);
+  }, [projectID, refreshActiveSessions]);
 
   // menu handlers
   const openMenu = useCallback((evt: React.MouseEvent<HTMLElement>, batchID: string) => {
@@ -340,50 +311,68 @@ export function useBatchesTab(projectID?: string) {
     }
   }, [menuBatchId, activeSessionsByBatch]);
 
-  const startSession = useCallback(async () => {
-    if (!sessionsEnabled) {
-      setError('Sessions are not enabled for this project.');
+  const startSession = useCallback(() => {
+    if (!selectedBatch || sessionPending) return;
+    setError(null);
+    if (activeSessionsByBatch[selectedBatch.batchID]) {
+      setError('This batch already has an active session running.');
       return;
     }
-    if (!selectedBatch || sessionPending) return;
+    setSessionCreationBatchId(selectedBatch.batchID);
+    setSessionDialogOpen(true);
     closeMenu();
-    setSessionPending(true);
-    setError(null);
-    try {
-      if (activeSessionsByBatch[selectedBatch.batchID]) {
-        setError('This batch already has an active session running.');
-        return;
+  }, [selectedBatch, sessionPending, activeSessionsByBatch, closeMenu]);
+
+  const cancelSessionCreation = useCallback(() => {
+    setSessionDialogOpen(false);
+    setSessionCreationBatchId(null);
+  }, []);
+
+  const handleCreateSessionWithPassword = useCallback(
+    async (password?: string) => {
+      if (!sessionCreationBatchId) return;
+      setSessionPending(true);
+      setError(null);
+      try {
+        const batchForSession = batches.find((b) => b.batchID === sessionCreationBatchId);
+        const result = await createSession(sessionCreationBatchId, password);
+        if (!result.ok) {
+          setError(result.error || 'Failed to start session');
+          return;
+        }
+        const batchID = result.data.batchID || sessionCreationBatchId;
+        const projectForSession = result.data.projectID || projectID || batchForSession?.projectID;
+        const sessionID = result.data.sessionID;
+        const ownerID = getUserIDFromCookie();
+        if (ownerID && sessionID && batchID && projectForSession) {
+          setActiveSessionsByBatch((prev) => ({
+            ...prev,
+            [batchID]: {
+              sessionID,
+              batchID,
+              projectID: projectForSession,
+              owner: { id: ownerID, email: '' },
+              members: [],
+              ownerConnected: true,
+              lastUpdated: new Date().toISOString(),
+            },
+          }));
+        }
+        await refreshActiveSessions();
+        cancelSessionCreation();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to start session');
+      } finally {
+        setSessionPending(false);
       }
-      const result = await createSession(selectedBatch.batchID);
-      if (!result.ok) {
-        setError(result.error || 'Failed to start session');
-        return;
-      }
-      const batchID = result.data.batchID || selectedBatch.batchID;
-      const projectForSession = result.data.projectID || projectID || selectedBatch.projectID;
-      const sessionID = result.data.sessionID;
-      const ownerID = getUserIDFromCookie();
-      if (ownerID && sessionID && batchID && projectForSession) {
-        setActiveSessionsByBatch((prev) => ({
-          ...prev,
-          [batchID]: {
-            sessionID,
-            batchID,
-            projectID: projectForSession,
-            owner: { id: ownerID, email: '' }, // We'll get the email from the server refresh
-            members: [],
-            ownerConnected: true,
-            lastUpdated: new Date().toISOString(),
-          },
-        }));
-      }
-      await refreshActiveSessions();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to start session');
-    } finally {
-      setSessionPending(false);
-    }
-  }, [sessionsEnabled, selectedBatch, sessionPending, closeMenu, projectID, activeSessionsByBatch, refreshActiveSessions]);
+    },
+    [sessionCreationBatchId, batches, projectID, refreshActiveSessions, cancelSessionCreation],
+  );
+
+  const sessionCreationBatch = useMemo(() => {
+    if (!sessionCreationBatchId) return null;
+    return batches.find((b) => b.batchID === sessionCreationBatchId) || null;
+  }, [sessionCreationBatchId, batches]);
 
   const performStopSession = useCallback(async () => {
     if (!menuBatchId || sessionPending) return;
@@ -500,13 +489,15 @@ export function useBatchesTab(projectID?: string) {
     confirmDelete,
     deleting,
     // sessions
-    sessionsEnabled,
-    sessionPasswordSet,
     sessionPending,
     activeSessionsByBatch,
     startSession,
     stopSession,
     refreshActiveSessions,
+  sessionDialogOpen,
+  sessionCreationBatch,
+  cancelSessionCreation,
+  handleCreateSessionWithPassword,
     // session end warning
     sessionEndWarningOpen,
     openSessionEndWarning,

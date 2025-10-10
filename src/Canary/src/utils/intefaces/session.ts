@@ -8,6 +8,7 @@ export interface SessionTokenResponse {
   projectID: string;
   token?: string; // short-lived JWT for websocket upgrade (omitted for owner-create response)
   expiresIn?: number; // seconds until expiry
+  role?: 'owner' | 'member';
 }
 
 // Discriminated union so callers can easily branch on success.
@@ -28,14 +29,22 @@ export interface ActiveSessionResponse {
   lastUpdated: string;
 }
 
-export async function createSession(batchID: string, userID: string = getUserIDFromCookie()): Promise<SessionCallResult> {
+export async function createSession(batchID: string, password?: string, userID: string = getUserIDFromCookie()): Promise<SessionCallResult> {
   if (!batchID) return { ok: false, error: 'batchID is required' };
   if (!userID) return { ok: false, error: 'userID is required (missing cookie?)' };
   const base = websocketServiceUrl();
   if (!base) return { ok: false, error: 'WebSocket service URL not configured' };
   const url = `${base}/sessions/${encodeURIComponent(batchID)}?userID=${encodeURIComponent(userID)}`;
   try {
-    const data = await CallAPI<SessionTokenResponse>(url, { method: 'POST' });
+    const options: {
+      method: 'POST';
+      json?: { password: string };
+    } = { method: 'POST' };
+    const trimmedPassword = password?.trim();
+    if (trimmedPassword) {
+      options.json = { password: trimmedPassword };
+    }
+    const data = await CallAPI<SessionTokenResponse>(url, options);
     if (!data || !data.sessionID) {
       return { ok: false, error: 'Malformed response from session create endpoint' };
     }
@@ -47,14 +56,15 @@ export async function createSession(batchID: string, userID: string = getUserIDF
 }
 
 /** Join an existing session as a member. */
-export async function joinSession(sessionID: string, password: string, userID: string = getUserIDFromCookie()): Promise<SessionCallResult> {
+export async function joinSession(sessionID: string, password?: string, userID: string = getUserIDFromCookie()): Promise<SessionCallResult> {
   if (!sessionID) return { ok: false, error: 'sessionID is required' };
   if (!userID) return { ok: false, error: 'userID is required (missing cookie?)' };
   const base = websocketServiceUrl();
   if (!base) return { ok: false, error: 'WebSocket service URL not configured' };
   const url = `${base}/sessions/${encodeURIComponent(sessionID)}/join?userID=${encodeURIComponent(userID)}`;
   try {
-    const data = await CallAPI<SessionTokenResponse>(url, { method: 'POST', json: { password } });
+    const payload = password !== undefined ? { password } : undefined;
+    const data = await CallAPI<SessionTokenResponse>(url, payload ? { method: 'POST', json: payload } : { method: 'POST' });
     if (!data || !data.sessionID || !data.token) {
       return { ok: false, error: 'Malformed response from session join endpoint' };
     }

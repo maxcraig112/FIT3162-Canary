@@ -32,6 +32,10 @@ type SessionRecord struct {
 	Session Session `json:"session"`
 }
 
+type SessionPasswordRequest struct {
+	Password string `json:"password"`
+}
+
 type CreateSessionRequest struct {
 	UserID    string `json:"userID"`
 	UserEmail string `json:"userEmail"`
@@ -57,20 +61,6 @@ func NewSessionStore(client fs.FirestoreClientInterface) *SessionStore {
 
 // GenericClient exposes the underlying Firestore client for constructing other stores.
 func (s *SessionStore) GenericClient() fs.FirestoreClientInterface { return s.genericStore.Client() }
-
-// func (s *SessionStore) CreateSession(ctx context.Context, req CreateSessionRequest) (string, error) {
-// 	session := Session{
-// 		OwnerID:      req.UserID,
-// 		OwnerEmail:   req.UserEmail,
-// 		BatchID:      req.BatchID,
-// 		ProjectID:    req.ProjectID,
-// 		Password:     req.Password,
-// 		Members:      []string{},
-// 		MemberEmails: []string{},
-// 		LastUpdated:  time.Now(),
-// 	}
-// 	return s.genericStore.CreateDoc(ctx, session)
-// }
 
 func (s *SessionStore) CreateNewSession(ctx context.Context, req CreateSessionRequest) (string, error) {
 	session := Session{

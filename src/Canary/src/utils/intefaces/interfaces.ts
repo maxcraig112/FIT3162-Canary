@@ -4,16 +4,6 @@ export interface Project {
   userID: string;
   numberOfBatches: number;
   lastUpdated: string;
-  settings?: ProjectSettings;
-}
-
-export interface ProjectSettings {
-  session?: Session;
-}
-
-export interface Session {
-  enabled: boolean;
-  password: string;
 }
 
 export interface Batch {
