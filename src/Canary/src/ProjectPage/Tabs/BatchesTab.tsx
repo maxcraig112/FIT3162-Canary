@@ -75,12 +75,26 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
 
   const [copyToast, setCopyToast] = React.useState<{ open: boolean; message: string }>({ open: false, message: '' });
   const [sessionPasswordValue, setSessionPasswordValue] = React.useState('');
+  const renameOriginalValueRef = React.useRef<string>('');
 
   React.useEffect(() => {
     if (!sessionDialogOpen) {
       setSessionPasswordValue('');
     }
   }, [sessionDialogOpen]);
+  React.useEffect(() => {
+    if (renameOpen) {
+      if (!renameOriginalValueRef.current && renameValue) {
+        renameOriginalValueRef.current = renameValue;
+      }
+    } else {
+      renameOriginalValueRef.current = '';
+    }
+  }, [renameOpen, renameValue]);
+  const isRenameDisabled =
+    renaming ||
+    !renameValue.trim() ||
+    renameValue.trim().toLowerCase() === renameOriginalValueRef.current.trim().toLowerCase();
 
   const handleCopySessionID = React.useCallback(async (event: React.MouseEvent, sessionID?: string) => {
     event.stopPropagation();
@@ -231,7 +245,7 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
                       sx={{
                         position: 'absolute',
                         top: 8,
-                        right: 8,
+                        right: -4,
                         fontSize: 32,
                         color: (theme) => theme.palette.grey[600],
                         zIndex: 5,
@@ -352,13 +366,57 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
 
       {/* Rename Dialog */}
       <Dialog open={renameOpen} onClose={closeRename} fullWidth maxWidth="xs">
-        <DialogTitle>Rename Batch</DialogTitle>
+        <DialogTitle sx={{ color: '#000' }}>Rename Batch</DialogTitle>
         <DialogContent>
-          <TextField autoFocus margin="dense" label="New name" type="text" fullWidth value={renameValue} onChange={(e) => setRenameValue(e.target.value)} />
+          <TextField 
+            autoFocus 
+            label="New name" 
+            type="text" 
+            fullWidth 
+            value={renameValue} 
+            onChange={(e) => setRenameValue(e.target.value)} 
+            InputProps={{
+              sx: {
+                color: '#000',
+                bgcolor: '#fff',
+              },
+            }}
+            InputLabelProps={{
+              sx: {
+                color: '#999',
+                '&.Mui-focused': { color: '#000' },
+              },
+            }}
+            sx={{
+              alignSelf: 'center',
+              maxWidth: 480,
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+              mb: "0.5rem",
+              mt: "0.5rem",
+            }}
+          />
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeRename}>Cancel</Button>
-          <Button onClick={submitRename} disabled={renaming || !renameValue.trim()} variant="contained">
+          <Button 
+            onClick={closeRename}
+            variant="outlined"
+            color="secondary"
+            sx = {{
+              mb: "1rem",
+            }}
+          >
+              Cancel
+          </Button>
+          <Button
+            onClick={submitRename}
+            disabled={isRenameDisabled}
+            variant="contained"
+            sx={{
+              mb: "1rem",
+              mr: "1rem",
+              '&.Mui-disabled': { bgcolor: '#e2e8f0', color: '#94a3b8' },
+            }}
+          >
             {renaming ? 'Renaming...' : 'Rename'}
           </Button>
         </DialogActions>
@@ -366,7 +424,7 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
 
       {/* Delete Dialog */}
       <Dialog open={deleteOpen} onClose={closeDelete} fullWidth maxWidth="xs">
-        <DialogTitle>Delete Batch</DialogTitle>
+        <DialogTitle sx={{ color: '#000' }}>Delete Batch</DialogTitle>
         <DialogContent>
           <Typography>Are you sure you want to delete this batch?</Typography>
         </DialogContent>
@@ -387,7 +445,7 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
         fullWidth
         maxWidth="xs"
       >
-        <DialogTitle>Start Session</DialogTitle>
+        <DialogTitle sx={{ color: '#000' }}>Start Session</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <Typography>{sessionCreationBatch ? `Start a new session for "${sessionCreationBatch.batchName}".` : 'Start a new session.'}</Typography>
           <Typography variant="body2" color="text.secondary">
@@ -413,7 +471,7 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
 
       {/* Session End Warning Dialog */}
       <Dialog open={sessionEndWarningOpen} onClose={closeSessionEndWarning} fullWidth maxWidth="xs">
-        <DialogTitle>End Session Warning</DialogTitle>
+        <DialogTitle sx={{ color: '#000' }}>End Session Warning</DialogTitle>
         <DialogContent>
           <Typography>This session is currently in progress by another user. Are you sure you want to end it? This will disconnect all participants.</Typography>
         </DialogContent>

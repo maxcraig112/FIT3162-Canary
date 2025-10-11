@@ -36,12 +36,27 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
     closeDelete,
   } = useDatasetTab(projectID);
 
+  const renameOriginalValueRef = React.useRef<string>('');
+
   // Log batches whenever they change so you can inspect the data
   React.useEffect(() => {
     if (batches) {
       // console.log('[BatchesTab] Batches state:', batches);
     }
   }, [batches]);
+  React.useEffect(() => {
+    if (renameOpen) {
+      if (!renameOriginalValueRef.current && renameValue) {
+        renameOriginalValueRef.current = renameValue;
+      }
+    } else {
+      renameOriginalValueRef.current = '';
+    }
+  }, [renameOpen, renameValue]);
+  const isRenameDisabled =
+    renaming ||
+    !renameValue.trim() ||
+    renameValue.trim().toLowerCase() === renameOriginalValueRef.current.trim().toLowerCase();
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -131,7 +146,7 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
                       sx={{
                         position: 'absolute',
                         top: 8,
-                        right: 8,
+                        right: -4,
                         fontSize: 32,
                         color: (theme) => theme.palette.grey[600],
                         zIndex: 2,
@@ -213,13 +228,57 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
 
       {/* Rename Dialog */}
       <Dialog open={renameOpen} onClose={closeRename} fullWidth maxWidth="xs">
-        <DialogTitle>Rename Batch</DialogTitle>
+        <DialogTitle sx={{ color: '#000' }}>Rename Batch</DialogTitle>
         <DialogContent>
-          <TextField autoFocus margin="dense" label="New name" type="text" fullWidth value={renameValue} onChange={(e) => setRenameValue(e.target.value)} />
+          <TextField 
+            autoFocus 
+            label="New name" 
+            type="text" 
+            fullWidth 
+            value={renameValue} 
+            onChange={(e) => setRenameValue(e.target.value)} 
+            InputProps={{
+              sx: {
+                color: '#000',
+                bgcolor: '#fff',
+              },
+            }}
+            InputLabelProps={{
+              sx: {
+                color: '#999',
+                '&.Mui-focused': { color: '#000' },
+              },
+            }}
+            sx={{
+              alignSelf: 'center',
+              maxWidth: 480,
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+              mb: "0.5rem",
+              mt: "0.5rem",
+            }}
+          />
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeRename}>Cancel</Button>
-          <Button onClick={submitRename} disabled={renaming || !renameValue.trim()} variant="contained">
+          <Button 
+            onClick={closeRename}
+            variant="outlined"
+            color="secondary"
+            sx = {{
+              mb: "1rem",
+            }}
+          >
+              Cancel
+          </Button>
+          <Button
+            onClick={submitRename}
+            disabled={isRenameDisabled}
+            variant="contained"
+            sx={{
+              mb: "1rem",
+              mr: "1rem",
+              '&.Mui-disabled': { bgcolor: '#e2e8f0', color: '#94a3b8' },
+            }}
+          >
             {renaming ? 'Renaming...' : 'Rename'}
           </Button>
         </DialogActions>
