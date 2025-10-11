@@ -33,7 +33,12 @@ func (sh *SessionHandler) CreateSessionWebSocketHandler(w http.ResponseWriter, r
 		if ownerID == "" {
 			ownerID = constants.DebugDefaultOwnerID
 		}
-		req := websocket.CreateSessionConnectionRequest{OwnerID: ownerID, SessionID: sessionID, BatchID: batchID}
+		req := websocket.CreateSessionConnectionRequest{
+			OwnerID:    ownerID,
+			OwnerEmail: sh.getUserEmailFromRequestOrStore(r, ownerID),
+			SessionID:  sessionID,
+			BatchID:    batchID,
+		}
 		log.Warn().Str("sessionID", sessionID).Str("ownerID", ownerID).Msg("DEBUG BYPASS: Upgrading owner websocket without auth validation")
 		if err := sh.Hub.CreateSession(w, r, req); err != nil {
 			log.Error().Err(err).Str("sessionID", sessionID).Msg("owner websocket upgrade failed (debug bypass)")
@@ -60,7 +65,12 @@ func (sh *SessionHandler) CreateSessionWebSocketHandler(w http.ResponseWriter, r
 		http.Error(w, "missing batch id", http.StatusBadRequest)
 		return
 	}
-	req := websocket.CreateSessionConnectionRequest{OwnerID: claims.UserID, SessionID: sessionID, BatchID: claims.BatchID}
+	req := websocket.CreateSessionConnectionRequest{
+		OwnerID:    claims.UserID,
+		OwnerEmail: sh.getUserEmailFromRequestOrStore(r, claims.UserID),
+		SessionID:  sessionID,
+		BatchID:    claims.BatchID,
+	}
 	if err := sh.Hub.CreateSession(w, r, req); err != nil {
 		log.Error().Err(err).Str("sessionID", sessionID).Msg("owner websocket upgrade failed")
 		return
@@ -83,7 +93,12 @@ func (sh *SessionHandler) JoinSessionWebSocketHandler(w http.ResponseWriter, r *
 		if memberID == "" {
 			memberID = constants.DebugDefaultUserID
 		}
-		req := websocket.JoinSessionConnectionRequest{MemberID: memberID, SessionID: sessionID}
+		req := websocket.JoinSessionConnectionRequest{
+			MemberID:    memberID,
+			MemberEmail: sh.getUserEmailFromRequestOrStore(r, memberID),
+			SessionID:   sessionID,
+			BatchID:     r.URL.Query().Get("batchID"),
+		}
 		log.Warn().Str("sessionID", sessionID).Str("memberID", memberID).Msg("DEBUG BYPASS: Upgrading member websocket without auth validation")
 		if err := sh.Hub.JoinSession(w, r, req); err != nil {
 			log.Error().Err(err).Str("sessionID", sessionID).Msg("member websocket upgrade failed (debug bypass)")
@@ -107,7 +122,11 @@ func (sh *SessionHandler) JoinSessionWebSocketHandler(w http.ResponseWriter, r *
 		http.Error(w, "auth failed", http.StatusUnauthorized)
 		return
 	}
-	req := websocket.JoinSessionConnectionRequest{MemberID: claims.UserID, SessionID: sessionID}
+	req := websocket.JoinSessionConnectionRequest{
+		MemberID:    claims.UserID,
+		MemberEmail: sh.getUserEmailFromRequestOrStore(r, claims.UserID),
+		SessionID:   sessionID,
+	}
 	if err := sh.Hub.JoinSession(w, r, req); err != nil {
 		log.Error().Err(err).Str("sessionID", sessionID).Msg("member websocket upgrade failed")
 		return

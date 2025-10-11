@@ -43,31 +43,31 @@ tasks:
     desc: Lint the Go package service with golangci-lint
     dir: src/pkg
     cmds:
-      - golangci-lint run
+      - golangci-lint run --timeout=5m
 
   lintAuthService:
     desc: Lint the Go authentication service with golangci-lint
     dir: src/services/golang-auth-service
     cmds:
-      - golangci-lint run
+      - golangci-lint run --timeout=5m
 
   lintProjectService:
     desc: Lint the Go project service with golangci-lint
     dir: src/services/golang-project-service
     cmds:
-      - golangci-lint run
+      - golangci-lint run --timeout=5m
 
   lintWebsocketService:
     desc: Lint the Go websocket service with golangci-lint
     dir: src/services/golang-websocket-service
     cmds:
-      - golangci-lint run
+      - golangci-lint run --timeout=5m
 
   lintServiceRunner:
     desc: Lint the Go service-runner with golangci-lint
     dir: src/services/service-runner
     cmds:
-      - golangci-lint run
+      - golangci-lint run --timeout=5m
 
   lintAll:
     desc: Lint all Go services with golangci-lint
@@ -77,6 +77,45 @@ tasks:
       - task: lintProjectService
       - task: lintWebsocketService
       - task: lintServiceRunner
+
+  fmtPkgService:
+    desc: Format Go files in the pkg service
+    dir: src/pkg
+    cmds:
+      - gofmt -w .
+
+  fmtAuthService:
+    desc: Format Go files in the authentication service
+    dir: src/services/golang-auth-service
+    cmds:
+      - gofmt -w .
+
+  fmtProjectService:
+    desc: Format Go files in the project service
+    dir: src/services/golang-project-service
+    cmds:
+      - gofmt -w .
+
+  fmtWebsocketService:
+    desc: Format Go files in the websocket service
+    dir: src/services/golang-websocket-service
+    cmds:
+      - gofmt -w .
+
+  fmtServiceRunner:
+    desc: Format Go files in the service runner
+    dir: src/services/service-runner
+    cmds:
+      - gofmt -w .
+
+  fmtAll:
+    desc: Format Go files across all Go services
+    cmds:
+      - task: fmtPkgService
+      - task: fmtAuthService
+      - task: fmtProjectService
+      - task: fmtWebsocketService
+      - task: fmtServiceRunner
     
   tidyPkgService:
     desc: Tidy the Go package service

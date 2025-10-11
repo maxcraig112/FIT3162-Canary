@@ -13,17 +13,32 @@ const (
 	sessionCollectionID = "sessions"
 )
 
+type Member struct {
+	ID    string `firestore:"id" json:"id"`
+	Email string `firestore:"email" json:"email"`
+}
+
 type Session struct {
-	OwnerID     string    `firestore:"ownerID,omitempty" json:"ownerID"`
+	Owner       Member    `firestore:"owner,omitempty" json:"owner"`
 	BatchID     string    `firestore:"batchID,omitempty" json:"batchID"`
 	ProjectID   string    `firestore:"projectID,omitempty" json:"projectID"`
 	Password    string    `firestore:"password,omitempty" json:"password"`
-	Members     []string  `firestore:"members,omitempty" json:"members"`
+	Members     []Member  `firestore:"members,omitempty" json:"members"`
 	LastUpdated time.Time `firestore:"lastUpdated,omitempty" json:"lastUpdated"`
+}
+
+type SessionRecord struct {
+	ID      string  `json:"id"`
+	Session Session `json:"session"`
+}
+
+type SessionPasswordRequest struct {
+	Password string `json:"password"`
 }
 
 type CreateSessionRequest struct {
 	UserID    string `json:"userID"`
+	UserEmail string `json:"userEmail"`
 	BatchID   string `json:"batchID"`
 	ProjectID string `json:"projectID"`
 	Password  string `json:"password,omitempty"`
@@ -31,6 +46,7 @@ type CreateSessionRequest struct {
 
 type JoinSessionRequest struct {
 	UserID    string `json:"userID"`
+	UserEmail string `json:"userEmail"`
 	SessionID string `json:"sessionID"`
 	Password  string `json:"password,omitempty"`
 }
@@ -48,11 +64,15 @@ func (s *SessionStore) GenericClient() fs.FirestoreClientInterface { return s.ge
 
 func (s *SessionStore) CreateNewSession(ctx context.Context, req CreateSessionRequest) (string, error) {
 	session := Session{
-		OwnerID:   req.UserID,
-		BatchID:   req.BatchID,
-		ProjectID: req.ProjectID,
-		Password:  req.Password,
-		Members:   []string{},
+		Owner: Member{
+			ID:    req.UserID,
+			Email: req.UserEmail,
+		},
+		BatchID:     req.BatchID,
+		ProjectID:   req.ProjectID,
+		Password:    req.Password,
+		Members:     []Member{},
+		LastUpdated: time.Now(),
 	}
 	return s.genericStore.CreateDoc(ctx, session)
 }
@@ -69,24 +89,35 @@ func (s *SessionStore) DoesSessionWithBatchExist(ctx context.Context, batchID st
 	if err != nil {
 		return false
 	}
-	var session Session
-	if err := doc.DataTo(&session); err != nil {
-		return false
-	}
 	return doc.Ref.ID != ""
 }
 
 func (s *SessionStore) AddMemberToSession(ctx context.Context, req JoinSessionRequest) error {
+	member := Member{
+		ID:    req.UserID,
+		Email: req.UserEmail,
+	}
 	updateParams := []firestore.Update{
-		{Path: "members", Value: firestore.ArrayUnion(req.UserID)},
+		{Path: "members", Value: firestore.ArrayUnion(member)},
 		{Path: "lastUpdated", Value: time.Now()},
 	}
 	return s.genericStore.UpdateDoc(ctx, req.SessionID, updateParams)
 }
 
-func (s *SessionStore) RemoveMemberFromSession(ctx context.Context, sessionID string, memberID string) error {
+func (s *SessionStore) RemoveMemberFromSession(ctx context.Context, sessionID string, memberID string, memberEmail string) error {
+	member := Member{
+		ID:    memberID,
+		Email: memberEmail,
+	}
 	updateParams := []firestore.Update{
-		{Path: "members", Value: firestore.ArrayRemove(memberID)},
+		{Path: "members", Value: firestore.ArrayRemove(member)},
+		{Path: "lastUpdated", Value: time.Now()},
+	}
+	return s.genericStore.UpdateDoc(ctx, sessionID, updateParams)
+}
+
+func (s *SessionStore) TouchSession(ctx context.Context, sessionID string) error {
+	updateParams := []firestore.Update{
 		{Path: "lastUpdated", Value: time.Now()},
 	}
 	return s.genericStore.UpdateDoc(ctx, sessionID, updateParams)
@@ -104,7 +135,7 @@ func (s *SessionStore) IsUserInSession(ctx context.Context, req JoinSessionReque
 		return false, nil
 	}
 
-	return req.UserID == session.OwnerID || lo.Contains(session.Members, req.UserID), nil
+	return req.UserID == session.Owner.ID || lo.Contains(lo.Map(session.Members, func(m Member, _ int) string { return m.ID }), req.UserID), nil
 }
 
 func (s *SessionStore) GetSession(ctx context.Context, sessionID string) (*Session, error) {
@@ -117,4 +148,50 @@ func (s *SessionStore) GetSession(ctx context.Context, sessionID string) (*Sessi
 		return nil, err
 	}
 	return &session, nil
+}
+
+func (s *SessionStore) GetSessionRecord(ctx context.Context, sessionID string) (*SessionRecord, error) {
+	docSnap, err := s.genericStore.GetDoc(ctx, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	var session Session
+	if err := docSnap.DataTo(&session); err != nil {
+		return nil, err
+	}
+	return &SessionRecord{ID: docSnap.Ref.ID, Session: session}, nil
+}
+
+func (s *SessionStore) GetSessionByBatch(ctx context.Context, batchID string) (*SessionRecord, error) {
+	queryParams := []fs.QueryParameter{
+		{Path: "batchID", Op: "==", Value: batchID},
+	}
+	doc, err := s.genericStore.GetDocByQuery(ctx, queryParams)
+	if err != nil {
+		return nil, err
+	}
+	var session Session
+	if err := doc.DataTo(&session); err != nil {
+		return nil, err
+	}
+	return &SessionRecord{ID: doc.Ref.ID, Session: session}, nil
+}
+
+func (s *SessionStore) ListSessionsByProject(ctx context.Context, projectID string) ([]SessionRecord, error) {
+	queryParams := []fs.QueryParameter{
+		{Path: "projectID", Op: "==", Value: projectID},
+	}
+	docs, err := s.genericStore.ReadCollection(ctx, queryParams)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]SessionRecord, 0, len(docs))
+	for _, doc := range docs {
+		var session Session
+		if err := doc.DataTo(&session); err != nil {
+			continue
+		}
+		result = append(result, SessionRecord{ID: doc.Ref.ID, Session: session})
+	}
+	return result, nil
 }

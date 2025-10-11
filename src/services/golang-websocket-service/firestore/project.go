@@ -11,21 +11,11 @@ const (
 )
 
 type Project struct {
-	ProjectID       string           `firestore:"projectID,omitempty" json:"projectID"`
-	ProjectName     string           `firestore:"projectName,omitempty" json:"projectName"`
-	UserID          string           `firestore:"userID,omitempty" json:"userID"`
-	NumberOfBatches int64            `firestore:"numberOfBatches,omitempty" json:"numberOfBatches"`
-	LastUpdated     time.Time        `firestore:"lastUpdated,omitempty" json:"lastUpdated"`
-	Settings        *ProjectSettings `firestore:"settings,omitempty" json:"settings"`
-}
-
-type ProjectSettings struct {
-	Session *SessionSettings `firestore:"session,omitempty" json:"session"`
-}
-
-type SessionSettings struct {
-	Enabled  bool   `firestore:"enabled,omitempty" json:"enabled"`
-	Password string `firestore:"password,omitempty" json:"password"`
+	ProjectID       string    `firestore:"projectID,omitempty" json:"projectID"`
+	ProjectName     string    `firestore:"projectName,omitempty" json:"projectName"`
+	UserID          string    `firestore:"userID,omitempty" json:"userID"`
+	NumberOfBatches int64     `firestore:"numberOfBatches,omitempty" json:"numberOfBatches"`
+	LastUpdated     time.Time `firestore:"lastUpdated,omitempty" json:"lastUpdated"`
 }
 
 type ProjectStore struct {

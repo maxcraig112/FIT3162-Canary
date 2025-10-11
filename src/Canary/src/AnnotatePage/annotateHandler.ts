@@ -667,8 +667,12 @@ export const annotateHandler = {
     currentImageH = ih;
 
     // Determine available canvas size from parent container; fallback to image size
-    const canvasEl = canvasRef.getElement() as HTMLCanvasElement;
-    const parent = canvasEl?.parentElement;
+    const canvasEl = canvasRef?.getElement() as HTMLCanvasElement;
+    if (!canvasEl) {
+      console.error('Canvas element not available');
+      throw new Error('Canvas element not available');
+    }
+    const parent = canvasEl.parentElement;
     const cw = Math.max(1, parent?.clientWidth ?? iw);
     const ch = Math.max(1, parent?.clientHeight ?? ih);
 

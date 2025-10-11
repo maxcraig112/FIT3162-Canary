@@ -1,8 +1,6 @@
 import React from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Checkbox from '@mui/material/Checkbox';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
@@ -14,7 +12,7 @@ import MenuItem from '@mui/material/MenuItem';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import InputBase from '@mui/material/InputBase';
 import { useSettingsTab } from './settingsTabHandler';
-import type { Project, Session } from '../../utils/intefaces/interfaces';
+import type { Project } from '../../utils/intefaces/interfaces';
 import { useAuthGuard } from '../../utils/authUtil';
 
 type ListPanelProps = {
@@ -213,20 +211,12 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
 
 type SettingsTabProps = {
   project: Project | null;
-  onSessionSettingsSaved?: (session: Session) => void;
 };
 
-export function SettingsTab({ project: _project, onSessionSettingsSaved }: SettingsTabProps) {
+export function SettingsTab({ project: _project }: SettingsTabProps) {
   useAuthGuard();
   const projectID = _project?.projectID;
   const {
-    sessionEnabled,
-    sessionPassword,
-    setSessionEnabled,
-    setSessionPassword,
-    saveSessionSettings,
-    saveSuccess,
-    clearSaveSuccess,
     keypointLabels,
     bboxLabels,
     keypointInput,
@@ -243,18 +233,7 @@ export function SettingsTab({ project: _project, onSessionSettingsSaved }: Setti
     clearBboxError,
     renameKeypointLabel,
     renameBboxLabel,
-  } = useSettingsTab(projectID, (_project as unknown as { settings?: { session?: { enabled?: boolean; password?: string } } } | null)?.settings ?? null);
-
-  const handleSaveSessionSettings = async () => {
-    try {
-      await saveSessionSettings();
-      onSessionSettingsSaved?.({ enabled: sessionEnabled, password: sessionPassword });
-      setTimeout(() => clearSaveSuccess(), 2500);
-    } catch (e) {
-      console.error('Failed to save settings', e);
-      alert(e instanceof Error ? e.message : 'Failed to save settings');
-    }
-  };
+  } = useSettingsTab(projectID);
 
   return (
     <Box
@@ -266,100 +245,7 @@ export function SettingsTab({ project: _project, onSessionSettingsSaved }: Setti
         minHeight: 'fit-content', // Let content determine height
       }}
     >
-      {/* Column 1 split into two boxes (no Paper) */}
-      <Box
-        sx={{
-          flex: 1,
-          display: 'grid',
-          gridTemplateRows: '1fr 1fr',
-          gap: 2,
-          minHeight: '60vh', // Reduced from 70vh for better laptop compatibility
-        }}
-      >
-        {/* Top half: description */}
-        <Box>
-          <Typography variant="h5" sx={{ color: '#000', textAlign: 'center' }}>
-            Sessions
-          </Typography>
-          <br />
-          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Typography variant="body2" sx={{ color: '#000', textAlign: 'center' }}>
-              Sessions allow you to cross-collaborate with multiple users on the same batch, allowing them to add, remove and edit keypoint and bounding box annotations.
-              <br />
-              <br />
-              To enable sessions, tick the checkbox below, and enter a password. Once sessions are enabled, annotating a batch will begin a session with a unique ID you can share.
-              <br />
-              <br />
-              <b>DO NOT SHARE YOUR SESSION ID AND PASSWORD WITH ANYONE YOU DO NOT TRUST.</b>
-            </Typography>
-          </Box>
-        </Box>
-        {/* Bottom half: session form */}
-        <Box
-          sx={{
-            bgcolor: '#fff',
-            color: '#000',
-            p: 2,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%',
-          }}
-          component="form"
-          autoComplete="off"
-        >
-          {/* Enable Sessions button on its own row, centered */}
-          <Box
-            sx={{
-              width: '100%',
-              display: 'flex',
-              justifyContent: 'center',
-              mb: 2,
-            }}
-          >
-            <FormControlLabel control={<Checkbox checked={sessionEnabled} onChange={(e) => setSessionEnabled(e.target.checked)} />} label="Enable Sessions" />
-          </Box>
-          {/* Input fields centered in a row below */}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 2,
-              flexWrap: 'wrap',
-              width: '100%',
-              mb: 2,
-            }}
-          >
-            <TextField
-              label="Password"
-              type="password"
-              variant="outlined"
-              color="primary"
-              focused
-              autoComplete="off"
-              sx={{ minWidth: '48%' }}
-              onChange={(e) => setSessionPassword(e.target.value)}
-              InputProps={{ style: { color: '#000' } }}
-              inputProps={{
-                name: 'canary-session-password',
-                autoComplete: 'off',
-              }}
-            />
-          </Box>
-          <Button variant="contained" sx={{ width: '100%' }} onClick={handleSaveSessionSettings}>
-            Save
-          </Button>
-          {saveSuccess && (
-            <Typography variant="body2" sx={{ mt: 1, color: 'green' }}>
-              {saveSuccess}
-            </Typography>
-          )}
-        </Box>
-      </Box>
-
-      {/* Column 2 */}
+      {/* Keypoint configuration */}
       <Box
         sx={{
           flex: 1,
@@ -398,7 +284,7 @@ export function SettingsTab({ project: _project, onSessionSettingsSaved }: Setti
         />
       </Box>
 
-      {/* Column 3 */}
+      {/* Bounding box configuration */}
       <Box
         sx={{
           flex: 1,
