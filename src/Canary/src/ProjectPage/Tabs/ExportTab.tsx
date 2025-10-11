@@ -24,7 +24,6 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
   const [message, setMessage] = useState<string | null>(null);
 
   /* ---------- helpers ---------- */
-  const bothSelectsDisabled = !annotationType;
   const pascal_voc_disabled = annotationType === 'keypoint';
 
   /* ---------- export ---------- */
@@ -98,6 +97,7 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
 
   /* ---------- render ---------- */
   const selectSx = {
+    color: "#000",
     '& .MuiSelect-select': {
       color: '#000',
       bgcolor: '#fff',
@@ -140,55 +140,75 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
             IconComponent={ExpandMoreIcon}
             sx={selectSx}
           >
-            <MenuItem value="">Select export type…</MenuItem>
-            <MenuItem value="keypoint">Keypoint</MenuItem>
-            <MenuItem value="bbox">Bounding Box</MenuItem>
-          </Select>
-        </FormControl>
-
-        {/* Format selector */}
-        <FormControl
-          size="small"
-          disabled={bothSelectsDisabled}
-          sx={{
-            '& .MuiOutlinedInput-notchedOutline': {
-              borderColor: bothSelectsDisabled ? '#ccc' : '#000',
-            },
-            '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: bothSelectsDisabled ? '#ccc !important' : '#000',
-            },
-            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: bothSelectsDisabled ? '#ccc' : '#000',
-            },
-          }}
-        >
-          <Select
-            value={format}
-            onChange={(e) => {
-              const f = e.target.value as ExportFormat | '';
-              setFormat(f);
-              if (f === 'pascal-voc' && annotationType === 'keypoint') {
-                setAnnotationType('');
-              }
-            }}
-            displayEmpty
-            renderValue={(s) => (s ? formatLabels[s as ExportFormat] : <Typography sx={{ color: '#777' }}>Select format…</Typography>)}
-            IconComponent={ExpandMoreIcon}
-            sx={selectSx}
-          >
-            <MenuItem value="coco">{formatLabels.coco}</MenuItem>
             <MenuItem
-              value="pascal-voc"
-              disabled={pascal_voc_disabled}
+              value="keypoint"
               sx={{
-                color: pascal_voc_disabled ? '#aaa !important' : undefined,
-                pointerEvents: pascal_voc_disabled ? 'none' : 'auto',
+                color: '#000',
+                '&:hover': { bgcolor: '#e5e7eb' },
+                '&.Mui-selected': { bgcolor: '#fff !important', color: '#000 !important' },
+                '&.Mui-selected:hover': { bgcolor: '#e5e7eb !important' },
               }}
             >
-              {formatLabels['pascal-voc']}
+              Keypoint
+            </MenuItem>
+            <MenuItem
+              value="bbox"
+              sx={{
+                color: '#000',
+                '&:hover': { bgcolor: '#e5e7eb' },
+                '&.Mui-selected': { bgcolor: '#fff !important', color: '#000 !important' },
+                '&.Mui-selected:hover': { bgcolor: '#e5e7eb !important' },
+              }}
+            >
+              Bounding Box
             </MenuItem>
           </Select>
         </FormControl>
+
+        {/* Format selector (shown once an annotation type is chosen) */}
+        {annotationType && (
+          <FormControl size="small">
+            <Select
+              value={format}
+              onChange={(e) => {
+                const f = e.target.value as ExportFormat | '';
+                setFormat(f);
+                if (f === 'pascal-voc' && annotationType === 'keypoint') {
+                  setAnnotationType('');
+                }
+              }}
+              displayEmpty
+              renderValue={(s) => (s ? formatLabels[s as ExportFormat] : <Typography sx={{ color: '#777' }}>Select format…</Typography>)}
+              IconComponent={ExpandMoreIcon}
+              sx={selectSx}
+            >
+              <MenuItem
+                value="coco"
+                sx={{
+                  color: '#000',
+                  '&:hover': { bgcolor: '#e5e7eb' },
+                  '&.Mui-selected': { bgcolor: '#fff !important', color: '#000 !important' },
+                  '&.Mui-selected:hover': { bgcolor: '#e5e7eb !important' },
+                }}
+              >
+                {formatLabels.coco}
+              </MenuItem>
+              <MenuItem
+                value="pascal-voc"
+                disabled={pascal_voc_disabled}
+                sx={{
+                  color: pascal_voc_disabled ? '#aaa !important' : '#000',
+                  pointerEvents: pascal_voc_disabled ? 'none' : 'auto',
+                  '&:hover': { bgcolor: pascal_voc_disabled ? 'inherit' : '#e5e7eb' },
+                  '&.Mui-selected': { bgcolor: '#fff !important', color: '#000 !important' },
+                  '&.Mui-selected:hover': { bgcolor: '#e5e7eb !important' },
+                }}
+              >
+                {formatLabels['pascal-voc']}
+              </MenuItem>
+            </Select>
+          </FormControl>
+        )}
 
         {/* Export button */}
         <Button
