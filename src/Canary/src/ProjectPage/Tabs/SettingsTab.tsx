@@ -10,6 +10,7 @@ import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import type { Theme } from '@mui/material/styles';
 import { useSettingsTab } from './settingsTabHandler';
 import type { Project } from '../../utils/interfaces/interfaces';
 import { useAuthGuard } from '../../utils/authUtil';
@@ -101,8 +102,8 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
     bgcolor: '#fff',
     borderRadius: 2,
     '& input': {
-      fontSize: (t: { typography: { body2: { fontSize: any; }; }; }) => t.typography.body2.fontSize,
-      lineHeight: (t: { typography: { body2: { lineHeight: any; }; }; }) => t.typography.body2.lineHeight,
+      fontSize: (theme: Theme) => theme.typography.body2.fontSize,
+      lineHeight: (theme: Theme) => theme.typography.body2.lineHeight,
       py: 0.5,
     },
   };
