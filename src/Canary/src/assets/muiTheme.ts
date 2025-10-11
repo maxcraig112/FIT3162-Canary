@@ -1,11 +1,11 @@
 import { createTheme } from '@mui/material/styles';
 
-export const darkTheme = createTheme({
+export const lightTheme = createTheme({
   palette: {
     mode: 'dark',
     background: {
-      default: '#181A20',
-      paper: '#23272F',
+      default: '#ffffffff',
+      paper: '#ffffffff',
     },
     primary: {
       main: '#ffdf01',
@@ -31,5 +31,10 @@ export const darkTheme = createTheme({
         },
       },
     },
+    MuiButton: {
+      defaultProps: {
+        disableElevation: true
+      }
+    }
   },
 });
