@@ -74,11 +74,10 @@ jobs:
             --service-account ${CLIENT_SA_EMAIL} \
             --timeout 600 \
             --concurrency 1 \
-            --add-cloudsql-instances "" \
             --execution-environment gen2 \
             --ingress all \
             --set-env-vars "PORT=8080" \
-            --set-annotations "run.googleapis.com/protocol-type=http1"
+            --annotation run.googleapis.com/protocol-type=http1
 
       - name: Output service URL
         run: |
