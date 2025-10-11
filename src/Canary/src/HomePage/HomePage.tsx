@@ -2,12 +2,10 @@ import React from 'react';
 import { Box, Button, Typography, Paper, Modal, IconButton, TextField } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import AppThemeProvider from '../assets/AppThemeProvider';
-import { CANARY_BUTTON_COLOR, CANARY_BUTTON_TEXT_COLOR } from '../assets/constants';
 import { useNavigate } from 'react-router-dom';
 
 import { handleProjectsPage } from './homeHandlers';
 import { clearCookie, setCookie } from '../utils/cookieUtils';
-import canaryImg from '../images/canary.jpg';
 import { useAuthGuard } from '../utils/authUtil';
 import { joinSession } from '../utils/interfaces/session';
 
@@ -62,199 +60,163 @@ const HomePage: React.FC = () => {
     navigate('/login');
   }
 
+  const buttonSx = {
+    width: { xs: '100%', sm: 320 },
+    fontWeight: 800,
+    fontSize: '1.75rem',
+    py: 0.75,
+    borderRadius: 2,
+    textTransform: 'none',
+    mt: "1rem"
+  };
+  const textFieldSx = {
+    alignSelf: 'center',
+    maxWidth: 480,
+    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+  };
+
   return (
     <AppThemeProvider>
       <Box
         sx={{
           minHeight: '100vh',
-          minWidth: '100vw',
-          bgcolor: 'background.default',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          p: 0,
-          overflow: 'hidden',
+          width: '100%',
+          bgcolor: '#ffffff',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          pt: { xs: 4, md: 6 },
         }}
       >
-        {/* Background image */}
         <Box
           sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            zIndex: 0,
-            background: 'rgba(0,0,0,0.5)',
-            backgroundImage: `url(${canaryImg})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            filter: 'brightness(0.5) blur(6px)',
-            transition: 'filter 0.3s',
-          }}
-        />
-        {/* Main content */}
-        <Box
-          sx={{
-            position: 'relative',
-            zIndex: 1,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
-            height: '100vh',
+            px: 2,
+            textAlign: 'center',
+            userSelect: 'none',
+            gap: 0.5,
           }}
         >
+          <Box
+            component="img"
+            src="/logo.png"
+            alt="Canary Logo"
+            sx={{
+              width: { xs: 96, md: 112 },
+              height: { xs: 96, md: 112 },
+              objectFit: 'contain',
+              mb: { xs: 1, md: 2 },
+            }}
+          />
           <Typography
             variant="h1"
             sx={{
-              color: '#fff',
-              fontWeight: 900,
-              mb: 6,
-              letterSpacing: 4,
-              fontSize: { xs: '3.5rem', md: '7rem', lg: '9rem' },
+              fontSize: { xs: '2.2rem', md: '3rem' },
+              fontWeight: 800,
               lineHeight: 1,
+              background: 'linear-gradient(90deg,#0f172a,#334155)',
+              WebkitBackgroundClip: 'text',
+              color: 'transparent',
             }}
           >
             Canary
           </Typography>
-          <Paper
-            elevation={8}
+          <Typography
             sx={{
-              bgcolor: 'background.paper',
-              borderRadius: 4,
+              fontSize: { xs: '1rem', md: '1.35rem' },
+              fontWeight: 500,
+              color: '#374151',
+              letterSpacing: 0.5,
+            }}
+          >
+            Bird annotation simplified
+          </Typography>
+        </Box>
+
+        <Box sx={{ width: '100%', maxWidth: 520, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, mt: '4rem' }}>
+          <Button variant="contained" sx={buttonSx} onClick={() => handleProjectsPage(navigate)}>
+            Projects
+          </Button>
+          <Button variant="contained" sx={buttonSx} onClick={handleOpenJoin}>
+            Join Session
+          </Button>
+        </Box>
+
+        <Box
+          sx={{
+            width: '100%',
+            maxWidth: 960,
+            mt: { xs: 6, md: 8 },
+            px: { xs: 3, md: 4 },
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 4,
+          }}
+        >
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: '#0f172a', mb: 1 }}>
+              Welcome back to Canary
+            </Typography>
+            <Typography variant="body1" sx={{ color: '#475569', maxWidth: 640, mx: 'auto' }}>
+              Continue collaborating on avian annotation projects, manage your data, or jump straight into an active session. Your latest work is only a click away.
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Join Session Modal */}
+        <Modal open={joinOpen} onClose={handleCloseJoin} aria-labelledby="join-session-modal" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Paper
+            elevation={12}
+            sx={{
+              position: 'relative',
               p: 4,
+              minWidth: 320,
+              borderRadius: 1,
               display: 'flex',
               flexDirection: 'column',
               gap: 3,
-              alignItems: 'center',
-              minWidth: 350,
-              opacity: 0.95,
             }}
           >
-            <Button
-              variant="contained"
-              sx={{
-                fontSize: '1.5rem',
-                borderRadius: 3,
-                width: 250,
-                py: 2,
-                fontWeight: 700,
-                backgroundColor: CANARY_BUTTON_COLOR,
-                color: CANARY_BUTTON_TEXT_COLOR,
-                '&:hover': {
-                  backgroundColor: '#e6c200',
-                  color: CANARY_BUTTON_TEXT_COLOR,
-                },
-              }}
-              onClick={() => handleProjectsPage(navigate)}
-            >
-              Projects
-            </Button>
-            <Button
-              variant="contained"
-              sx={{
-                fontSize: '1.5rem',
-                borderRadius: 3,
-                width: 250,
-                py: 2,
-                fontWeight: 700,
-                backgroundColor: CANARY_BUTTON_COLOR,
-                color: CANARY_BUTTON_TEXT_COLOR,
-                '&:hover': {
-                  backgroundColor: '#e6c200',
-                  color: CANARY_BUTTON_TEXT_COLOR,
-                },
-              }}
-              onClick={handleOpenJoin}
-            >
+            <IconButton sx={{ position: 'absolute', top: 12, right: 12 }} onClick={handleCloseJoin}>
+              <CloseIcon />
+            </IconButton>
+            <Typography variant="h5" sx={{ fontWeight: 700, textAlign: 'center' }}>
               Join Session
+            </Typography>
+            <TextField
+              label="Session ID"
+              name="session-id"
+              variant="outlined"
+              value={sessionID}
+              onChange={(e) => setSessionID(e.target.value)}
+              fullWidth
+              autoComplete="off"
+              InputProps={{ sx: { color: '#000', bgcolor: '#fff' } }}
+              InputLabelProps={{ sx: { color: '#999', '&.Mui-focused': { color: '#000' } } }}
+              sx={textFieldSx}
+            />
+            <TextField
+              label="Password (optional)"
+              name="session-password"
+              variant="outlined"
+              type="password"
+              value={sessionPassword}
+              onChange={(e) => setSessionPassword(e.target.value)}
+              fullWidth
+              autoComplete="new-password"
+              InputProps={{ sx: { color: '#000', bgcolor: '#fff' } }}
+              InputLabelProps={{ sx: { color: '#999', '&.Mui-focused': { color: '#000' } } }}
+              sx={textFieldSx}
+            />
+            <Button variant="contained" sx={{ ...buttonSx, alignSelf: 'center', px: 4 }} onClick={handleJoinSession}>
+              Join
             </Button>
-            {/* Join Session Modal */}
-            <Modal open={joinOpen} onClose={handleCloseJoin} aria-labelledby="join-session-modal" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Paper elevation={12} sx={{ position: 'relative', p: 4, minWidth: 350, borderRadius: 4, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <IconButton sx={{ position: 'absolute', top: 12, right: 12 }} onClick={handleCloseJoin}>
-                  <CloseIcon />
-                </IconButton>
-                <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
-                  Join Session
-                </Typography>
-                <TextField
-                  label="Session ID"
-                  name="session-id"
-                  variant="outlined"
-                  value={sessionID}
-                  onChange={(e) => setSessionID(e.target.value)}
-                  fullWidth
-                  autoComplete="off"
-                  inputProps={{ autoComplete: 'off' }}
-                />
-                <TextField
-                  label="Password (optional)"
-                  name="session-password"
-                  variant="outlined"
-                  type="password"
-                  value={sessionPassword}
-                  onChange={(e) => setSessionPassword(e.target.value)}
-                  fullWidth
-                  autoComplete="new-password"
-                  inputProps={{ autoComplete: 'new-password' }}
-                />
-                <Button
-                  variant="contained"
-                  sx={{
-                    fontWeight: 700,
-                    fontSize: '1.2rem',
-                    borderRadius: 3,
-                    py: 1,
-                    backgroundColor: CANARY_BUTTON_COLOR,
-                    color: CANARY_BUTTON_TEXT_COLOR,
-                    '&:hover': {
-                      backgroundColor: '#e6c200',
-                      color: CANARY_BUTTON_TEXT_COLOR,
-                    },
-                  }}
-                  onClick={handleJoinSession}
-                >
-                  Join
-                </Button>
-              </Paper>
-            </Modal>
           </Paper>
-        </Box>
-        {/* Logout button bottom right */}
-        <Box
-          sx={{
-            position: 'fixed',
-            right: 32,
-            bottom: 32,
-            zIndex: 2,
-          }}
-        >
-          <Button
-            variant="contained"
-            sx={{
-              fontWeight: 900,
-              fontSize: '1.2rem',
-              borderRadius: 3,
-              px: 5,
-              py: 2,
-              boxShadow: 6,
-              letterSpacing: 2,
-              textTransform: 'uppercase',
-              border: '2px solid #fff',
-              color: CANARY_BUTTON_TEXT_COLOR,
-              backgroundColor: CANARY_BUTTON_COLOR,
-              '&:hover': {
-                backgroundColor: '#e6c200',
-                color: CANARY_BUTTON_TEXT_COLOR,
-                border: '2px solid #fff',
-              },
-            }}
-            onClick={handleLogoutAndRedirect}
-          >
+        </Modal>
+        <Box sx={{ position: 'fixed', right: 32, bottom: 32 }}>
+          <Button variant="contained" sx={{ ...buttonSx, width: 'auto', px: 4, fontWeight: 800 }} onClick={handleLogoutAndRedirect}>
             Log Out
           </Button>
         </Box>
