@@ -33,11 +33,68 @@ func ErrOpeningFile(filename string) error {
 	return fmt.Errorf("error opening file: %s", filename)
 }
 
+type VideoExtractionConfig struct {
+	FileName      string  `json:"fileName"`
+	FrameInterval int     `json:"frameInterval"`
+	StartTime     float64 `json:"startTime"`
+	EndTime       float64 `json:"endTime"`
+	MaxFrames     *int    `json:"maxFrames"`
+}
+
+func normalizeVideoConfig(cfg VideoExtractionConfig) VideoExtractionConfig {
+	if cfg.FrameInterval < 1 {
+		cfg.FrameInterval = 1
+	}
+	if cfg.StartTime < 0 {
+		cfg.StartTime = 0
+	}
+	if cfg.EndTime < 0 {
+		cfg.EndTime = 0
+	}
+	if cfg.EndTime > 0 && cfg.EndTime <= cfg.StartTime+1e-3 {
+		cfg.EndTime = 0
+	}
+	if cfg.MaxFrames != nil {
+		if *cfg.MaxFrames <= 0 {
+			cfg.MaxFrames = nil
+		}
+	}
+	return cfg
+}
+
 type ImageHandler struct {
 	*handler.Handler
 	// These are embedded fields so you don't need to call .Stores to get the inner fields
 	Stores
 	Buckets
+}
+
+func extractVideoConfigs(form *multipart.Form) (map[string]VideoExtractionConfig, error) {
+	configs := make(map[string]VideoExtractionConfig)
+	rawConfigs, ok := form.Value["videoConfigs"]
+	if !ok || len(rawConfigs) == 0 {
+		return configs, nil
+	}
+
+	for _, raw := range rawConfigs {
+		trimmed := strings.TrimSpace(raw)
+		if trimmed == "" {
+			continue
+		}
+		var parsed []VideoExtractionConfig
+		if err := json.Unmarshal([]byte(trimmed), &parsed); err != nil {
+			return nil, fmt.Errorf("failed to parse videoConfigs: %w", err)
+		}
+		for _, item := range parsed {
+			if item.FileName == "" {
+				continue
+			}
+			cfg := normalizeVideoConfig(item)
+			configs[item.FileName] = cfg
+		}
+	}
+
+	return configs, nil
 }
 
 func newImageHandler(h *handler.Handler) *ImageHandler {
@@ -137,7 +194,14 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 	}
 	// Upload the images to google bucket
 
-	videoFrameObjects, cleanupVideo, err := generateVideoData(batchID, r.MultipartForm)
+	videoConfigs, err := extractVideoConfigs(r.MultipartForm)
+	if err != nil {
+		http.Error(w, "Invalid video configuration", http.StatusBadRequest)
+		log.Error().Err(err).Str("batchID", batchID).Msg("Failed to parse video configuration")
+		return
+	}
+
+	videoFrameObjects, cleanupVideo, err := generateVideoData(batchID, r.MultipartForm, videoConfigs)
 	// Ensure any temp files/dirs from video processing are cleaned up at the very end of this handler
 	if cleanupVideo != nil {
 		defer cleanupVideo()
@@ -285,7 +349,7 @@ func generateImageData(batchID string, form *multipart.Form) (bucket.ObjectList,
 
 }
 
-func generateVideoData(batchID string, form *multipart.Form) (bucket.ObjectList, func(), error) {
+func generateVideoData(batchID string, form *multipart.Form, configs map[string]VideoExtractionConfig) (bucket.ObjectList, func(), error) {
 	files := form.File["videos"]
 	if len(files) == 0 {
 		return nil, nil, ErrNoMediaFound
@@ -351,16 +415,46 @@ func generateVideoData(batchID string, form *multipart.Form) (bucket.ObjectList,
 		videoPath := tmpVid.Name()
 		tempVideoPaths = append(tempVideoPaths, videoPath)
 
-		// Save frames as PNG files in the temporary directory using ffmpeg
+		cfg := normalizeVideoConfig(VideoExtractionConfig{FileName: fileHeader.Filename, FrameInterval: 1})
+		if mappedCfg, ok := configs[fileHeader.Filename]; ok {
+			cfg = normalizeVideoConfig(mappedCfg)
+		}
+
+		logEvt := log.Debug().Str("file", fileHeader.Filename).Int("frameInterval", cfg.FrameInterval).Float64("start", cfg.StartTime).Float64("end", cfg.EndTime)
+		if cfg.MaxFrames != nil {
+			logEvt = logEvt.Int("maxFrames", *cfg.MaxFrames)
+		}
+		logEvt.Msg("Extracting video frames")
+
+		inputArgs := ffmpeg.KwArgs{}
+		if cfg.StartTime > 0 {
+			inputArgs["ss"] = fmt.Sprintf("%.3f", cfg.StartTime)
+		}
+
+		stream := ffmpeg.Input(videoPath, inputArgs)
+
+		outputArgs := ffmpeg.KwArgs{
+			"f":     "image2",
+			"vsync": "0",
+		}
+
+		if cfg.EndTime > cfg.StartTime {
+			duration := cfg.EndTime - cfg.StartTime
+			if duration > 0 {
+				outputArgs["t"] = fmt.Sprintf("%.3f", duration)
+			}
+		}
+		if cfg.FrameInterval > 1 {
+			filter := fmt.Sprintf("select='not(mod(n\\,%d))'", cfg.FrameInterval)
+			outputArgs["vf"] = filter
+			outputArgs["vsync"] = "vfr"
+		}
+		if cfg.MaxFrames != nil {
+			outputArgs["frames:v"] = *cfg.MaxFrames
+		}
+
 		outPattern := filepath.Join(dname, "frame_%04d.png")
-		err = ffmpeg.Input(videoPath).
-			Output(outPattern, ffmpeg.KwArgs{
-				"vsync": "0",
-				"f":     "image2",
-			}).
-			OverWriteOutput().
-			Run()
-		if err != nil {
+		if err = stream.Output(outPattern, outputArgs).OverWriteOutput().Run(); err != nil {
 			return nil, cleanup, fmt.Errorf("failed to extract frames using ffmpeg-go: %w", err)
 		}
 
@@ -381,14 +475,14 @@ func generateVideoData(batchID string, form *multipart.Form) (bucket.ObjectList,
 				return nil, cleanup, fmt.Errorf("failed to open frame file: %w", err)
 			}
 
-			cfg, _, err := image.DecodeConfig(frameFile)
+			cfgImg, _, err := image.DecodeConfig(frameFile)
 			if err != nil {
 				if cerr := frameFile.Close(); cerr != nil {
 					log.Error().Err(cerr).Msg("Failed closing frame file after decode error")
 				}
 				return nil, cleanup, fmt.Errorf("failed to decode frame config: %w", err)
 			}
-			width, height := cfg.Width, cfg.Height
+			width, height := cfgImg.Width, cfgImg.Height
 			_, err = frameFile.Seek(0, 0)
 			if err != nil {
 				if cerr := frameFile.Close(); cerr != nil {

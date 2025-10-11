@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Box, Button, Typography, LinearProgress, Alert, Fade, Stack, TextField } from '@mui/material';
 import { useUploadTab } from './uploadTabHandler';
+import { VideoOptionsDialog } from './VideoOptionsDialog';
 import type { Project } from '../../utils/intefaces/interfaces';
 import { useAuthGuard } from '../../utils/authUtil';
 
@@ -11,8 +12,25 @@ interface UploadTabProps {
 export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
   useAuthGuard();
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const { uploading, message, error, dragActive, batchName, setBatchName, openPicker, handleFilesSelected, handleDragOver, handleDragLeave, handleDrop, clearMessage, clearError } =
-    useUploadTab(project);
+  const {
+    uploading,
+    message,
+    error,
+    dragActive,
+    batchName,
+    setBatchName,
+    videoDialogOpen,
+    videoTargets,
+    openPicker,
+    handleFilesSelected,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    submitVideoOptions,
+    cancelVideoOptions,
+    clearMessage,
+    clearError,
+  } = useUploadTab(project);
 
   return (
     <Box
@@ -65,17 +83,22 @@ export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
             onDragEnter={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            onClick={() => openPicker(() => inputRef.current?.click?.())}
+            onClick={() => {
+              if (uploading || videoDialogOpen) return;
+              openPicker(() => inputRef.current?.click?.());
+            }}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                openPicker(() => inputRef.current?.click?.());
+                if (!uploading && !videoDialogOpen) {
+                  openPicker(() => inputRef.current?.click?.());
+                }
               }
             }}
             sx={{
-              cursor: uploading ? 'default' : 'pointer',
+              cursor: uploading || videoDialogOpen ? 'default' : 'pointer',
               border: '2px dashed',
               borderColor: dragActive ? '#666' : '#bbb',
               borderRadius: 4,
@@ -94,7 +117,7 @@ export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
                 borderColor: '#888',
                 backgroundColor: '#fcfcfc',
               },
-              ...(uploading && {
+              ...((uploading || videoDialogOpen) && {
                 opacity: 0.7,
                 pointerEvents: 'none',
               }),
@@ -110,10 +133,12 @@ export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
             <Button
               variant="outlined"
               size="large"
-              disabled={!project || uploading}
+              disabled={!project || uploading || videoDialogOpen}
               onClick={(e) => {
                 e.stopPropagation();
-                openPicker(() => inputRef.current?.click?.());
+                if (!uploading && !videoDialogOpen) {
+                  openPicker(() => inputRef.current?.click?.());
+                }
               }}
               sx={{
                 fontWeight: 600,
@@ -143,7 +168,15 @@ export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
               </Box>
             )}
 
-            <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/jpg,video/*" multiple hidden onChange={handleFilesSelected} />
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,video/*"
+              multiple
+              hidden
+              disabled={uploading || videoDialogOpen}
+              onChange={handleFilesSelected}
+            />
           </Box>
         </Fade>
 
@@ -157,6 +190,8 @@ export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
             {error}
           </Alert>
         )}
+
+        <VideoOptionsDialog open={videoDialogOpen} videos={videoTargets} onCancel={cancelVideoOptions} onConfirm={submitVideoOptions} />
       </Stack>
     </Box>
   );
