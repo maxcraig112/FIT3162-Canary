@@ -608,14 +608,14 @@ const AnnotatePage: React.FC = () => {
               }}
             >
               {sessionID && (
-                <Paper 
-                  elevation={2} 
-                  sx={{ 
-                    px: 2, 
-                    py: 1, 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 1, 
+                <Paper
+                  elevation={2}
+                  sx={{
+                    px: 2,
+                    py: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
                     cursor: 'pointer',
                     '&:hover': {
                       bgcolor: 'action.hover',

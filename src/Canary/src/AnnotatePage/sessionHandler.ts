@@ -169,10 +169,10 @@ export async function initialiseSessionWebSocket(existingSessionID?: string): Pr
       };
       socket.onopen = () => {
         // Clear one-time tokens after successful upgrade
-    if (role === 'owner') clearCookie('create_session_cookie');
-    if (role === 'member') clearCookie('join_session_cookie');
-    // Persist sessionID for page reload continuity
-    if (sessionID) setCookie('session_id_cookie', sessionID);
+        if (role === 'owner') clearCookie('create_session_cookie');
+        if (role === 'member') clearCookie('join_session_cookie');
+        // Persist sessionID for page reload continuity
+        if (sessionID) setCookie('session_id_cookie', sessionID);
         // Flush any pending imageID
         if (pendingImageID) {
           try {

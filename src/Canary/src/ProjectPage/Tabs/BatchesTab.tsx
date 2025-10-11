@@ -281,11 +281,11 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
                       {/* Session user count (bottom left) or empty space */}
                       <Box>
                         {isSessionActive && activeSessionForBatch && activeSessionForBatch.members && activeSessionForBatch.members.length > 0 && (
-                          <Typography 
-                            variant="caption" 
-                            sx={{ 
-                              fontWeight: 600, 
-                              fontSize: '0.85rem', 
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              fontWeight: 600,
+                              fontSize: '0.85rem',
                               color: '#2563eb',
                               bgcolor: 'rgba(37, 99, 235, 0.1)',
                               px: 1,
@@ -298,7 +298,7 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
                           </Typography>
                         )}
                       </Box>
-                      
+
                       {/* Image count (bottom right) */}
                       <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.95rem', color: '#222' }}>
                         {b.numberOfTotalFiles} {b.numberOfTotalFiles === 1 ? 'image' : 'images'}
@@ -389,21 +389,11 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
       >
         <DialogTitle>Start Session</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Typography>
-            {sessionCreationBatch ? `Start a new session for "${sessionCreationBatch.batchName}".` : 'Start a new session.'}
-          </Typography>
+          <Typography>{sessionCreationBatch ? `Start a new session for "${sessionCreationBatch.batchName}".` : 'Start a new session.'}</Typography>
           <Typography variant="body2" color="text.secondary">
             Set an optional password so only people with the password can join. Leave blank to allow anyone with the session ID to join.
           </Typography>
-          <TextField
-            label="Session password"
-            type="password"
-            value={sessionPasswordValue}
-            onChange={(e) => setSessionPasswordValue(e.target.value)}
-            disabled={sessionPending}
-            fullWidth
-            autoFocus
-          />
+          <TextField label="Session password" type="password" value={sessionPasswordValue} onChange={(e) => setSessionPasswordValue(e.target.value)} disabled={sessionPending} fullWidth autoFocus />
         </DialogContent>
         <DialogActions>
           <Button onClick={cancelSessionCreation} disabled={sessionPending}>
@@ -425,9 +415,7 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
       <Dialog open={sessionEndWarningOpen} onClose={closeSessionEndWarning} fullWidth maxWidth="xs">
         <DialogTitle>End Session Warning</DialogTitle>
         <DialogContent>
-          <Typography>
-            This session is currently in progress by another user. Are you sure you want to end it? This will disconnect all participants.
-          </Typography>
+          <Typography>This session is currently in progress by another user. Are you sure you want to end it? This will disconnect all participants.</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={closeSessionEndWarning}>Cancel</Button>

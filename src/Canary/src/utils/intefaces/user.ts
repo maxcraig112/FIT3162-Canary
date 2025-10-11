@@ -14,22 +14,22 @@ export interface UserLookupResponse {
  */
 export async function getUserDetails(userIDs: string[]): Promise<UserDetails[]> {
   if (!userIDs.length) return [];
-  
+
   try {
     const base = authServiceUrl();
     if (!base) throw new Error('Auth service URL not configured');
-    
+
     const url = `${base}/users/lookup`;
     const response = await CallAPI<UserLookupResponse>(url, {
       method: 'POST',
       json: { userIDs },
     });
-    
+
     return response?.users || [];
   } catch (error) {
     console.warn('Failed to lookup user details:', error);
     // Return userIDs as fallback
-    return userIDs.map(userID => ({ userID, email: userID }));
+    return userIDs.map((userID) => ({ userID, email: userID }));
   }
 }
 

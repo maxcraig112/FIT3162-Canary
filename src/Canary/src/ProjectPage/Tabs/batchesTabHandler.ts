@@ -204,7 +204,7 @@ export function useBatchesTab(projectID?: string) {
   const handleFinish = useCallback(async () => {
     closeMenu();
     if (!selectedBatch) return;
-    
+
     // Check if there's an active session for this batch and end it first
     const activeSession = activeSessionsByBatch[selectedBatch.batchID];
     if (activeSession) {
@@ -228,7 +228,7 @@ export function useBatchesTab(projectID?: string) {
         return;
       }
     }
-    
+
     // Now finish the batch
     try {
       await setBatchFinishState(selectedBatch.batchID, true);
@@ -278,7 +278,7 @@ export function useBatchesTab(projectID?: string) {
   const confirmDelete = useCallback(async () => {
     if (!menuBatchId) return;
     setDeleting(true);
-    
+
     try {
       // Check if there's an active session for this batch and end it first
       const activeSession = activeSessionsByBatch[menuBatchId];
@@ -298,7 +298,7 @@ export function useBatchesTab(projectID?: string) {
           return next;
         });
       }
-      
+
       // Now delete the batch
       await deleteBatch(menuBatchId);
       setBatches((prev) => prev.filter((b) => b.batchID !== menuBatchId));
@@ -407,17 +407,17 @@ export function useBatchesTab(projectID?: string) {
     if (!menuBatchId || sessionPending) return;
     const sessionToStop = activeSessionsByBatch[menuBatchId];
     if (!sessionToStop) return;
-    
+
     // Check if current user is the owner
     const currentUserID = getUserIDFromCookie();
     const isOwner = currentUserID && sessionToStop.owner.id === currentUserID;
-    
+
     if (!isOwner) {
       // Show warning dialog for non-owners
       setSessionEndWarningOpen(true);
       return;
     }
-    
+
     // Direct stop for owners
     await performStopSession();
   }, [menuBatchId, activeSessionsByBatch, sessionPending, performStopSession]);
@@ -494,10 +494,10 @@ export function useBatchesTab(projectID?: string) {
     startSession,
     stopSession,
     refreshActiveSessions,
-  sessionDialogOpen,
-  sessionCreationBatch,
-  cancelSessionCreation,
-  handleCreateSessionWithPassword,
+    sessionDialogOpen,
+    sessionCreationBatch,
+    cancelSessionCreation,
+    handleCreateSessionWithPassword,
     // session end warning
     sessionEndWarningOpen,
     openSessionEndWarning,
