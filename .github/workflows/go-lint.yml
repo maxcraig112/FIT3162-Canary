@@ -23,7 +23,8 @@ jobs:
       - name: Set up Task
         uses: go-task/setup-task@v1
         with:
-          version: latest
+          version: '3.x'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run lintAll task
         run: task lintAll
