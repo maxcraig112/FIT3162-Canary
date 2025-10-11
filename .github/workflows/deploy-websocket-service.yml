@@ -76,7 +76,6 @@ jobs:
             --concurrency 1 \
             --execution-environment gen2 \
             --ingress all \
-            --set-env-vars "PORT=8080" \
 
       - name: Output service URL
         run: |
