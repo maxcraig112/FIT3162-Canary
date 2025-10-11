@@ -35,6 +35,6 @@ export const lightTheme = createTheme({
       defaultProps: {
         disableElevation: true
       }
-    }
+    },
   },
 });
