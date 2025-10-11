@@ -38,15 +38,7 @@ func (h *WebSocketHub) startWebhookWriter(c *Client, role, sessionID string) err
 			h.stopLabelsWatch(c)
 			switch role {
 			case "owner":
-				// mark session as terminating to avoid per-member removal spam
-				h.markTerminating(sessionID)
-				// stop any active labels watch for this session
-
 				h.handlerOwnerLeft(sessionID)
-				// after owner cleanup, clear terminating flag
-				h.mu.Lock()
-				delete(h.TerminatingSessions, sessionID)
-				h.mu.Unlock()
 			case "member":
 				// if owner is currently terminating the session, skip member-left logic
 				if h.isTerminating(sessionID) {

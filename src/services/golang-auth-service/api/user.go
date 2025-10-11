@@ -9,10 +9,10 @@ import (
 	fs "pkg/gcp/firestore"
 	"pkg/handler"
 	"pkg/jwt"
+	"pkg/password"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type UserHandler struct {
@@ -81,7 +81,7 @@ func (h *UserHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error().Str("email", req.Email).Msg("Email already in use for register")
 		return
 	}
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	hashedPassword, err := password.HashPassword(req.Password)
 	if err != nil {
 		http.Error(w, "Error hashing password", http.StatusInternalServerError)
 		log.Error().Err(err).Str("email", req.Email).Msg("Error hashing password for register")
@@ -115,12 +115,12 @@ func (h *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+	if err := password.CheckPasswordHash(req.Password, user.Password); err != nil {
 		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
 		log.Info().Str("email", req.Email).Msg("Password mismatch for login")
 		return
 	}
-	token, err := jwt.GenerateJWT(r.Context(), h.Clients, userID)
+	token, err := jwt.GenerateJWT(r.Context(), h.Clients, userID, req.Email)
 	if err != nil {
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		log.Error().Err(err).Str("email", req.Email).Msg("Failed to generate JWT for login")
@@ -189,7 +189,29 @@ func (h *UserHandler) RefreshHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error().Err(err).Msg("Invalid JWT token")
 		return
 	}
-	token, err := jwt.GenerateJWT(r.Context(), h.Clients, userID)
+
+	// Get email from existing JWT or lookup by userID
+	tokenString, _ := jwt.GetAuthTokenString(r)
+	claims, _ := jwt.GetJWTClaims(tokenString)
+	email := ""
+	if claims != nil {
+		if emailClaim, ok := claims["email"].(string); ok {
+			email = emailClaim
+		}
+	}
+
+	// If no email in token, look it up
+	if email == "" {
+		user, err := h.UserStore.GetUserByID(r.Context(), userID)
+		if err != nil {
+			http.Error(w, "Failed to get user info", http.StatusInternalServerError)
+			log.Error().Err(err).Str("userID", userID).Msg("Failed to get user for refresh")
+			return
+		}
+		email = user.Email
+	}
+
+	token, err := jwt.GenerateJWT(r.Context(), h.Clients, userID, email)
 	if err != nil {
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		log.Error().Err(err).Str("userID", userID).Msg("Failed to generate JWT for login")

@@ -4,16 +4,6 @@ export interface Project {
   userID: string;
   numberOfBatches: number;
   lastUpdated: string;
-  settings?: ProjectSettings;
-}
-
-export interface ProjectSettings {
-  session?: Session;
-}
-
-export interface Session {
-  enabled: boolean;
-  password: string;
 }
 
 export interface Batch {
@@ -32,6 +22,7 @@ export interface KeypointAnnotation {
   imageID: string;
   id: string;
   labelID: string;
+  boundingBoxID: string;
   position: { x: number; y: number };
   // addToDatabase(): Promise<void>;
   // removeFromDatabase(): Promise<void>;

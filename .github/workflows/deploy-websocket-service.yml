@@ -7,6 +7,12 @@ on:
         description: 'Optional image tag to deploy (defaults to commit SHA)'
         required: false
         type: string
+  workflow_call:
+    inputs:
+      imageTag:
+        description: 'Optional image tag to deploy (defaults to commit SHA)'
+        required: false
+        type: string
 
 jobs:
   build-and-deploy:
@@ -45,7 +51,7 @@ jobs:
       - name: Build image
         run: |
           TAG=${GITHUB_SHA}
-          if [ -n "${{ github.event.inputs.imageTag }}" ]; then TAG='${{ github.event.inputs.imageTag }}'; fi
+          if [ -n "${{ inputs.imageTag || github.event.inputs.imageTag }}" ]; then TAG='${{ inputs.imageTag || github.event.inputs.imageTag }}'; fi
           IMAGE_URI=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE_NAME}:$TAG
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
           docker build \
@@ -65,7 +71,11 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --port 8080 \
-            --service-account ${CLIENT_SA_EMAIL}
+            --service-account ${CLIENT_SA_EMAIL} \
+            --timeout 600 \
+            --concurrency 1 \
+            --execution-environment gen2 \
+            --ingress all \
 
       - name: Output service URL
         run: |

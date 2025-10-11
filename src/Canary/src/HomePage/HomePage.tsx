@@ -34,7 +34,17 @@ const HomePage: React.FC = () => {
     setJoinOpen(false);
     const result = await joinSession(sessionID, sessionPassword);
     if (result.ok) {
-      setCookie('join_session_cookie', result.data.token);
+      if (result.data.role === 'owner') {
+        alert('As the session owner, please enter your session through the project batches page.');
+        setSessionID('');
+        setSessionPassword('');
+        return;
+      }
+      if (result.data.token) {
+        setCookie('join_session_cookie', result.data.token);
+      } else {
+        clearCookie('join_session_cookie');
+      }
       setCookie('session_id_cookie', result.data.sessionID);
       const navigateURL = `/annotate?batchID=${encodeURIComponent(result.data.batchID)}&projectID=${encodeURIComponent(result.data.projectID)}`;
       navigate(navigateURL);
@@ -171,8 +181,27 @@ const HomePage: React.FC = () => {
                 <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
                   Join Session
                 </Typography>
-                <TextField label="Session ID" variant="outlined" value={sessionID} onChange={(e) => setSessionID(e.target.value)} fullWidth autoComplete="off" />
-                <TextField label="Password" variant="outlined" type="password" value={sessionPassword} onChange={(e) => setSessionPassword(e.target.value)} fullWidth autoComplete="off" />
+                <TextField
+                  label="Session ID"
+                  name="session-id"
+                  variant="outlined"
+                  value={sessionID}
+                  onChange={(e) => setSessionID(e.target.value)}
+                  fullWidth
+                  autoComplete="off"
+                  inputProps={{ autoComplete: 'off' }}
+                />
+                <TextField
+                  label="Password (optional)"
+                  name="session-password"
+                  variant="outlined"
+                  type="password"
+                  value={sessionPassword}
+                  onChange={(e) => setSessionPassword(e.target.value)}
+                  fullWidth
+                  autoComplete="new-password"
+                  inputProps={{ autoComplete: 'new-password' }}
+                />
                 <Button
                   variant="contained"
                   sx={{

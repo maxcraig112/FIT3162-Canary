@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	fs "pkg/gcp/firestore"
 	"pkg/handler"
@@ -71,6 +72,12 @@ func (h *KeypointHandler) CreateKeypointHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	if req.BoundingBoxID == "" {
+		http.Error(w, "boundingBoxID is required", http.StatusBadRequest)
+		log.Error().Msg("BoundingBoxID is required for keypoint creation")
+		return
+	}
+
 	req.ImageID = imageID
 
 	id, err := h.KeypointStore.CreateKeypoint(h.Ctx, req)
@@ -80,6 +87,11 @@ func (h *KeypointHandler) CreateKeypointHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 	if err != nil {
+		if errors.Is(err, firestore.ErrBoundingBoxRequired) {
+			http.Error(w, "boundingBoxID is required", http.StatusBadRequest)
+			log.Error().Err(err).Msg("BoundingBoxID missing for keypoint creation")
+			return
+		}
 		http.Error(w, "Error creating keypoint", http.StatusInternalServerError)
 		log.Error().Err(err).Msg("Failed to create keypoint")
 		return

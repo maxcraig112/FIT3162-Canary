@@ -1,5 +1,5 @@
 import { websocketServiceUrl } from '../utils/apis';
-import { getCookie, clearCookie, getAuthTokenFromCookie } from '../utils/cookieUtils';
+import { getCookie, clearCookie, getAuthTokenFromCookie, setCookie } from '../utils/cookieUtils';
 import { annotateHandler } from './annotateHandler';
 
 declare global {
@@ -8,6 +8,7 @@ declare global {
     __canarySessionRole?: 'owner' | 'member';
     __canarySessionInitPromise?: Promise<SessionInitResult>;
     __canaryNavigateAway?: () => void;
+    __canarySessionSuppressNavigate?: boolean;
   }
 }
 
@@ -16,6 +17,16 @@ export interface SessionInitResult {
   socket?: WebSocket;
   role?: 'owner' | 'member';
   error?: string;
+}
+
+type SessionLifecycleEventDetail = {
+  type: 'session_closed' | 'member_kicked';
+  sessionID?: string;
+  time?: string;
+};
+
+function dispatchSessionLifecycle(detail: SessionLifecycleEventDetail) {
+  window.dispatchEvent(new CustomEvent<SessionLifecycleEventDetail>('canary-session-lifecycle', { detail }));
 }
 
 export async function initialiseSessionWebSocket(existingSessionID?: string): Promise<SessionInitResult> {
@@ -110,19 +121,46 @@ export async function initialiseSessionWebSocket(existingSessionID?: string): Pr
             annotateHandler.refreshAnnotations(projectID);
             break;
           case 'member_joined':
-          case 'member_left': {
+          case 'member_left':
+          case 'owner_joined':
+          case 'owner_left': {
             try {
-              interface MemberEvent {
+              interface ActorEvent {
                 memberID?: string;
+                memberEmail?: string;
+                ownerID?: string;
+                ownerEmail?: string;
                 time?: string;
               }
-              const md = data as MemberEvent;
-              if (md.memberID) {
-                window.dispatchEvent(new CustomEvent('canary-session-member-event', { detail: { type, memberID: md.memberID, time: md.time } }));
+              const md = data as ActorEvent;
+              const actorID = md.memberID || md.ownerID;
+              const actorEmail = md.memberEmail || md.ownerEmail;
+              if (actorID) {
+                if (type === 'owner_joined' && window.__canarySessionRole === 'owner') {
+                  break;
+                }
+                window.dispatchEvent(new CustomEvent('canary-session-member-event', { detail: { type, memberID: actorID, memberEmail: actorEmail, time: md.time } }));
               }
             } catch {
               /* ignore */
             }
+            break;
+          }
+          case 'session_closed': {
+            const messageSessionID = typeof data?.sessionID === 'string' ? data.sessionID : sessionID;
+            clearCookie('create_session_cookie');
+            clearCookie('join_session_cookie');
+            clearCookie('session_id_cookie');
+            dispatchSessionLifecycle({ type: 'session_closed', sessionID: messageSessionID, time: typeof data?.time === 'string' ? data.time : undefined });
+            closeSessionWebSocket(4000, 'session closed', { suppressNavigate: true });
+            break;
+          }
+          case 'member_kicked': {
+            const messageSessionID = typeof data?.sessionID === 'string' ? data.sessionID : sessionID;
+            clearCookie('join_session_cookie');
+            clearCookie('session_id_cookie');
+            dispatchSessionLifecycle({ type: 'member_kicked', sessionID: messageSessionID, time: typeof data?.time === 'string' ? data.time : undefined });
+            closeSessionWebSocket(4001, 'member removed', { suppressNavigate: true });
             break;
           }
           default:
@@ -134,8 +172,7 @@ export async function initialiseSessionWebSocket(existingSessionID?: string): Pr
         if (role === 'owner') clearCookie('create_session_cookie');
         if (role === 'member') clearCookie('join_session_cookie');
         // Persist sessionID for page reload continuity
-        if (sessionID) document.cookie = `session_id_cookie=${sessionID}; path=/`;
-        clearCookie('session_id_cookie');
+        if (sessionID) setCookie('session_id_cookie', sessionID);
         // Flush any pending imageID
         if (pendingImageID) {
           try {
@@ -192,11 +229,16 @@ export function getActiveSessionID(): string | undefined {
 }
 
 // Gracefully close and clear the current session websocket (used on navigation / unload)
-export function closeSessionWebSocket(code = 1000, reason = 'normal closure') {
-  const ws = window.__canarySessionSocket;
-  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+export function closeSessionWebSocket(code = 1000, reason = 'normal closure', options: { suppressNavigate?: boolean } = {}) {
+  const suppress = Boolean(options.suppressNavigate || window.__canarySessionSuppressNavigate);
+  if (options.suppressNavigate) {
+    window.__canarySessionSuppressNavigate = true;
+  }
+  const socket = window.__canarySessionSocket;
+  const hadSocket = Boolean(socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING));
+  if (socket && hadSocket) {
     try {
-      ws.close(code, reason);
+      socket.close(code, reason);
     } catch {
       /* ignore */
     }
@@ -206,9 +248,14 @@ export function closeSessionWebSocket(code = 1000, reason = 'normal closure') {
   delete window.__canarySessionInitPromise;
   // Trigger registered navigation handler if present
   try {
-    window.__canaryNavigateAway?.();
+    if (!suppress) {
+      window.__canaryNavigateAway?.();
+    }
   } catch {
     /* ignore */
+  }
+  if (!options.suppressNavigate || !hadSocket) {
+    window.__canarySessionSuppressNavigate = false;
   }
 }
 

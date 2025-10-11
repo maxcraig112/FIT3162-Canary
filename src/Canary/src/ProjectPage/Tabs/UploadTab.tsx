@@ -2,12 +2,14 @@ import React, { useRef } from 'react';
 import { Box, Button, Typography, LinearProgress, Alert, Fade, Stack, TextField } from '@mui/material';
 import { useUploadTab } from './uploadTabHandler';
 import type { Project } from '../../utils/interfaces/interfaces';
+import { useAuthGuard } from '../../utils/authUtil';
 
 interface UploadTabProps {
   project: Project | null;
 }
 
 export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
+  useAuthGuard();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const { uploading, message, error, dragActive, batchName, setBatchName, openPicker, handleFilesSelected, handleDragOver, handleDragLeave, handleDrop, clearMessage, clearError } =
     useUploadTab(project);

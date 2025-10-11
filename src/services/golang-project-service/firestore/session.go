@@ -10,13 +10,18 @@ const (
 	sessionCollectionID = "sessions"
 )
 
+type Member struct {
+	ID    string `firestore:"id" json:"id"`
+	Email string `firestore:"email" json:"email"`
+}
+
 // Session represents a collaborative annotation session document.
 type Session struct {
-	OwnerID     string    `firestore:"ownerID,omitempty" json:"ownerID"`
+	Owner       Member    `firestore:"owner,omitempty" json:"owner"`
 	BatchID     string    `firestore:"batchID,omitempty" json:"batchID"`
 	ProjectID   string    `firestore:"projectID,omitempty" json:"projectID"`
 	Password    string    `firestore:"password,omitempty" json:"password"`
-	Members     []string  `firestore:"members,omitempty" json:"members"`
+	Members     []Member  `firestore:"members,omitempty" json:"members"`
 	LastUpdated time.Time `firestore:"lastUpdated,omitempty" json:"lastUpdated"`
 }
 

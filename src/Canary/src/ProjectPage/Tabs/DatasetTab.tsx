@@ -5,8 +5,10 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useDatasetTab } from './datasetTabHandler';
 import { useParams } from 'react-router-dom';
 import type { Project } from '../../utils/interfaces/interfaces';
+import { useAuthGuard } from '../../utils/authUtil';
 
 export const DatasetTab: React.FC<{ project: Project | null }> = () => {
+  useAuthGuard();
   const { projectID } = useParams<{ projectID: string }>();
   const {
     batches,

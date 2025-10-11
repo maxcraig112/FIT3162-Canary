@@ -4,14 +4,25 @@ import (
 	"context"
 	"time"
 
+	fs "pkg/gcp/firestore"
+
 	"github.com/rs/zerolog/log"
 )
 
 type MemberStatusNotification struct {
-	Type      string    `json:"type"`
-	SessionID string    `json:"sessionID"`
-	MemberID  string    `json:"memberID"`
-	Time      time.Time `json:"time"`
+	Type        string    `json:"type"`
+	SessionID   string    `json:"sessionID"`
+	MemberID    string    `json:"memberID"`
+	MemberEmail string    `json:"memberEmail"`
+	Time        time.Time `json:"time"`
+}
+
+type OwnerStatusNotification struct {
+	Type       string    `json:"type"`
+	SessionID  string    `json:"sessionID"`
+	OwnerID    string    `json:"ownerID"`
+	OwnerEmail string    `json:"ownerEmail"`
+	Time       time.Time `json:"time"`
 }
 
 type StandardNotification struct {
@@ -25,20 +36,37 @@ func (h *WebSocketHub) handlerOwnerLeft(sessionID string) {
 	// Use background context to avoid cancellation from original ctx
 	ctx := context.Background()
 
-	session := h.Sessions[sessionID]
-	// for each member, close their channel
-	for member := range session.Members {
-		member.Close()
+	// First, get the owner email from Firestore before clearing
+	ownerEmail := ""
+	ownerID := ""
+	sessionDoc, err := h.SessionStore.GetSession(ctx, sessionID)
+	if err == nil && sessionDoc.Owner.ID != "" {
+		ownerEmail = sessionDoc.Owner.Email
+		ownerID = sessionDoc.Owner.ID
 	}
 
-	// delete session from database
-	err := h.SessionStore.DeleteSession(ctx, sessionID)
-	if err != nil {
-		log.Error().Err(err).Str("sessionID", sessionID).Msg("failed to delete session from Firestore")
+	h.mu.Lock()
+	session, ok := h.Sessions[sessionID]
+	if !ok {
+		h.mu.Unlock()
 		return
 	}
-	delete(h.Sessions, sessionID)
-	log.Info().Str("sessionID", sessionID).Msg("session deleted from database")
+	// Clear the in-memory owner reference but keep the session active for members.
+	session.Owner = nil
+	h.mu.Unlock()
+
+	// Send notification to all remaining members that owner has left
+	if ownerID != "" {
+		h.sendOwnerStatusNotification(OwnerStatusNotification{
+			Type:       "owner_left",
+			SessionID:  sessionID,
+			OwnerID:    ownerID,
+			OwnerEmail: ownerEmail,
+			Time:       time.Now().UTC(),
+		})
+	}
+
+	log.Info().Str("sessionID", sessionID).Msg("session owner disconnected; session remains active")
 }
 
 // MemberLeft is invoked when a session member disconnects.
@@ -46,17 +74,43 @@ func (h *WebSocketHub) handlerMemberLeft(sessionID string, memberID string) {
 	// Use background context to avoid cancellation from original ctx
 	ctx := context.Background()
 
-	err := h.SessionStore.RemoveMemberFromSession(ctx, sessionID, memberID)
-	if err != nil {
+	// First, get the member email from Firestore before removing
+	memberEmail := ""
+	sessionDoc, err := h.SessionStore.GetSession(ctx, sessionID)
+	if err == nil {
+		for _, member := range sessionDoc.Members {
+			if member.ID == memberID {
+				memberEmail = member.Email
+				break
+			}
+		}
+	}
+
+	h.mu.RLock()
+	session, ok := h.Sessions[sessionID]
+	h.mu.RUnlock()
+	if ok {
+		session.Mu.Lock()
+		for member := range session.Members {
+			if member.id == memberID {
+				delete(session.Members, member)
+				break
+			}
+		}
+		session.Mu.Unlock()
+	}
+
+	if err := h.SessionStore.RemoveMemberFromSession(ctx, sessionID, memberID, memberEmail); err != nil && err != fs.ErrNotFound {
 		log.Error().Err(err).Str("sessionID", sessionID).Str("memberID", memberID).Msg("failed to remove member from session in Firestore")
 		return
 	}
 	log.Info().Str("sessionID", sessionID).Str("memberID", memberID).Msg("member removed from session database")
 	h.sendMemberStatusNotification(MemberStatusNotification{
-		Type:      "member_left",
-		SessionID: sessionID,
-		MemberID:  memberID,
-		Time:      time.Now().UTC(),
+		Type:        "member_left",
+		SessionID:   sessionID,
+		MemberID:    memberID,
+		MemberEmail: memberEmail,
+		Time:        time.Now().UTC(),
 	})
 }
 
@@ -82,6 +136,26 @@ func (h *WebSocketHub) sendMemberStatusNotification(notif MemberStatusNotificati
 		}
 		if !h.safeEnqueue(member, notif) {
 			log.Warn().Str("sessionID", notif.SessionID).Str("memberID", member.id).Msg("member out channel unavailable, dropping member_joined notification")
+		}
+	}
+}
+
+// sendOwnerStatusNotification notifies all connected clients (except the owner) that the owner has joined the session.
+func (h *WebSocketHub) sendOwnerStatusNotification(notif OwnerStatusNotification) {
+	h.mu.RLock()
+	s, ok := h.Sessions[notif.SessionID]
+	h.mu.RUnlock()
+	if !ok {
+		return
+	}
+
+	s.Mu.RLock()
+	defer s.Mu.RUnlock()
+
+	// Only notify members, not the owner themselves
+	for member := range s.Members {
+		if !h.safeEnqueue(member, notif) {
+			log.Warn().Str("sessionID", notif.SessionID).Str("memberID", member.id).Msg("member out channel unavailable, dropping owner_joined notification")
 		}
 	}
 }

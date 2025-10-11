@@ -7,7 +7,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
-	"github.com/samber/lo"
 )
 
 // Resolver looks up a projectID given some other ID
@@ -73,10 +72,21 @@ func ValidateOwnershipMiddleware(next http.Handler, stores Stores) http.Handler 
 						if sessionID != "" {
 							session, sErr := stores.SessionStore.GetSession(r.Context(), sessionID)
 							if sErr == nil && session != nil {
-								// Validate project match
-								if session.ProjectID == projectID && lo.Contains(session.Members, userID) {
-									log.Info().Str("userID", userID).Str("projectID", projectID).Str("sessionID", sessionID).Msg("ValidateOwnershipMiddleware: authorized via session membership")
-									break
+								// Validate project match and check if user is owner or member
+								if session.ProjectID == projectID {
+									// Check if user is the session owner
+									if session.Owner.ID == userID {
+										log.Info().Str("userID", userID).Str("projectID", projectID).Str("sessionID", sessionID).Msg("ValidateOwnershipMiddleware: authorized via session ownership")
+										break
+									}
+									// Check if user is a session member
+									for _, member := range session.Members {
+										if member.ID == userID {
+											log.Info().Str("userID", userID).Str("projectID", projectID).Str("sessionID", sessionID).Msg("ValidateOwnershipMiddleware: authorized via session membership")
+											// Set a flag or use goto to break out of the main resolver loop
+											goto authorized
+										}
+									}
 								}
 							} else if sErr != nil {
 								log.Debug().Err(sErr).Str("sessionID", sessionID).Msg("ValidateOwnershipMiddleware: session fetch failed")
@@ -90,6 +100,7 @@ func ValidateOwnershipMiddleware(next http.Handler, stores Stores) http.Handler 
 						return
 					}
 				}
+			authorized:
 				break
 			}
 		}

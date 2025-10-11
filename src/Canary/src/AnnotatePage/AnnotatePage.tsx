@@ -1,5 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, AppBar, Toolbar, Typography, ToggleButtonGroup, ToggleButton, Paper, IconButton, Button, FormControl, InputLabel, Select, MenuItem, TextField } from '@mui/material';
+import {
+  Box,
+  AppBar,
+  Toolbar,
+  Typography,
+  ToggleButtonGroup,
+  ToggleButton,
+  Paper,
+  IconButton,
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Alert,
+  Snackbar,
+} from '@mui/material';
 import { MyLocation, SelectAll, NotInterested, KeyboardArrowLeft, KeyboardArrowRight, ArrowBack } from '@mui/icons-material';
 import { annotateHandler, getCanvas, handleUndoRedo } from './annotateHandler';
 import { ZoomHandler } from './zoomHandler';
@@ -14,6 +35,7 @@ import { useAuthGuard } from '../utils/authUtil';
 // import { useSharedImageHandler } from './imagehandlercontext';
 import { useImageHandler } from './imageStateHandler';
 import { initialiseSessionWebSocket, getActiveSessionID, sendActiveImageID, closeSessionWebSocket, setNavigateAway } from './sessionHandler';
+import { fetchActiveSessionForBatch, kickSessionMember, type Member } from '../utils/interfaces/session';
 import { sidebarHandler, type SidebarAnnotationItem } from './sidebarHandler';
 import Fade from '@mui/material/Fade';
 
@@ -62,8 +84,16 @@ const AnnotatePage: React.FC = () => {
   const [kpOptions, setKpOptions] = useState<string[]>([]);
   const [bbOptions, setBbOptions] = useState<string[]>([]);
   const [hasPrev, setHasPrev] = useState(false);
-  const [memberNotices, setMemberNotices] = useState<{ id: string; memberID: string; type: 'member_joined' | 'member_left' }[]>([]);
+  const [memberNotices, setMemberNotices] = useState<{ id: string; memberID: string; type: 'member_joined' | 'member_left' | 'owner_joined' | 'owner_left' }[]>([]);
+  const [sessionLifecycle, setSessionLifecycle] = useState<{ type: 'session_closed' | 'member_kicked'; sessionID?: string; time?: string; role?: 'owner' | 'member' } | null>(null);
+  const [sessionMembers, setSessionMembers] = useState<Member[]>([]);
+  const [sessionOwner, setSessionOwner] = useState<string | undefined>();
+  const [manageMembersOpen, setManageMembersOpen] = useState(false);
+  const [viewMembersOpen, setViewMembersOpen] = useState(false);
+  const [kickingMemberID, setKickingMemberID] = useState<string | null>(null);
+  const [memberManagementError, setMemberManagementError] = useState<string | null>(null);
   const [sidebarItems, setSidebarItems] = useState<SidebarAnnotationItem[]>([]);
+  const [copyToast, setCopyToast] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
   const lastRenderKeyRef = useRef<string | null>(null);
 
@@ -71,7 +101,7 @@ const AnnotatePage: React.FC = () => {
   const [zoom, setZoom] = useState(1);
   const zoomHandlerRef = useRef<ZoomHandler | null>(null);
 
-  const computeAvailableKeypointLabels = React.useCallback((currentLabel?: string) => {
+  const computeAvailableKeypointLabels = React.useCallback((currentLabel?: string, boundingBoxID?: string) => {
     const handler = latestImageHandlerRef.current;
     const allNames = getKeypointLabelNames();
     if (!handler) {
@@ -82,6 +112,9 @@ const AnnotatePage: React.FC = () => {
     try {
       const keypoints = handler.getKeypoints();
       keypoints.forEach((kp) => {
+        if (boundingBoxID && kp.boundingBoxID !== boundingBoxID) {
+          return;
+        }
         const labelName = getKeypointLabelName(kp.labelID);
         if (labelName) {
           used.add(labelName);
@@ -146,7 +179,8 @@ const AnnotatePage: React.FC = () => {
     lastRenderKeyRef.current = key;
     (async () => {
       if (!batchID || !projectID) return;
-      if (!getCanvas()) {
+      const canvas = getCanvas();
+      if (!canvas || !canvas.getElement()) {
         console.error('Canvas not initialized yet');
         return;
       }
@@ -157,7 +191,7 @@ const AnnotatePage: React.FC = () => {
         }
         setInputImage((prev) => (prev !== current.toString() ? current.toString() : prev));
       } catch (e) {
-        console.error(e);
+        console.error('Error rendering to canvas:', e);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -178,7 +212,7 @@ const AnnotatePage: React.FC = () => {
   // Subscribe to label requests from handler
   useEffect(() => {
     const unsub = annotateHandler.subscribeLabelRequests((req) => {
-      const opts = req.kind === 'kp' ? computeAvailableKeypointLabels(req.currentLabel) : getBoundingBoxLabelNames();
+      const opts = req.kind === 'kp' ? computeAvailableKeypointLabels(req.currentLabel, req.boundingBoxID) : getBoundingBoxLabelNames();
 
       if (req.kind === 'kp') {
         setKpOptions(opts);
@@ -302,13 +336,155 @@ const AnnotatePage: React.FC = () => {
     setNavigateAway(NavigateAway);
   }, [NavigateAway]);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<{ type: 'session_closed' | 'member_kicked'; sessionID?: string; time?: string }>;
+      if (!ce.detail?.type) return;
+      setSessionLifecycle({
+        type: ce.detail.type,
+        sessionID: ce.detail.sessionID,
+        time: ce.detail.time,
+        role: sessionRole,
+      });
+      setSessionID(undefined);
+      setSessionRole(undefined);
+    };
+    window.addEventListener('canary-session-lifecycle', handler as EventListener);
+    return () => window.removeEventListener('canary-session-lifecycle', handler as EventListener);
+  }, [sessionRole]);
+
+  const refreshSessionMembers = React.useCallback(async () => {
+    if (!sessionID) {
+      setSessionMembers([]);
+      setSessionOwner(undefined);
+      return;
+    }
+    try {
+      const session = await fetchActiveSessionForBatch(batchID);
+      if (session && session.sessionID === sessionID) {
+        setSessionMembers(session.members || []);
+        setSessionOwner(session.owner?.email || '');
+      } else {
+        setSessionMembers([]);
+        setSessionOwner(undefined);
+      }
+    } catch (err) {
+      console.warn('[Annotate] failed to refresh session members', err);
+      setSessionMembers([]);
+      setSessionOwner(undefined);
+    }
+  }, [sessionID, batchID]);
+
+  const closeManageMembers = React.useCallback(() => {
+    setManageMembersOpen(false);
+    setMemberManagementError(null);
+    setKickingMemberID(null);
+  }, []);
+
+  const closeViewMembers = React.useCallback(() => {
+    setViewMembersOpen(false);
+  }, []);
+
+  const openManageMembers = React.useCallback(() => {
+    setMemberManagementError(null);
+    setKickingMemberID(null);
+    refreshSessionMembers();
+    setManageMembersOpen(true);
+  }, [refreshSessionMembers]);
+
+  const openViewMembers = React.useCallback(() => {
+    refreshSessionMembers();
+    setViewMembersOpen(true);
+  }, [refreshSessionMembers]);
+
+  useEffect(() => {
+    if (sessionRole !== 'owner' || !sessionID) {
+      setSessionMembers([]);
+      setSessionOwner(undefined);
+      return;
+    }
+    refreshSessionMembers();
+  }, [sessionRole, sessionID, refreshSessionMembers]);
+
+  const handleKickMember = React.useCallback(
+    async (memberID: string) => {
+      if (!sessionID) return;
+      setMemberManagementError(null);
+      setKickingMemberID(memberID);
+      try {
+        const result = await kickSessionMember(sessionID, memberID);
+        if (!result.ok) {
+          setMemberManagementError(result.error || 'Failed to remove member');
+        }
+      } catch (err) {
+        setMemberManagementError(err instanceof Error ? err.message : 'Failed to remove member');
+      } finally {
+        await refreshSessionMembers();
+        setKickingMemberID(null);
+      }
+    },
+    [sessionID, refreshSessionMembers],
+  );
+
+  const sessionLifecycleMessage = React.useMemo(() => {
+    if (!sessionLifecycle) return '';
+    if (sessionLifecycle.type === 'member_kicked') {
+      return 'You have been removed from this session by the host.';
+    }
+    if (sessionLifecycle.role === 'owner') {
+      return 'The session has been stopped.';
+    }
+    return 'The host has ended this session.';
+  }, [sessionLifecycle]);
+
+  const handleSessionLifecycleClose = React.useCallback(() => {
+    setSessionLifecycle(null);
+    setSessionMembers([]);
+    setSessionOwner(undefined);
+    closeManageMembers();
+    closeViewMembers();
+    NavigateAway();
+  }, [NavigateAway, closeManageMembers, closeViewMembers]);
+
+  const handleCopySessionID = React.useCallback(async (event: React.MouseEvent, sessionIDToCopy?: string) => {
+    event.stopPropagation();
+    if (!sessionIDToCopy) return;
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(sessionIDToCopy);
+      } else {
+        const el = document.createElement('textarea');
+        el.value = sessionIDToCopy;
+        el.style.position = 'fixed';
+        el.style.opacity = '0';
+        document.body.appendChild(el);
+        el.focus();
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+      }
+      setCopyToast({ open: true, message: `Session ID copied: ${sessionIDToCopy}` });
+    } catch (err) {
+      console.warn('Failed to copy session ID', err);
+      setCopyToast({ open: true, message: 'Unable to copy session ID' });
+    }
+  }, []);
+
   // Listen for member join/left events dispatched by sessionHandler and show ephemeral notices
   useEffect(() => {
     const handler = (e: Event) => {
-      const ce = e as CustomEvent<{ type: 'member_joined' | 'member_left'; memberID: string }>; // time optional
+      const ce = e as CustomEvent<{ type: 'member_joined' | 'member_left' | 'owner_joined' | 'owner_left'; memberID: string; memberEmail?: string }>; // time optional
       if (!ce.detail?.memberID) return;
+      const displayName = ce.detail.memberEmail || ce.detail.memberID;
       const id = `${ce.detail.type}-${ce.detail.memberID}-${Date.now()}`;
-      setMemberNotices((prev) => [...prev, { id, memberID: ce.detail.memberID, type: ce.detail.type }]);
+      setMemberNotices((prev) => [...prev, { id, memberID: displayName, type: ce.detail.type }]);
+      if (ce.detail.type !== 'owner_joined' && ce.detail.type !== 'owner_left' && sessionRole === 'owner') {
+        refreshSessionMembers();
+      }
+      // Refresh for view members dialog too
+      if (ce.detail.type !== 'owner_joined' && ce.detail.type !== 'owner_left' && viewMembersOpen) {
+        refreshSessionMembers();
+      }
       // Auto-remove after 3s
       setTimeout(() => {
         setMemberNotices((prev) => prev.filter((n) => n.id !== id));
@@ -316,7 +492,7 @@ const AnnotatePage: React.FC = () => {
     };
     window.addEventListener('canary-session-member-event', handler as EventListener);
     return () => window.removeEventListener('canary-session-member-event', handler as EventListener);
-  }, []);
+  }, [refreshSessionMembers, sessionRole, viewMembersOpen]);
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', bgcolor: '#f5f5f5' }}>
@@ -359,6 +535,8 @@ const AnnotatePage: React.FC = () => {
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
                     borderLeft: `4px solid ${item.type === 'keypoint' ? '#f97316' : '#2563eb'}`,
+                    ml: item.type === 'keypoint' ? 2 : 0,
+                    bgcolor: item.type === 'keypoint' ? 'rgba(249, 115, 22, 0.06)' : undefined,
                     '&:hover': {
                       elevation: 2,
                       bgcolor: 'action.hover',
@@ -382,11 +560,20 @@ const AnnotatePage: React.FC = () => {
                       {item.label}
                     </Typography>
                   </Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                    {item.type === 'keypoint'
-                      ? `Position: (${item.position.x}, ${item.position.y})`
-                      : `Center: (${item.center.x}, ${item.center.y}) | Size: ${item.bounds.maxX - item.bounds.minX}×${item.bounds.maxY - item.bounds.minY}`}
-                  </Typography>
+                  {item.type === 'keypoint' ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                        Position: ({item.position.x}, {item.position.y})
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                        Bounding Box: {item.boundingBoxLabel ?? 'Unassigned'}
+                      </Typography>
+                    </Box>
+                  ) : (
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                      Center: ({item.center.x}, {item.center.y}) | Size: {item.bounds.maxX - item.bounds.minX}×{item.bounds.maxY - item.bounds.minY}
+                    </Typography>
+                  )}
                 </Paper>
               ))}
             </Box>
@@ -420,12 +607,43 @@ const AnnotatePage: React.FC = () => {
               }}
             >
               {sessionID && (
-                <Paper elevation={2} sx={{ px: 2, py: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                <Paper
+                  elevation={2}
+                  sx={{
+                    px: 2,
+                    py: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    cursor: 'pointer',
+                    '&:hover': {
+                      bgcolor: 'action.hover',
+                    },
+                  }}
+                  onClick={(e) => handleCopySessionID(e, sessionID)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      handleCopySessionID(e as unknown as React.MouseEvent, sessionID);
+                    }
+                  }}
+                >
+                  <Typography variant="body2" sx={{ fontWeight: 'bold' }} title="Click to copy session ID">
                     Session: {sessionID}
                     {sessionRole ? ` (${sessionRole})` : ''}
                   </Typography>
                 </Paper>
+              )}
+              {sessionRole === 'owner' && sessionID && (
+                <Button variant="outlined" size="small" onClick={openManageMembers} sx={{ textTransform: 'none', fontWeight: 600 }}>
+                  Manage members
+                </Button>
+              )}
+              {sessionRole === 'member' && sessionID && (
+                <Button variant="outlined" size="small" onClick={openViewMembers} sx={{ textTransform: 'none', fontWeight: 600 }}>
+                  View members
+                </Button>
               )}
               <IconButton aria-label="previous image" onClick={handlePrev}>
                 <KeyboardArrowLeft />
@@ -519,7 +737,7 @@ const AnnotatePage: React.FC = () => {
                   sx={{
                     px: 1.5,
                     py: 0.5,
-                    bgcolor: n.type === 'member_joined' ? '#2e7d32' : '#c62828',
+                    bgcolor: n.type === 'member_joined' ? '#2e7d32' : n.type === 'member_left' ? '#c62828' : n.type === 'owner_joined' ? '#1d4ed8' : '#c62828',
                     color: '#fff',
                     fontSize: 12,
                     fontWeight: 600,
@@ -527,7 +745,7 @@ const AnnotatePage: React.FC = () => {
                     boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
                   }}
                 >
-                  {n.type === 'member_joined' ? 'Member joined: ' : 'Member left: '}
+                  {n.type === 'member_joined' ? 'Member joined: ' : n.type === 'member_left' ? 'Member left: ' : n.type === 'owner_joined' ? 'Owner joined: ' : 'Owner left: '}
                   {n.memberID}
                 </Paper>
               </Fade>
@@ -709,6 +927,110 @@ const AnnotatePage: React.FC = () => {
           </Box>
         </Box>
       </Paper>
+      <Dialog open={manageMembersOpen} onClose={closeManageMembers} fullWidth maxWidth="sm">
+        <DialogTitle>Session members</DialogTitle>
+        <DialogContent dividers>
+          {memberManagementError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {memberManagementError}
+            </Alert>
+          )}
+          {(sessionMembers || []).length === 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              No members are currently connected.
+            </Typography>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              {(sessionMembers || []).map((member) => (
+                <Paper key={member.id} variant="outlined" sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                      {member.email}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Member
+                    </Typography>
+                  </Box>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    size="small"
+                    onClick={() => handleKickMember(member.id)}
+                    disabled={kickingMemberID === member.id}
+                    sx={{ textTransform: 'none', fontWeight: 600 }}
+                  >
+                    {kickingMemberID === member.id ? 'Removing…' : 'Remove'}
+                  </Button>
+                </Paper>
+              ))}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeManageMembers}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={viewMembersOpen} onClose={closeViewMembers} fullWidth maxWidth="sm">
+        <DialogTitle>Session participants</DialogTitle>
+        <DialogContent dividers>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            {sessionOwner && (
+              <Paper variant="outlined" sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, bgcolor: 'primary.50' }}>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                    {sessionOwner}
+                  </Typography>
+                  <Typography variant="caption" color="primary.main" sx={{ fontWeight: 600 }}>
+                    Owner
+                  </Typography>
+                </Box>
+              </Paper>
+            )}
+            {(sessionMembers || []).length === 0 ? (
+              <Typography variant="body2" color="text.secondary">
+                No other members are currently connected.
+              </Typography>
+            ) : (
+              (sessionMembers || []).map((member) => (
+                <Paper key={member.id} variant="outlined" sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                      {member.email}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Member
+                    </Typography>
+                  </Box>
+                </Paper>
+              ))
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeViewMembers}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={Boolean(sessionLifecycle)} onClose={handleSessionLifecycleClose} fullWidth maxWidth="xs">
+        <DialogTitle>{sessionLifecycle?.type === 'member_kicked' ? 'Removed from session' : 'Session ended'}</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ mt: 1 }}>{sessionLifecycleMessage}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleSessionLifecycleClose} variant="contained" autoFocus>
+            {sessionLifecycle?.role === 'owner' ? 'Back to project' : 'Return home'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={copyToast.open}
+        autoHideDuration={3000}
+        onClose={() => setCopyToast((prev) => ({ ...prev, open: false }))}
+        message={copyToast.message}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 };

@@ -47,6 +47,7 @@ export const keypointDatabaseHandler = {
     const requestBody = {
       position: ann.position,
       keypointLabelID: ann.labelID,
+      boundingBoxID: ann.boundingBoxID,
     };
     try {
       const result = await CallAPI(url, {
@@ -129,6 +130,7 @@ export const keypointDatabaseHandler = {
           position: item.position as { x: number; y: number },
           projectID,
           imageID,
+          boundingBoxID: typeof item.boundingBoxID === 'string' ? (item.boundingBoxID as string) : '',
         });
         return kp;
       })

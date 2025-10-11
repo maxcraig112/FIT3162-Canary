@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
+	jwtlib "github.com/golang-jwt/jwt/v5"
 	"github.com/rs/zerolog/log"
 )
 
@@ -36,9 +36,9 @@ func AuthMiddleware(clients *gcp.Clients) func(http.Handler) http.Handler {
 				return
 			}
 
-			token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-					return nil, jwt.ErrSignatureInvalid
+			token, err := jwtlib.Parse(tokenString, func(token *jwtlib.Token) (interface{}, error) {
+				if _, ok := token.Method.(*jwtlib.SigningMethodHMAC); !ok {
+					return nil, jwtlib.ErrSignatureInvalid
 				}
 				return []byte(secret), nil
 			})
@@ -57,18 +57,19 @@ func AuthMiddleware(clients *gcp.Clients) func(http.Handler) http.Handler {
 }
 
 // JWT and validation helpers
-func GenerateJWT(ctx context.Context, clients *gcp.Clients, userID string) (string, error) {
+func GenerateJWT(ctx context.Context, clients *gcp.Clients, userID string, email string) (string, error) {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
 		log.Error().Msg("JWT_SECRET environment variable not set for JWT generation")
 		return "", errors.New("JWT_SECRET ENVIRONMENT VARIABLE NOT SET")
 	}
-	claims := jwt.MapClaims{
+	claims := jwtlib.MapClaims{
 		"userID": userID,
+		"email":  email,
 		"exp":    time.Now().Add(720 * time.Hour).Unix(),
 		"iat":    time.Now().Unix(),
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token := jwtlib.NewWithClaims(jwtlib.SigningMethodHS256, claims)
 	signed, err := token.SignedString([]byte(secret))
 	if err != nil {
 		log.Error().Err(err).Str("userID", userID).Msg("Failed to sign JWT")
@@ -78,16 +79,16 @@ func GenerateJWT(ctx context.Context, clients *gcp.Clients, userID string) (stri
 	return signed, nil
 }
 
-func GetJWTClaims(tokenString string) (jwt.MapClaims, error) {
+func GetJWTClaims(tokenString string) (jwtlib.MapClaims, error) {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
 		log.Error().Msg("JWT_SECRET environment variable not set")
-		return nil, jwt.ErrTokenMalformed
+		return nil, jwtlib.ErrTokenMalformed
 	}
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+	token, err := jwtlib.Parse(tokenString, func(token *jwtlib.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwtlib.SigningMethodHMAC); !ok {
 			log.Error().Msg("Unexpected signing method in JWT token")
-			return nil, jwt.ErrTokenSignatureInvalid
+			return nil, jwtlib.ErrTokenSignatureInvalid
 		}
 		return []byte(secret), nil
 	})
@@ -95,12 +96,12 @@ func GetJWTClaims(tokenString string) (jwt.MapClaims, error) {
 		log.Error().Err(err).Msg("Failed to parse JWT token")
 		return nil, err
 	}
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+	if claims, ok := token.Claims.(jwtlib.MapClaims); ok && token.Valid {
 		log.Info().Msg("JWT token claims extracted successfully")
 		return claims, nil
 	}
 	log.Error().Msg("JWT token expired or invalid claims")
-	return nil, jwt.ErrTokenExpired
+	return nil, jwtlib.ErrTokenExpired
 }
 
 func GetUserIDFromJWT(r *http.Request) (string, error) {
