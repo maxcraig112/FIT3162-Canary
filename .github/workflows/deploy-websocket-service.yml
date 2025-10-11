@@ -77,7 +77,6 @@ jobs:
             --execution-environment gen2 \
             --ingress all \
             --set-env-vars "PORT=8080" \
-            --annotation run.googleapis.com/protocol-type=http1
 
       - name: Output service URL
         run: |
