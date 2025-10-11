@@ -43,31 +43,31 @@ tasks:
     desc: Lint the Go package service with golangci-lint
     dir: src/pkg
     cmds:
-      - golangci-lint run
+      - golangci-lint run --timeout=5m
 
   lintAuthService:
     desc: Lint the Go authentication service with golangci-lint
     dir: src/services/golang-auth-service
     cmds:
-      - golangci-lint run
+      - golangci-lint run --timeout=5m
 
   lintProjectService:
     desc: Lint the Go project service with golangci-lint
     dir: src/services/golang-project-service
     cmds:
-      - golangci-lint run
+      - golangci-lint run --timeout=5m
 
   lintWebsocketService:
     desc: Lint the Go websocket service with golangci-lint
     dir: src/services/golang-websocket-service
     cmds:
-      - golangci-lint run
+      - golangci-lint run --timeout=5m
 
   lintServiceRunner:
     desc: Lint the Go service-runner with golangci-lint
     dir: src/services/service-runner
     cmds:
-      - golangci-lint run
+      - golangci-lint run --timeout=5m
 
   lintAll:
     desc: Lint all Go services with golangci-lint
