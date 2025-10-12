@@ -342,11 +342,12 @@ export function useUploadTab(project: Project | null) {
     [pendingUpload, project, uploading],
   );
 
-  const videoTargets: VideoOptionTarget[] = pendingUpload?.videos.map((video) => ({
-    sanitizedName: video.sanitizedName,
-    originalName: video.file.name,
-    duration: video.duration,
-  })) ?? [];
+  const videoTargets: VideoOptionTarget[] =
+    pendingUpload?.videos.map((video) => ({
+      sanitizedName: video.sanitizedName,
+      originalName: video.file.name,
+      duration: video.duration,
+    })) ?? [];
 
   return {
     // state

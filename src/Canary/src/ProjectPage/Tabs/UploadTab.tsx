@@ -168,15 +168,7 @@ export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
               </Box>
             )}
 
-            <input
-              ref={inputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/jpg,video/*"
-              multiple
-              hidden
-              disabled={uploading || videoDialogOpen}
-              onChange={handleFilesSelected}
-            />
+            <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/jpg,video/*" multiple hidden disabled={uploading || videoDialogOpen} onChange={handleFilesSelected} />
           </Box>
         </Fade>
 

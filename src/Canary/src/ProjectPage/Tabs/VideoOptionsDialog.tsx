@@ -94,10 +94,7 @@ export const VideoOptionsDialog: React.FC<VideoOptionsDialogProps> = ({ open, vi
     [formState],
   );
 
-  const updateEntry = (
-    index: number,
-    patch: Partial<VideoOptionFormState> | ((prev: VideoOptionFormState) => Partial<VideoOptionFormState>),
-  ) => {
+  const updateEntry = (index: number, patch: Partial<VideoOptionFormState> | ((prev: VideoOptionFormState) => Partial<VideoOptionFormState>)) => {
     setFormState((prev) =>
       prev.map((entry, idx) => {
         if (idx !== index) {
