@@ -46,6 +46,13 @@ func (h *WebSocketHub) startWebhookWriter(c *Client, role, sessionID string) err
 				}
 				h.handlerMemberLeft(sessionID, c.id)
 			}
+			h.broadcastConnectionStatus(sessionID, c.id, ConnectionStatusNotification{
+				Type:      "ws_closed",
+				SessionID: sessionID,
+				UserID:    c.id,
+				Role:      role,
+				Time:      time.Now().UTC().Format(time.RFC3339),
+			})
 			log.Info().Str("sessionID", sessionID).Str("role", role).Str("userID", c.id).Msg("ws disconnected")
 		}()
 

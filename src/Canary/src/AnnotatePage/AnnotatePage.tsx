@@ -86,7 +86,7 @@ const AnnotatePage: React.FC = () => {
   const [bbOptions, setBbOptions] = useState<string[]>([]);
   const [hasPrev, setHasPrev] = useState(false);
   const [memberNotices, setMemberNotices] = useState<{ id: string; memberID: string; type: 'member_joined' | 'member_left' | 'owner_joined' | 'owner_left' }[]>([]);
-  const [sessionLifecycle, setSessionLifecycle] = useState<{ type: 'session_closed' | 'member_kicked'; sessionID?: string; time?: string; role?: 'owner' | 'member' } | null>(null);
+  const [sessionLifecycle, setSessionLifecycle] = useState<{ type: 'session_closed' | 'member_kicked' | 'ws_closed'; sessionID?: string; time?: string; role?: 'owner' | 'member' } | null>(null);
   const [sessionMembers, setSessionMembers] = useState<Member[]>([]);
   const [sessionOwner, setSessionOwner] = useState<string | undefined>();
   const [manageMembersOpen, setManageMembersOpen] = useState(false);
@@ -339,7 +339,7 @@ const AnnotatePage: React.FC = () => {
 
   useEffect(() => {
     const handler = (e: Event) => {
-      const ce = e as CustomEvent<{ type: 'session_closed' | 'member_kicked'; sessionID?: string; time?: string }>;
+      const ce = e as CustomEvent<{ type: 'session_closed' | 'member_kicked' | 'ws_closed'; sessionID?: string; time?: string }>;
       if (!ce.detail?.type) return;
       setSessionLifecycle({
         type: ce.detail.type,
@@ -431,6 +431,9 @@ const AnnotatePage: React.FC = () => {
     if (!sessionLifecycle) return '';
     if (sessionLifecycle.type === 'member_kicked') {
       return 'You have been removed from this session by the host.';
+    }
+    if (sessionLifecycle.type === 'ws_closed') {
+      return 'Your connection to this session was closed by the host. Please rejoin from the project page to continue.';
     }
     if (sessionLifecycle.role === 'owner') {
       return 'The session has been stopped.';
@@ -1014,7 +1017,9 @@ const AnnotatePage: React.FC = () => {
       </Dialog>
 
       <Dialog open={Boolean(sessionLifecycle)} onClose={handleSessionLifecycleClose} fullWidth maxWidth="xs">
-        <DialogTitle>{sessionLifecycle?.type === 'member_kicked' ? 'Removed from session' : 'Session ended'}</DialogTitle>
+        <DialogTitle>
+          {sessionLifecycle?.type === 'member_kicked' ? 'Removed from session' : sessionLifecycle?.type === 'ws_closed' ? 'Connection closed' : 'Session ended'}
+        </DialogTitle>
         <DialogContent>
           <Typography sx={{ mt: 1 }}>{sessionLifecycleMessage}</Typography>
         </DialogContent>

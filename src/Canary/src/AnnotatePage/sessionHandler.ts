@@ -20,7 +20,7 @@ export interface SessionInitResult {
 }
 
 type SessionLifecycleEventDetail = {
-  type: 'session_closed' | 'member_kicked';
+  type: 'session_closed' | 'member_kicked' | 'ws_closed';
   sessionID?: string;
   time?: string;
 };
@@ -161,6 +161,15 @@ export async function initialiseSessionWebSocket(existingSessionID?: string): Pr
             clearCookie('session_id_cookie');
             dispatchSessionLifecycle({ type: 'member_kicked', sessionID: messageSessionID, time: typeof data?.time === 'string' ? data.time : undefined });
             closeSessionWebSocket(4001, 'member removed', { suppressNavigate: true });
+            break;
+          }
+          case 'ws_closed': {
+            const messageSessionID = typeof data?.sessionID === 'string' ? data.sessionID : sessionID;
+            clearCookie('create_session_cookie');
+            clearCookie('join_session_cookie');
+            clearCookie('session_id_cookie');
+            dispatchSessionLifecycle({ type: 'ws_closed', sessionID: messageSessionID, time: typeof data?.time === 'string' ? data.time : undefined });
+            closeSessionWebSocket(4002, 'session websocket closed by server', { suppressNavigate: true });
             break;
           }
           default:
