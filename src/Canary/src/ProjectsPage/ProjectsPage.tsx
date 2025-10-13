@@ -278,12 +278,10 @@ const ProjectsPage: React.FC = () => {
                           fontSize: 32,
                           color: (theme) => theme.palette.grey[700],
                           zIndex: 2,
-                          borderRadius: 0,
-                          width: 36,
-                          height: 36,
+                          borderRadius: 0.5,
                           '&:hover': { bgcolor: '#e2e8f0' },
                         }}
-                        size="large"
+                        size="small"
                         onClick={(e) => {
                           e.stopPropagation();
                           setMenuAnchorEl(e.currentTarget);
@@ -313,14 +311,14 @@ const ProjectsPage: React.FC = () => {
                               bgcolor: '#ffffff',
                               color: '#0f172a',
                               border: '1px solid #d1d5db',
-                              borderRadius: 0,
+                              borderRadius: 0.5,
                             },
                           },
                         }}
                         onClick={(e) => e.stopPropagation()}
                       >
                         <MenuItem
-                          sx={{ borderRadius: 0 }}
+                          sx={{ borderRadius: 0, '&:hover': { bgcolor: '#dededeff'} }}
                           onClick={(e) => {
                             e.stopPropagation();
                             setRenameProjectId(project.projectID);
@@ -406,7 +404,7 @@ const ProjectsPage: React.FC = () => {
               transform: 'translate(-50%, -50%)',
               width: 350,
               bgcolor: 'background.paper',
-              border: '2px solid #000',
+              borderRadius: 1,
               p: 3,
             }}
           >
@@ -498,17 +496,28 @@ const ProjectsPage: React.FC = () => {
               transform: 'translate(-50%, -50%)',
               width: 350,
               bgcolor: 'background.paper',
-              border: '2px solid #000',
+              borderRadius: 1,
               p: 3,
             }}
           >
-            <Typography id="delete-project-modal-title" variant="h6" align="center" sx={{ mb: 2 }}>
-              Delete Project?
+            <Typography id="delete-project-modal-title" variant="h6" align="center" sx={{ mb: 2, color: "#000" }}>
+              Delete Project
             </Typography>
-            <Typography align="center" sx={{ mb: 3, color: 'text.primary' }}>
+            <Typography align="center" sx={{ mb: 3, color: '#000' }}>
               Are you sure you want to delete this project? This action cannot be undone.
             </Typography>
             <Box sx={{ display: 'flex', gap: 2 }}>
+              <Button
+                variant="outlined"
+                color="secondary"
+                fullWidth
+                onClick={() => {
+                  setDeleteDialogOpen(false);
+                  setDeleteProjectId(null);
+                }}
+              >
+                Cancel
+              </Button>
               <Button
                 variant="contained"
                 color="error"
@@ -528,17 +537,6 @@ const ProjectsPage: React.FC = () => {
                 }}
               >
                 Delete
-              </Button>
-              <Button
-                variant="outlined"
-                color="secondary"
-                fullWidth
-                onClick={() => {
-                  setDeleteDialogOpen(false);
-                  setDeleteProjectId(null);
-                }}
-              >
-                Cancel
               </Button>
             </Box>
           </Box>

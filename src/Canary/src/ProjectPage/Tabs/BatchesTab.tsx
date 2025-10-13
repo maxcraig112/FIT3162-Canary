@@ -166,7 +166,7 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
                     color: '#000',
                     boxShadow: 8,
                     transition: 'box-shadow 0.25s ease, transform 0.25s ease',
-                    border: isSessionActive ? '2px solid #2563eb' : '2px solid transparent',
+                    border: isSessionActive ? '2px solid #2563eb' : 'none',
                     '&:hover': {
                       boxShadow: 16,
                       transform: 'translateY(-3px)',
@@ -181,6 +181,7 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
                         position: 'absolute',
                         top: 12,
                         left: 12,
+                        maxWidth: 'calc(100% - 80px)',
                         zIndex: 4,
                         px: 1.5,
                         py: 0.75,
@@ -200,11 +201,12 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
                         }
                       }}
                     >
-                      <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase' }}>
-                        Session active (click to copy)
+                      <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', fontSize: '0.8rem'}}>
+                        Session active
                       </Typography>
-                      <Typography variant="caption" sx={{ display: 'block', fontFamily: 'monospace' }}>
-                        ID: {activeSessionForBatch.sessionID}
+                      <Typography variant="caption" sx={{ display: 'block', fontSize: '0.7rem' }}>Click to copy ID to clipboard</Typography>
+                      <Typography variant="caption" sx={{ display: 'block', fontFamily: 'monospace', fontSize: '0.7rem' }}>
+                        ID:{activeSessionForBatch.sessionID}
                       </Typography>
                     </Box>
                   )}
@@ -245,12 +247,13 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
                       sx={{
                         position: 'absolute',
                         top: 8,
-                        right: -4,
+                        right: -16,
                         fontSize: 32,
                         color: (theme) => theme.palette.grey[600],
                         zIndex: 5,
+                        borderRadius: 1,
                       }}
-                      size="large"
+                      size="medium"
                       onClick={(e) => openMenu(e, b.batchID)}
                     >
                       <MoreVertIcon sx={{ fontSize: 32 }} />
@@ -345,23 +348,31 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
         }}
       >
         {isSessionMenuVisible && !sessionActiveForMenuBatch && (
-          <MenuItem onClick={startSession} disabled={sessionPending}>
+          <MenuItem onClick={startSession} disabled={sessionPending} sx={{'&:hover': {bgcolor: '#dededeff'}}}>
             {sessionPending ? 'Starting session…' : startLabel}
           </MenuItem>
         )}
         {isSessionMenuVisible && sessionActiveForMenuBatch && sessionOwnedByCurrentUser && (
-          <MenuItem onClick={stopSession} disabled={sessionPending}>
+          <MenuItem onClick={stopSession} disabled={sessionPending} sx={{'&:hover': {bgcolor: '#dededeff'}}}>
             {sessionPending ? 'Stopping session…' : 'Stop Session'}
           </MenuItem>
         )}
         {isSessionMenuVisible && sessionActiveForMenuBatch && !sessionOwnedByCurrentUser && (
-          <MenuItem onClick={stopSession} disabled={sessionPending} sx={{ color: 'warning.main' }}>
+          <MenuItem onClick={stopSession} disabled={sessionPending} sx={{ color: 'warning.main', '&:hover': {bgcolor: '#dededeff'}}}>
             {sessionPending ? 'Stopping session…' : 'End Session (Session in progress by another user)'}
           </MenuItem>
         )}
-        <MenuItem onClick={handleFinish}>Finish</MenuItem>
-        <MenuItem onClick={openRename}>Rename</MenuItem>
-        <MenuItem onClick={openDelete}>Delete</MenuItem>
+        <MenuItem onClick={handleFinish} sx={{'&:hover': {bgcolor: '#dededeff'}}}>Finish</MenuItem>
+        <MenuItem onClick={openRename} sx={{'&:hover': {bgcolor: '#dededeff'}}}>Rename</MenuItem>
+        <MenuItem 
+          onClick={openDelete} 
+          sx={{
+            color: '#b91c1c',
+            '&:hover': {bgcolor: '#fee2e2', color: '#7f1d1d'}
+            }}
+        >
+        Delete
+        </MenuItem>
       </Menu>
 
       {/* Rename Dialog */}
@@ -424,13 +435,24 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
 
       {/* Delete Dialog */}
       <Dialog open={deleteOpen} onClose={closeDelete} fullWidth maxWidth="xs">
-        <DialogTitle sx={{ color: '#000' }}>Delete Batch</DialogTitle>
+        <DialogTitle sx={{color: "#000"}}>Delete Batch</DialogTitle>
         <DialogContent>
-          <Typography>Are you sure you want to delete this batch?</Typography>
+          <Typography sx={{color: "#000"}}>Are you sure you want to delete this batch?</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeDelete}>Cancel</Button>
-          <Button onClick={confirmDelete} disabled={deleting} color="error" variant="contained">
+          <Button 
+            onClick={closeDelete} 
+            variant="outlined"
+            color="secondary"
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={confirmDelete} 
+            disabled={deleting} 
+            color="error" 
+            variant="contained"
+          >
             {deleting ? 'Deleting...' : 'Delete'}
           </Button>
         </DialogActions>
@@ -447,14 +469,39 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
       >
         <DialogTitle sx={{ color: '#000' }}>Start Session</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Typography>{sessionCreationBatch ? `Start a new session for "${sessionCreationBatch.batchName}".` : 'Start a new session.'}</Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography sx={{color: '#000'}}>{sessionCreationBatch ? `Start a new session for "${sessionCreationBatch.batchName}".` : 'Start a new session.'}</Typography>
+          <Typography variant="body2" color="#2f2f2fff">
             Set an optional password so only people with the password can join. Leave blank to allow anyone with the session ID to join.
           </Typography>
-          <TextField label="Session password" type="password" value={sessionPasswordValue} onChange={(e) => setSessionPasswordValue(e.target.value)} disabled={sessionPending} fullWidth autoFocus />
+          <TextField 
+            label="Session password" 
+            type="password" 
+            value={sessionPasswordValue} 
+            onChange={(e) => setSessionPasswordValue(e.target.value)} 
+            disabled={sessionPending} 
+            fullWidth 
+            autoFocus 
+            InputProps={{
+              sx: {
+                color: '#000',
+                bgcolor: '#fff',
+              },
+            }}
+            InputLabelProps={{
+              sx: {
+                color: '#999',
+                '&.Mui-focused': { color: '#000' },
+              },
+            }}
+            sx={{
+              alignSelf: 'center',
+              maxWidth: 480,
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+            }}
+          />
         </DialogContent>
         <DialogActions>
-          <Button onClick={cancelSessionCreation} disabled={sessionPending}>
+          <Button onClick={cancelSessionCreation} disabled={sessionPending} variant="outlined" color="secondary">
             Cancel
           </Button>
           <Button
@@ -463,6 +510,7 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
             }}
             disabled={sessionPending}
             variant="contained"
+            color="primary"
           >
             {sessionPending ? 'Starting…' : 'Start Session'}
           </Button>

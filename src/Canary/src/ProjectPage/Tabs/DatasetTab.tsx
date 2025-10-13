@@ -221,9 +221,17 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
           },
         }}
       >
-        <MenuItem onClick={handleFinish}>Mark as Incomplete</MenuItem>
-        <MenuItem onClick={openRename}>Rename</MenuItem>
-        <MenuItem onClick={openDelete}>Delete</MenuItem>
+        <MenuItem onClick={handleFinish} sx={{'&:hover': {bgcolor: '#dededeff'}}}>Mark as Incomplete</MenuItem>
+        <MenuItem onClick={openRename} sx={{'&:hover': {bgcolor: '#dededeff'}}}>Rename</MenuItem>
+        <MenuItem 
+          onClick={openDelete} 
+          sx={{
+            color: '#b91c1c',
+            '&:hover': {bgcolor: '#fee2e2', color: '#7f1d1d'}
+            }}
+        >
+          Delete
+        </MenuItem>
       </Menu>
 
       {/* Rename Dialog */}
@@ -286,13 +294,24 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
 
       {/* Delete Dialog */}
       <Dialog open={deleteOpen} onClose={closeDelete} fullWidth maxWidth="xs">
-        <DialogTitle>Delete Batch</DialogTitle>
+        <DialogTitle sx={{color: "#000"}}>Delete Batch</DialogTitle>
         <DialogContent>
-          <Typography>Are you sure you want to delete this batch?</Typography>
+          <Typography sx={{color: "#000"}}>Are you sure you want to delete this batch?</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeDelete}>Cancel</Button>
-          <Button onClick={confirmDelete} disabled={deleting} color="error" variant="contained">
+          <Button 
+            onClick={closeDelete} 
+            variant="outlined"
+            color="secondary"
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={confirmDelete} 
+            disabled={deleting} 
+            color="error" 
+            variant="contained"
+          >
             {deleting ? 'Deleting...' : 'Delete'}
           </Button>
         </DialogActions>
