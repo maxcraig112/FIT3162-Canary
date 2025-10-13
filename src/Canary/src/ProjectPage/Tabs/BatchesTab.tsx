@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Paper, IconButton, Menu, MenuItem, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Snackbar } from '@mui/material';
+import { Box, IconButton, Menu, MenuItem, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Snackbar } from '@mui/material';
 // Using Box + CSS grid for precise gaps and alignment
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useBatchesTab } from './batchesTabHandler';
@@ -149,29 +149,18 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
             })();
             return (
               <Box key={b.batchID} sx={{ minHeight: '10vh' }}>
-                <Paper
+                <Box
                   sx={{
-                    p: 4,
-                    textAlign: 'center',
                     position: 'relative',
-                    minHeight: 220,
-                    height: '100%',
+                    border: '1px solid',
+                    borderColor: isSessionActive ? '#2563eb' : '#e2e8f0',
+                    borderRadius: 1,
+                    overflow: 'hidden',
                     cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    pt: 2,
-                    pb: 7, // space for bottom count
-                    bgcolor: b.previewURL ? 'transparent' : '#ffffff',
-                    color: '#000',
-                    boxShadow: 8,
+                    boxShadow: 6,
                     transition: 'box-shadow 0.25s ease, transform 0.25s ease',
-                    border: isSessionActive ? '2px solid #2563eb' : 'none',
-                    '&:hover': {
-                      boxShadow: 16,
-                      transform: 'translateY(-3px)',
-                    },
-                    overflow: 'hidden', // clip blurred bg to card
+                    '&:hover': { boxShadow: 12, transform: 'translateY(-2px)' },
+                    bgcolor: '#fff',
                   }}
                   onClick={() => openBatch(b, navigate)}
                 >
@@ -181,7 +170,6 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
                         position: 'absolute',
                         top: 12,
                         left: 12,
-                        maxWidth: 'calc(100% - 80px)',
                         zIndex: 4,
                         px: 1.5,
                         py: 0.75,
@@ -201,128 +189,90 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
                         }
                       }}
                     >
-                      <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', fontSize: '0.8rem'}}>
+                      <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', fontSize: '0.75rem' }}>
                         Session active
                       </Typography>
-                      <Typography variant="caption" sx={{ display: 'block', fontSize: '0.7rem' }}>Click to copy ID to clipboard</Typography>
-                      <Typography variant="caption" sx={{ display: 'block', fontFamily: 'monospace', fontSize: '0.7rem' }}>
-                        ID:{activeSessionForBatch.sessionID}
+                      <Typography variant="caption" sx={{ display: 'block', fontSize: '0.7rem' }}>
+                        Click to copy ID
                       </Typography>
                     </Box>
                   )}
-                  {/* blurred background preview */}
-                  {b.previewURL && (
-                    <Box
-                      aria-hidden
-                      sx={{
-                        position: 'absolute',
-                        inset: 0,
-                        backgroundImage: `url(${b.previewURL})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        filter: 'blur(3px)',
-                        transform: 'scale(1.06)', // avoid edge transparency from blur
-                        zIndex: 1,
-                        opacity: 0.5,
-                        pointerEvents: 'none',
-                      }}
-                    />
-                  )}
-                  {/* dim overlay to improve text contrast */}
-                  {b.previewURL && <Box aria-hidden sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(255,255,255,0)', zIndex: 2, pointerEvents: 'none' }} />}
+
                   <Box
+                    aria-hidden
                     sx={{
-                      flexGrow: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '100%',
-                      px: 1,
                       position: 'relative',
-                      zIndex: 3,
+                      width: '100%',
+                      pt: '56.25%',
+                      bgcolor: '#f1f5f9',
+                      backgroundImage: b.previewURL ? `url(${b.previewURL})` : 'linear-gradient(135deg,#e2e8f0 0%,#cbd5f5 100%)',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
                     }}
-                  >
-                    <IconButton
-                      sx={{
-                        position: 'absolute',
-                        top: 8,
-                        right: -16,
-                        fontSize: 32,
-                        color: (theme) => theme.palette.grey[600],
-                        zIndex: 5,
-                        borderRadius: 1,
-                      }}
-                      size="medium"
-                      onClick={(e) => openMenu(e, b.batchID)}
-                    >
-                      <MoreVertIcon sx={{ fontSize: 32 }} />
-                    </IconButton>
-                    <Typography
-                      sx={{
-                        fontWeight: 800,
-                        fontSize: '1.75rem',
-                        letterSpacing: 0.4,
-                        lineHeight: 1.1,
-                        px: 1,
-                        maxWidth: '100%',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                      title={b.batchName}
-                    >
-                      {b.batchName}
-                    </Typography>
-                    {formattedUpdated && (
+                  />
+
+                  <Box sx={{ px: 2, py: 1.75, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
                       <Typography
                         sx={{
-                          mt: 1,
-                          color: '#555',
-                          fontSize: '0.95rem',
-                          fontWeight: 500,
-                          letterSpacing: 0.2,
+                          flexGrow: 1,
+                          fontWeight: 700,
+                          fontSize: '1.1rem',
+                          lineHeight: 1.3,
+                          color: '#0f172a',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
-                          maxWidth: '100%',
                         }}
-                        title={`Updated ${formattedUpdated}`}
                       >
+                        {b.batchName}
+                      </Typography>
+                      <IconButton
+                        size="small"
+                        sx={{ color: '#475569' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openMenu(e, b.batchID);
+                        }}
+                      >
+                        <MoreVertIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.9rem', color: '#1f2937' }}>
+                      {b.numberOfTotalFiles} {b.numberOfTotalFiles === 1 ? 'image' : 'images'}
+                    </Typography>
+
+                    {formattedUpdated && (
+                      <Typography variant="body2" sx={{ color: '#475569' }}>
                         Updated {formattedUpdated}
                       </Typography>
                     )}
-                  </Box>
-                  <Box sx={{ position: 'absolute', bottom: 16, left: 0, right: 0, zIndex: 3 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2 }}>
-                      {/* Session user count (bottom left) or empty space */}
-                      <Box>
-                        {isSessionActive && activeSessionForBatch && activeSessionForBatch.members && activeSessionForBatch.members.length > 0 && (
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              fontWeight: 600,
-                              fontSize: '0.85rem',
-                              color: '#2563eb',
-                              bgcolor: 'rgba(37, 99, 235, 0.1)',
-                              px: 1,
-                              py: 0.5,
-                              borderRadius: 1,
-                              border: '1px solid rgba(37, 99, 235, 0.3)',
-                            }}
-                          >
-                            {activeSessionForBatch.members.length} {activeSessionForBatch.members.length === 1 ? 'user' : 'users'} active
-                          </Typography>
-                        )}
-                      </Box>
 
-                      {/* Image count (bottom right) */}
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.95rem', color: '#222' }}>
-                        {b.numberOfTotalFiles} {b.numberOfTotalFiles === 1 ? 'image' : 'images'}
-                      </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      {isSessionActive && activeSessionForBatch?.members?.length ? (
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontWeight: 600,
+                            fontSize: '0.8rem',
+                            color: '#2563eb',
+                            bgcolor: 'rgba(37, 99, 235, 0.1)',
+                            px: 1,
+                            py: 0.35,
+                            borderRadius: 1,
+                            border: '1px solid rgba(37, 99, 235, 0.3)',
+                          }}
+                        >
+                          {activeSessionForBatch.members.length} {activeSessionForBatch.members.length === 1 ? 'user' : 'users'} active
+                        </Typography>
+                      ) : (
+                        <Box />
+                      )}
+                      <Box />
                     </Box>
                   </Box>
-                </Paper>
+                </Box>
               </Box>
             );
           })}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Paper, IconButton, Menu, MenuItem, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
+import { Box, IconButton, Menu, MenuItem, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
 // Using Box + CSS grid for precise gaps and alignment
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useDatasetTab } from './datasetTabHandler';
@@ -85,118 +85,70 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
             })();
             return (
               <Box key={b.batchID} sx={{ minHeight: '10vh' }}>
-                <Paper
+                <Box
                   sx={{
-                    p: 4,
-                    textAlign: 'center',
                     position: 'relative',
-                    minHeight: 220,
-                    height: '100%',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    pt: 2,
-                    pb: 7, // space for bottom count
-                    bgcolor: b.previewURL ? 'transparent' : '#ffffff',
-                    color: '#000',
-                    boxShadow: 8,
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 1,
+                    overflow: 'hidden',
+                    boxShadow: 6,
                     transition: 'box-shadow 0.25s ease, transform 0.25s ease',
-                    '&:hover': {
-                      boxShadow: 16,
-                      transform: 'translateY(-3px)',
-                    },
-                    overflow: 'hidden', // clip blurred bg to card
+                    bgcolor: '#fff',
+                    '&:hover': { boxShadow: 12, transform: 'translateY(-2px)' },
                   }}
                 >
-                  {/* blurred background preview */}
-                  {b.previewURL && (
-                    <Box
-                      aria-hidden
-                      sx={{
-                        position: 'absolute',
-                        inset: 0,
-                        backgroundImage: `url(${b.previewURL})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        filter: 'blur(3px)',
-                        transform: 'scale(1.06)', // avoid edge transparency from blur
-                        zIndex: 1,
-                        opacity: 0.5,
-                        pointerEvents: 'none',
-                      }}
-                    />
-                  )}
-                  {/* dim overlay to improve text contrast */}
-                  {b.previewURL && <Box aria-hidden sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(255,255,255,0)', zIndex: 2, pointerEvents: 'none' }} />}
                   <Box
+                    aria-hidden
                     sx={{
-                      flexGrow: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '100%',
-                      px: 1,
                       position: 'relative',
-                      zIndex: 3,
+                      width: '100%',
+                      pt: '56.25%',
+                      bgcolor: '#f1f5f9',
+                      backgroundImage: b.previewURL ? `url(${b.previewURL})` : 'linear-gradient(135deg,#e2e8f0 0%,#cbd5f5 100%)',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
                     }}
-                  >
-                    <IconButton
-                      sx={{
-                        position: 'absolute',
-                        top: 8,
-                        right: -4,
-                        fontSize: 32,
-                        color: (theme) => theme.palette.grey[600],
-                        zIndex: 2,
-                      }}
-                      size="large"
-                      onClick={(e) => openMenu(e, b.batchID)}
-                    >
-                      <MoreVertIcon sx={{ fontSize: 32 }} />
-                    </IconButton>
-                    <Typography
-                      sx={{
-                        fontWeight: 800,
-                        fontSize: '1.75rem',
-                        letterSpacing: 0.4,
-                        lineHeight: 1.1,
-                        px: 1,
-                        maxWidth: '100%',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                      title={b.batchName}
-                    >
-                      {b.batchName}
-                    </Typography>
-                    {formattedUpdated && (
+                  />
+
+                  <Box sx={{ px: 2, py: 1.75, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
                       <Typography
                         sx={{
-                          mt: 1,
-                          color: '#555',
-                          fontSize: '0.95rem',
-                          fontWeight: 500,
-                          letterSpacing: 0.2,
+                          flexGrow: 1,
+                          fontWeight: 700,
+                          fontSize: '1.1rem',
+                          lineHeight: 1.3,
+                          color: '#0f172a',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
-                          maxWidth: '100%',
                         }}
-                        title={`Updated ${formattedUpdated}`}
                       >
+                        {b.batchName}
+                      </Typography>
+                      <IconButton
+                        size="small"
+                        sx={{ color: '#475569' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openMenu(e, b.batchID);
+                        }}
+                      >
+                        <MoreVertIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.9rem', color: '#1f2937' }}>
+                      {b.numberOfTotalFiles} {b.numberOfTotalFiles === 1 ? 'image' : 'images'}
+                    </Typography>
+
+                    {formattedUpdated && (
+                      <Typography variant="body2" sx={{ color: '#475569' }}>
                         Updated {formattedUpdated}
                       </Typography>
                     )}
                   </Box>
-                  <Box sx={{ position: 'absolute', bottom: 16, left: 0, right: 0, zIndex: 3 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.95rem', color: '#222' }}>
-                      {b.numberOfTotalFiles} {b.numberOfTotalFiles === 1 ? 'image' : 'images'}
-                    </Typography>
-                  </Box>
-                </Paper>
+                </Box>
               </Box>
             );
           })}
