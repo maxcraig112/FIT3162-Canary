@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Button, Typography, Paper, Tabs, Tab, Divider } from '@mui/material';
+import { Box, Typography, Paper, Tabs, Tab, IconButton } from '@mui/material';
 import AppThemeProvider from '../assets/AppThemeProvider';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { fetchProjectByID } from './projectHandlers';
@@ -28,8 +28,7 @@ const ProjectPage: React.FC = () => {
   const [projectData, setProjectData] = useState<Project | null>(passedProject || null);
 
   const [loading, setLoading] = useState<boolean>(!passedProject);
-  const [selectedTab, setSelectedTab] = useState(0); // 0..3 for the main tabs
-  const [settingsTab, setSettingsTab] = useState(false); // separate flag for settings so layout stays identical
+  const [selectedTab, setSelectedTab] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -59,7 +58,7 @@ const ProjectPage: React.FC = () => {
   }, [projectID]);
 
   useEffect(() => {
-    if (!settingsTab || !projectID) {
+    if (selectedTab !== 4 || !projectID) {
       return;
     }
 
@@ -87,7 +86,7 @@ const ProjectPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [settingsTab, projectID]);
+  }, [selectedTab, projectID]);
 
   function handleBackToAllProjects() {
     navigate('/projects');
@@ -99,6 +98,7 @@ const ProjectPage: React.FC = () => {
     1: 'datasets',
     2: 'batches',
     3: 'export',
+    4: 'settings',
   };
 
   function viewToIndex(view: string | null): number | null {
@@ -112,6 +112,8 @@ const ProjectPage: React.FC = () => {
         return 2;
       case 'export':
         return 3;
+      case 'settings':
+        return 4;
       default:
         return null;
     }
@@ -122,19 +124,14 @@ const ProjectPage: React.FC = () => {
     const params = new URLSearchParams(location.search);
     const view = params.get('view');
     if (view === 'settings') {
-      setSettingsTab(true);
-      // Deselect any main tab so user can click it again to return
-      setSelectedTab(-1);
-      return; // leave selectedTab as-is (so no main tab appears selected intentionally)
+      setSelectedTab(4);
+      return;
     }
     const idx = viewToIndex(view);
     if (idx !== null) {
       setSelectedTab(idx);
-      setSettingsTab(false);
     } else if (!view) {
-      // default state if no view specified -> upload
       setSelectedTab(0);
-      setSettingsTab(false);
     }
   }, [location.search]);
 
@@ -148,18 +145,11 @@ const ProjectPage: React.FC = () => {
 
   function handleTabChange(_: React.SyntheticEvent, newValue: number) {
     setSelectedTab(newValue);
-    setSettingsTab(false);
     navigateWithView(indexToView[newValue]);
   }
 
-  function handleSettingsClick() {
-    setSettingsTab(true);
-    // Deselect main tabs so a click on the same tab index registers
-    setSelectedTab(-1);
-    navigateWithView('settings');
-  }
-
   const title = projectData?.projectName || (error ? 'Error' : loading ? 'Loading project...' : 'Project');
+  const isSettingsSelected = selectedTab === 4;
 
   return (
     <AppThemeProvider>
@@ -167,10 +157,10 @@ const ProjectPage: React.FC = () => {
         sx={{
           display: 'flex',
           flexDirection: 'column',
-          minHeight: '100vh',
+          height: '100vh',
           width: '100%',
-          overflowX: 'hidden',
-          backgroundColor: '#ffffff', // force white background
+          overflow: 'hidden',
+          backgroundColor: '#ffffff',
         }}
       >
         <Box
@@ -185,17 +175,22 @@ const ProjectPage: React.FC = () => {
             borderBottom: '1px solid #d9e0e6',
           }}
         >
-          <Button
-            startIcon={<ArrowBackIcon />}
+          <IconButton
+            aria-label="Back to projects"
             onClick={handleBackToAllProjects}
             sx={{
               color: '#000000',
+              width: 64,
+              height: 44,
+              borderRadius: 0.5,
               display: 'flex',
               alignItems: 'center',
+              justifyContent: 'center',
+              '&:hover': { backgroundColor: '#f1f5f9', color: '#000000' },
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>Back to Projects</Box>
-          </Button>
+            <ArrowBackIcon sx={{ fontSize: 34 }} />
+          </IconButton>
           <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center' }}>
             <Typography
               variant="h4"
@@ -217,89 +212,88 @@ const ProjectPage: React.FC = () => {
             flexDirection: 'row',
             flexGrow: 1,
             width: '100%',
+            overflow: 'hidden',
           }}
         >
           <Box
             sx={{
-              width: 260,
+              width: 200,
               flexShrink: 0,
               background: 'linear-gradient(180deg,#ffffff 0%, #f0f4f8 100%)',
-              padding: '20px',
               boxShadow: '2px 0 6px rgba(0, 0, 0, 0.08)',
               display: 'flex',
               flexDirection: 'column',
               borderRight: (t) => `1px solid ${t.palette.divider}`,
+              height: '100%',
             }}
           >
-            <Box sx={{ height: '50vh' }}>
-              <Tabs
-                orientation="vertical"
-                value={selectedTab < 0 ? false : selectedTab}
-                onChange={handleTabChange}
-                sx={{
-                  height: '100%',
-                  borderRight: 1,
-                  borderColor: 'divider',
-                  color: '#000000',
-                  '& .MuiTabs-flexContainer': {
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                  },
-                  '& .MuiTab-root': {
-                    color: '#000000',
-                    fontSize: '1.3rem',
-                    textTransform: 'none',
-                    alignItems: 'center',
-                    justifyContent: 'flex-start',
-                    minHeight: 56,
-                  },
-                  '& .Mui-selected': { fontWeight: 700 },
-                }}
-              >
-                <Tab icon={<CloudUploadOutlined />} iconPosition="start" label="Upload" aria-label="Upload" />
-                <Tab icon={<ShapeLineIcon />} iconPosition="start" label="Datasets" aria-label="Datasets" />
-                <Tab icon={<BurstModeIcon />} iconPosition="start" label="Batches" aria-label="Batches" />
-                <Tab icon={<IosShareOutlined />} iconPosition="start" label="Export" aria-label="Export" />
-              </Tabs>
-            </Box>
-            <Divider sx={{ my: 2 }} />
-            <Tab
-              icon={<SettingsOutlined />}
-              iconPosition="start"
-              label="Settings"
-              onClick={handleSettingsClick}
-              disableRipple
-              disableFocusRipple
+            <Tabs
+              orientation="vertical"
+              value={selectedTab}
+              onChange={handleTabChange}
               sx={{
-                textAlign: 'left',
-                padding: '10px 16px',
-                mt: 'auto',
-                // remove the hover blue line on the top edge
-                borderTop: 'none',
-                borderColor: 'transparent',
-                color: (t) => (settingsTab ? t.palette.primary.main : '#000000'),
-                fontWeight: settingsTab ? 700 : 400,
-                fontSize: '1.3rem',
-                textTransform: 'none',
-                justifyContent: 'flex-start',
-                '& .MuiSvgIcon-root': { color: 'inherit' },
-                opacity: 1,
-                WebkitTapHighlightColor: 'transparent',
-                '&:hover': {
-                  backgroundColor: (t) => t.palette.action.hover,
-                  borderTop: 'none',
-                  boxShadow: 'none',
+                borderRight: 1,
+                borderColor: 'divider',
+                color: '#000000',
+                width: '100%',
+                overflow: 'visible',
+                '& .MuiTabs-indicator': {
+                  left: 'auto',
+                  right: 0,
+                  width: 6,
+                  borderRadius: 0,
+                  backgroundColor: (t) => t.palette.primary.main,
                 },
-                '&:focus, &.Mui-focusVisible': {
-                  outline: 'none',
-                  boxShadow: 'none',
-                  borderTop: 'none',
+                '& .MuiTabs-flexContainer': {
+                  flexDirection: 'column',
+                  gap: 0,
+                  alignItems: 'stretch',
                 },
-                '&::before, &::after': {
-                  display: 'none',
+                '& .MuiTab-root': {
+                  width: '100%',
+                  color: '#000000',
+                  fontSize: '1.3rem',
+                  textTransform: 'none',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                  minHeight: 56,
+                  padding: '12px 20px',
+                  borderRadius: 0,
+                  transition: 'background-color 0.2s ease',
+                  '&.Mui-selected': {
+                    fontWeight: 700,
+                    backgroundColor: 'rgba(250, 204, 21, 0.22)',
+                  },
+                  '&:hover': {
+                    backgroundColor: 'rgba(250, 204, 21, 0.12)',
+                  },
+                },
+                '& .settings-tab': {
+                  mt: 6,
+                  borderTop: '1px solid',
+                  borderColor: 'divider',
                 },
               }}
-            />
+            >
+              <Tab icon={<CloudUploadOutlined />} iconPosition="start" label="Upload" aria-label="Upload" value={0} />
+              <Tab icon={<ShapeLineIcon />} iconPosition="start" label="Datasets" aria-label="Datasets" value={1} />
+              <Tab icon={<BurstModeIcon />} iconPosition="start" label="Batches" aria-label="Batches" value={2} />
+              <Tab icon={<IosShareOutlined />} iconPosition="start" label="Export" aria-label="Export" value={3} />
+              <Tab
+                icon={<SettingsOutlined />}
+                iconPosition="start"
+                label="Settings"
+                aria-label="Settings"
+                value={4}
+                className="settings-tab"
+                disableRipple
+                disableFocusRipple
+                sx={{
+                  backgroundColor: isSettingsSelected ? 'rgba(250, 204, 21, 0.22)' : 'transparent',
+                  '&.Mui-selected': { color: '#000000' },
+                }}
+              />
+            </Tabs>
           </Box>
 
           <Box
@@ -307,9 +301,11 @@ const ProjectPage: React.FC = () => {
               display: 'flex',
               flexDirection: 'column',
               flexGrow: 1,
-              p: 4,
+              px: 4,
+              py: 0,
               overflow: 'hidden',
-              alignItems: 'stretch', // stretch so child fills width
+              alignItems: 'stretch',
+              height: '100%',
             }}
           >
             {error && (
@@ -317,20 +313,17 @@ const ProjectPage: React.FC = () => {
                 <Typography color="error">{error}</Typography>
               </Paper>
             )}
-            <Paper
-              elevation={3}
+            <Box
               sx={{
                 flex: '1 1 auto',
                 width: '100%',
-                minWidth: 1000, // keep a stable wide layout
-                height: 'calc(100vh - 200px)', // Set fixed height based on viewport
+                height: '100%',
                 px: 5,
-                py: 4,
+                py: 0,
                 display: 'flex',
                 flexDirection: 'column',
                 boxSizing: 'border-box',
-                backgroundColor: '#ffffff', // ensure paper stays white
-                overflow: 'hidden', // Prevent Paper itself from scrolling
+                overflow: 'hidden',
               }}
             >
               <Box
@@ -339,26 +332,37 @@ const ProjectPage: React.FC = () => {
                   display: 'flex',
                   flexDirection: 'column',
                   width: '100%',
-                  overflow: 'auto', // Enable scrolling for the content area only
+                  overflow: 'auto',
                 }}
               >
-                {loading && !projectData && <Typography variant="body1">Loading content...</Typography>}
-                {(!loading || projectData) && !error && (
-                  <>
-                    {settingsTab ? (
-                      <SettingsTab project={projectData} />
-                    ) : (
-                      <>
-                        {selectedTab === 0 && <UploadTab project={projectData} />}
-                        {selectedTab === 1 && <DatasetTab project={projectData} />}
-                        {selectedTab === 2 && <BatchesTab project={projectData} />}
-                        {selectedTab === 3 && <ExportTab project={projectData} />}
-                      </>
-                    )}
-                  </>
-                )}
+                <Box
+                  sx={{
+                    flexGrow: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    pt: 3,
+                    pb: 3,
+                    px: { xs: 2, md: 4 },
+                  }}
+                >
+                  {loading && !projectData && <Typography variant="body1">Loading content...</Typography>}
+                  {(!loading || projectData) && !error && (
+                    <>
+                      {isSettingsSelected ? (
+                        <SettingsTab project={projectData} />
+                      ) : (
+                        <>
+                          {selectedTab === 0 && <UploadTab project={projectData} />}
+                          {selectedTab === 1 && <DatasetTab project={projectData} />}
+                          {selectedTab === 2 && <BatchesTab project={projectData} />}
+                          {selectedTab === 3 && <ExportTab project={projectData} />}
+                        </>
+                      )}
+                    </>
+                  )}
+                </Box>
               </Box>
-            </Paper>
+            </Box>
           </Box>
         </Box>
       </Box>
