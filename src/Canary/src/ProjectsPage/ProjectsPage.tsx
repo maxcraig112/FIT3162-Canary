@@ -81,7 +81,6 @@ const ProjectsPage: React.FC = () => {
             backgroundColor: '#ffffff',
             color: '#0f172a',
             borderBottom: '1px solid #e5e7eb',
-            boxShadow: '0 2px 8px rgba(15, 23, 42, 0.06)',
           }}
         >
           <Toolbar
@@ -101,14 +100,14 @@ const ProjectsPage: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                minWidth: 40,
-                minHeight: 40,
-                p: 1.5,
+                minWidth: 32,
+                minHeight: 32,
+                p: 0.75,
                 mx: 'auto',
                 '&:hover': { backgroundColor: '#f1f5f9' },
               }}
             >
-              <ArrowBackIcon sx={{ fontSize: 50 }} />
+              <ArrowBackIcon sx={{ fontSize: 36 }} />
             </Button>
             <Typography
               variant="h3"
@@ -179,22 +178,22 @@ const ProjectsPage: React.FC = () => {
                 SelectProps={{ native: true }}
               >
                 <option value="projectName-asc" style={{ color: 'black' }}>
-                  Name (Ascending)
+                  Name (Asc)
                 </option>
                 <option value="projectName-desc" style={{ color: 'black' }}>
-                  Name (Descending)
+                  Name (Desc)
                 </option>
                 <option value="numberOfBatches-asc" style={{ color: 'black' }}>
-                  Number of Batches (Ascending)
+                  Number of Batches (Asc)
                 </option>
                 <option value="numberOfBatches-desc" style={{ color: 'black' }}>
-                  Number of Batches (Descending)
+                  Number of Batches (Desc)
                 </option>
                 <option value="lastUpdated-desc" style={{ color: 'black' }}>
-                  Date Modified (Descending)
+                  Date Modified (Desc)
                 </option>
                 <option value="lastUpdated-asc" style={{ color: 'black' }}>
-                  Date Modified (Ascending)
+                  Date Modified (Asc)
                 </option>
               </TextField>
             </Box>
@@ -217,7 +216,7 @@ const ProjectsPage: React.FC = () => {
             </Button>
           </Toolbar>
         </AppBar>
-        <Box sx={{ px: '10%', pt: { xs: 8, md: 12 }, pb: 3 }}>
+        <Box sx={{ px: '10%', pt: { xs: 4, md: 6 }, pb: 3 }}>
           <Box
             sx={{
               display: 'grid',
@@ -245,10 +244,7 @@ const ProjectsPage: React.FC = () => {
                       position: 'relative',
                       height: 200,
                       cursor: 'pointer',
-                      boxShadow: '0 8px 18px rgba(15, 23, 42, 0.08)',
-                      transition: 'box-shadow 0.3s ease, transform 0.3s ease, border-color 0.3s ease',
                       borderRadius: 2,
-                      border: '1px solid #e2e8f0',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
@@ -256,9 +252,8 @@ const ProjectsPage: React.FC = () => {
                       pb: 5,
                       background: '#ffffff',
                       color: '#0f172a',
+                      transition: 'border-color 0.2s ease',
                       '&:hover': {
-                        boxShadow: '0 14px 28px rgba(15,23,42,0.14)',
-                        transform: 'translateY(-4px)',
                         borderColor: '#ffdf01',
                       },
                     }}
@@ -317,8 +312,7 @@ const ProjectsPage: React.FC = () => {
                             sx: {
                               bgcolor: '#ffffff',
                               color: '#0f172a',
-                              border: '1px solid #e0e0e0',
-                              boxShadow: 6,
+                              border: '1px solid #d1d5db',
                               borderRadius: 0,
                             },
                           },
@@ -413,7 +407,6 @@ const ProjectsPage: React.FC = () => {
               width: 350,
               bgcolor: 'background.paper',
               border: '2px solid #000',
-              boxShadow: 24,
               p: 3,
             }}
           >
@@ -447,6 +440,19 @@ const ProjectsPage: React.FC = () => {
             />
             <Box sx={{ display: 'flex', gap: 2 }}>
               <Button
+                variant="outlined"
+                color="secondary"
+                fullWidth
+                onClick={() => {
+                  setRenameModalOpen(false);
+                  setRenameProjectId(null);
+                  setRenameValue('');
+                  setRenameOriginalName('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
                 variant="contained"
                 color="primary"
                 fullWidth
@@ -478,19 +484,6 @@ const ProjectsPage: React.FC = () => {
               >
                 Rename
               </Button>
-              <Button
-                variant="outlined"
-                color="secondary"
-                fullWidth
-                onClick={() => {
-                  setRenameModalOpen(false);
-                  setRenameProjectId(null);
-                  setRenameValue('');
-                  setRenameOriginalName('');
-                }}
-              >
-                Cancel
-              </Button>
             </Box>
           </Box>
         </Modal>
@@ -506,7 +499,6 @@ const ProjectsPage: React.FC = () => {
               width: 350,
               bgcolor: 'background.paper',
               border: '2px solid #000',
-              boxShadow: 24,
               p: 3,
             }}
           >
@@ -563,7 +555,6 @@ const ProjectsPage: React.FC = () => {
               width: '30vw',
               bgcolor: 'background.paper',
               border: '2px solid #000',
-              boxShadow: 24,
               p: 4,
             }}
           >
