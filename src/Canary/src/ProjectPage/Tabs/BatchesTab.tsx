@@ -137,7 +137,7 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
             alignItems: 'start',
           }}
         >
-          {loading && batches.length === 0 && <Typography>Loading batches...</Typography>}
+          {loading && batches.length === 0 && <Typography sx={{color: '#000000ff'}}>Loading batches...</Typography>}
           {batches.map((b) => {
             const activeSessionForBatch = activeSessionsByBatch[b.batchID];
             const isSessionActive = Boolean(activeSessionForBatch);
@@ -152,14 +152,14 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
                 <Box
                   sx={{
                     position: 'relative',
-                    border: '1px solid',
-                    borderColor: isSessionActive ? '#2563eb' : '#e2e8f0',
+                    border: '1.5px solid',
+                    borderColor: isSessionActive ? '#2563eb' : '#bfbfbfff',
                     borderRadius: 1,
                     overflow: 'hidden',
                     cursor: 'pointer',
-                    boxShadow: 6,
+                    boxShadow: 0,
                     transition: 'box-shadow 0.25s ease, transform 0.25s ease',
-                    '&:hover': { boxShadow: 12, transform: 'translateY(-2px)' },
+                    '&:hover': { boxShadow: 2, transform: 'translateY(-2px)' },
                     bgcolor: '#fff',
                   }}
                   onClick={() => openBatch(b, navigate)}
@@ -354,7 +354,20 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
             sx={{
               alignSelf: 'center',
               maxWidth: 480,
-              '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+              // border styles
+              '& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+              '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#000',
+                borderWidth: '1.5px',
+              },
+              '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#ffdf01',
+                borderWidth: '2px',
+              },
+              // label styles (hover + focus)
+              '& .MuiInputLabel-root': { color: '#999' },
+              '&:hover .MuiInputLabel-root': { color: '#000' },
+              '& .MuiInputLabel-root.Mui-focused': { color: '#000' },
               mb: "0.5rem",
               mt: "0.5rem",
             }}
@@ -451,7 +464,7 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
               maxWidth: 480,
               '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
               '&:hover': {
-                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#000' }
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#000000ff' }
                   },
             }}
           />

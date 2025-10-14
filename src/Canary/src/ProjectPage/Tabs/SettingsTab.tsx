@@ -3,7 +3,6 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
-import Paper from '@mui/material/Paper';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import IconButton from '@mui/material/IconButton';
@@ -25,9 +24,28 @@ type ListPanelProps = {
   placeholder?: string;
   error?: string | null;
   onClearError?: () => void;
+  title?: string; // NEW
 };
 
-const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputChange, onAdd, items, onDelete, onRename, placeholder, error, onClearError }) => {
+const renameFieldSx = {
+  '& .MuiOutlinedInput-root': { p: 0 },
+  '& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline': { border: 'none' },
+  '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': { border: 'none' },
+  '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { border: 'none' },
+};
+
+const renameInputSx = (theme: Theme) => ({
+  color: '#000',
+  bgcolor: '#fff',
+  borderRadius: 0,
+  '& .MuiOutlinedInput-input': {
+    fontSize: theme.typography.body2.fontSize,
+    lineHeight: theme.typography.body2.lineHeight,
+    padding: 0,
+  },
+});
+
+const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputChange, onAdd, items, onDelete, onRename, placeholder, error, onClearError, title }) => {
   // Inline rename state
   const [editingItem, setEditingItem] = React.useState<string | null>(null);
   const [editValue, setEditValue] = React.useState<string>('');
@@ -85,7 +103,22 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
   };
 
   const fieldLabel = placeholder || 'Label';
-  const outlinedSx = { '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' } };
+  const outlinedSx = { 
+    // border styles
+    '& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+    '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#000',
+      borderWidth: '1.5px',
+    },
+    '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#ffdf01',
+      borderWidth: '2px',
+    },
+    // label styles (hover + focus)
+    '& .MuiInputLabel-root': { color: '#999' },
+    '&:hover .MuiInputLabel-root': { color: '#999' },
+    '& .MuiInputLabel-root.Mui-focused': { color: '#000' },
+  };
   const addInputSx = {
     color: '#000',
     bgcolor: '#fff',
@@ -95,37 +128,37 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
   const labelSx = {
     fontSize: '0.875rem',
     color: '#4f4f4fff',
-    '&.Mui-focused': { color: '#000' },
-  };
-  const renameInputSx = {
-    color: '#000',
-    bgcolor: '#fff',
-    borderRadius: 2,
-    '& input': {
-      fontSize: (theme: Theme) => theme.typography.body2.fontSize,
-      lineHeight: (theme: Theme) => theme.typography.body2.lineHeight,
-      py: 0.5,
-    },
+    '&.Mui-focused': { color: 'primary' }
   };
 
   return (
-    <Paper
+    <Box
       sx={{
         bgcolor: '#fff',
         color: '#000',
         border: '1px solid #e0e0e0',
-        boxShadow: 0, // Remove shadow
+        boxShadow: 0,
         p: 2,
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
+        minHeight: 0,
+        width: '100%',
+        maxWidth: 420,
+        maxHeight: '65vh',
+        flexShrink: 0,
       }}
     >
+      {title && (
+        <Typography variant="h6" sx={{ fontWeight: 700, textAlign: 'center', color: '#000', mb: 1 }}>
+          {title}
+        </Typography>
+      )}
       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
         <TextField
           fullWidth
           size="small"
-          label={fieldLabel}
+          label={placeholder || 'Label'}
           placeholder={placeholder}
           value={inputValue}
           onChange={(e) => {
@@ -146,7 +179,7 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
           {error}
         </Typography>
       )}
-      <List dense sx={{ flex: 1, overflowY: 'auto', pr: 1 }}>
+      <List dense sx={{ flex: 1, overflowY: 'auto', pr: 1, minHeight: 0 }}>
         {items.map((it) => (
           <ListItem key={it} sx={{ pr: 1, py: 0 /* keep row compact */ }}>
             <Box
@@ -164,8 +197,8 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
                     fullWidth
                     size="small"
                     autoFocus
-                    label={fieldLabel}
                     value={editValue}
+                    placeholder={it}
                     onChange={(e) => {
                       onClearError?.();
                       setEditValue(e.target.value);
@@ -180,9 +213,9 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
                       }
                     }}
                     onBlur={commitEditing}
+                    variant="outlined"
                     InputProps={{ sx: renameInputSx }}
-                    InputLabelProps={{ sx: labelSx }}
-                    sx={outlinedSx}
+                    sx={renameFieldSx}
                   />
                 ) : (
                   <Typography variant="body2" color="#000" noWrap sx={{ m: 0, lineHeight: (t) => t.typography.body2.lineHeight }}>
@@ -218,14 +251,14 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
           },
         }}
       >
-        <MenuItem onClick={handleMenuRename} sx={{ color: '#000' }}>
+        <MenuItem onClick={handleMenuRename} sx={{ color: '#000', '&:hover': { bgcolor: '#dededeff'} }}>
           Rename
         </MenuItem>
-        <MenuItem onClick={handleMenuDelete} sx={{ color: '#d32f2f' }}>
+        <MenuItem onClick={handleMenuDelete} sx={{ color: '#b91c1c', '&:hover': { bgcolor: '#fee2e2', color: '#7f1d1d' },}}>
           Delete
         </MenuItem>
       </Menu>
-    </Paper>
+    </Box>
   );
 });
 
@@ -256,91 +289,58 @@ export function SettingsTab({ project: _project }: SettingsTabProps) {
   } = useSettingsTab(projectID);
 
   return (
-    <Box
-      sx={{
-        width: '100%',
-        display: 'flex',
-        justifyContent: 'space-between',
-        gap: 4,
-        minHeight: 'fit-content', // Let content determine height
-      }}
-    >
-      <Box
-        sx={{
-          flex: 1,
-          display: 'grid',
-          gridTemplateRows: '1fr 1fr',
-          gap: 2,
-          minHeight: '60vh', // Reduced from 70vh for better laptop compatibility
-        }}
-      >
-        {/* Top half: description */}
-        <Box>
-          <Typography variant="h5" sx={{ color: '#000', textAlign: 'center' }}>
-            Configure Keypoints
+    <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Shared header (blends with background) */}
+      <Box sx={{ p: 0, m: 0, color: '#000' }}>
+        <Typography variant="h5" sx={{ fontWeight: 700, textAlign: 'center', color: '#000' }}>
+          Configure Project Labels
+        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
+          <Typography variant="body1" sx={{ color: '#000', textAlign: 'center', maxWidth: 900 }}>
+            Labels are shared across all images within this project. 
+            <br />
+            WARNING: Deleting a label that is currently in use will remove it from all annotations.
           </Typography>
-          <br />
-          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Typography variant="body2" sx={{ color: '#000', textAlign: 'center' }}>
-              Keypoints are used to identify specific points of interest within an image. Labels configured below are shared across all images within this project.
-              <br />
-              <br />
-              WARNING: deleting a tag that is currently in use will remove it from all annotations.
-            </Typography>
-          </Box>
         </Box>
-        {/* Bottom half: labels list starts at half screen */}
-        <ListPanel
-          inputValue={keypointInput}
-          onInputChange={setKeypointInput}
-          onAdd={addKeypoint}
-          items={keypointLabels}
-          onDelete={deleteKeypoint}
-          onRename={(oldName, newName) => renameKeypointLabel(oldName, newName)}
-          placeholder="Add new label"
-          error={keypointError}
-          onClearError={clearKeypointError}
-        />
       </Box>
 
-      {/* Bounding box configuration */}
-      <Box
-        sx={{
-          flex: 1,
-          display: 'grid',
-          gridTemplateRows: '1fr 1fr',
-          gap: 2,
-          minHeight: '60vh', // Reduced from 70vh for better laptop compatibility
-        }}
-      >
-        {/* Top half: description */}
-        <Box>
-          <Typography variant="h5" sx={{ color: '#000', textAlign: 'center' }}>
-            Configure Bounding Box
-          </Typography>
-          <br />
-          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Typography variant="body2" sx={{ color: '#000', textAlign: 'center' }}>
-              Bounding Boxes are used to identify specific areas of interest within an image, defined by a rectangle area. In the annotate page, they are defined as two points (the top right and
-              bottom left of the desired area).
-              <br />
-              <br />
-              WARNING: deleting a tag that is currently in use will remove it from all annotations.
-            </Typography>
+      {/* Two columns below the shared header */}
+      <Box sx={{ width: '100%', display: 'flex', justifyContent: 'space-between', gap: 4, minHeight: 'fit-content' }}>
+        {/* Keypoints */}
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minHeight: '60vh'}}>
+          <Box sx={{ flexGrow: 1, minHeight: 0, display: 'flex', alignSelf: 'center' }}>
+            <ListPanel
+              title="Keypoint Labels"
+              inputValue={keypointInput}
+              onInputChange={setKeypointInput}
+              onAdd={addKeypoint}
+              items={keypointLabels}
+              onDelete={deleteKeypoint}
+              onRename={(oldName, newName) => renameKeypointLabel(oldName, newName)}
+              placeholder="Add new label"
+              error={keypointError}
+              onClearError={clearKeypointError}
+            />
           </Box>
         </Box>
-        {/* Bottom half: labels list starts at half screen */}
-        <ListPanel
-          inputValue={bboxInput}
-          onInputChange={setBboxInput}
-          onAdd={addBbox}
-          items={bboxLabels}
-          onDelete={deleteBbox}
-          onRename={(oldName, newName) => renameBboxLabel(oldName, newName)}
-          placeholder="Add new label"
-          error={bboxError}
-          onClearError={clearBboxError}
-        />
+
+        {/* Bounding Boxes */}
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minHeight: '60vh' }}>
+          <Box sx={{ flexGrow: 1, minHeight: 0, display: 'flex', alignSelf: 'center' }}>
+            <ListPanel
+              title="Bounding Box Labels"
+              inputValue={bboxInput}
+              onInputChange={setBboxInput}
+              onAdd={addBbox}
+              items={bboxLabels}
+              onDelete={deleteBbox}
+              onRename={(oldName, newName) => renameBboxLabel(oldName, newName)}
+              placeholder="Add new label"
+              error={bboxError}
+              onClearError={clearBboxError}
+            />
+          </Box>
+        </Box>
       </Box>
     </Box>
   );

@@ -160,7 +160,7 @@ const ProjectPage: React.FC = () => {
           height: '100vh',
           width: '100%',
           overflow: 'hidden',
-          backgroundColor: '#ffffff',
+          backgroundColor: '#f2f4f7ff',
         }}
       >
         <Box
@@ -169,9 +169,9 @@ const ProjectPage: React.FC = () => {
             alignItems: 'center',
             justifyContent: 'space-between',
             width: '100%',
-            background: 'linear-gradient(135deg,#f5f7fa 0%, #e7ecf2 100%)',
+            backgroundColor: '#ffffff',
             padding: '12px 24px',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.10)',
+            boxShadow: '0',
             borderBottom: '1px solid #d9e0e6',
           }}
         >
@@ -189,7 +189,7 @@ const ProjectPage: React.FC = () => {
               '&:hover': { backgroundColor: '#f1f5f9', color: '#000000' },
             }}
           >
-            <ArrowBackIcon sx={{ fontSize: 34 }} />
+            <ArrowBackIcon sx={{ fontSize: 36 }} />
           </IconButton>
           <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center' }}>
             <Typography
@@ -346,7 +346,7 @@ const ProjectPage: React.FC = () => {
                     px: { xs: 2, md: 4 },
                   }}
                 >
-                  {loading && !projectData && <Typography variant="body1">Loading content...</Typography>}
+                  {loading && !projectData && <Typography variant="body1" sx={{color: '#000000ff'}}>Loading content...</Typography>}
                   {(!loading || projectData) && !error && (
                     <>
                       {isSettingsSelected ? (

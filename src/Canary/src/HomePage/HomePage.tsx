@@ -72,9 +72,14 @@ const HomePage: React.FC = () => {
   const textFieldSx = {
     alignSelf: 'center',
     maxWidth: 480,
-    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
-    '&:hover': {
-      '& .MuiOutlinedInput-notchedOutline': { borderColor: '#000000' }
+    '& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+    '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#000',
+      borderWidth: '1.5px',
+    },
+    '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#ffdf01',
+      borderWidth: '2px',
     },
   };
 

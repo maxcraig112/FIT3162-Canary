@@ -100,8 +100,9 @@ const ProjectsPage: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                minWidth: 32,
-                minHeight: 32,
+                width: 48,
+                height: 48,
+                borderRadius: 0.5,
                 p: 0.75,
                 mx: 'auto',
                 '&:hover': { backgroundColor: '#f1f5f9' },
@@ -220,11 +221,12 @@ const ProjectsPage: React.FC = () => {
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
               columnGap: 2,
               rowGap: 4,
               alignItems: 'start',
-              justifyItems: 'center',
+              justifyItems: 'stretch',
+              justifyContent: 'start',
             }}
           >
             {filteredProjects.map((project) => {
@@ -234,17 +236,19 @@ const ProjectsPage: React.FC = () => {
                 return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
               })();
               return (
-                <Box key={project.projectID} sx={{ minHeight: '10vh' }}>
+                <Box key={project.projectID}>
                   <Paper
                     sx={{
                       p: 2,
-                      width: '100%',
-                      maxWidth: 240,
+                      width: 220,
+                      maxWidth: 220,
                       textAlign: 'center',
                       position: 'relative',
                       height: 200,
                       cursor: 'pointer',
-                      borderRadius: 2,
+                      border: '1.5px solid #bfbfbfff',
+                      borderRadius: 1,
+                      boxShadow: 0,
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
@@ -252,9 +256,11 @@ const ProjectsPage: React.FC = () => {
                       pb: 5,
                       background: '#ffffff',
                       color: '#0f172a',
-                      transition: 'border-color 0.2s ease',
+                      transition: 'border-color 0.2s ease, box-shadow 0.25s ease, transform 0.25s ease',
                       '&:hover': {
                         borderColor: '#ffdf01',
+                        boxShadow: 3, 
+                        transform: 'translateY(-2px)',
                       },
                     }}
                     onClick={() => handleProjectClick(project.projectID)}
@@ -268,6 +274,7 @@ const ProjectsPage: React.FC = () => {
                         justifyContent: 'center',
                         width: '100%',
                         px: 1,
+                        minWidth: 0, // allow ellipsis to work when stretched
                       }}
                     >
                       <IconButton
@@ -376,6 +383,7 @@ const ProjectsPage: React.FC = () => {
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           maxWidth: '100%',
+                          minWidth: 0,
                         }}
                         title={`Updated ${formattedUpdated}`}
                       >
@@ -432,11 +440,21 @@ const ProjectsPage: React.FC = () => {
               sx={{
                 alignSelf: 'center',
                 maxWidth: 480,
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
-                '&:hover': {
-                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#000' }
-                  },
-                mb: "1.5rem",
+                // border styles
+                '& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+                '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#000',
+                  borderWidth: '1.5px',
+                },
+                '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#ffdf01',
+                  borderWidth: '2px',
+                },
+                // label styles (hover + focus)
+                '& .MuiInputLabel-root': { color: '#999' },
+                '&:hover .MuiInputLabel-root': { color: '#000' },
+                '& .MuiInputLabel-root.Mui-focused': { color: '#000' },
+                mb: '1.5rem',
               }}
             />
             <Box sx={{ display: 'flex', gap: 2 }}>
@@ -597,10 +615,20 @@ const ProjectsPage: React.FC = () => {
               sx={{
                 alignSelf: 'center',
                 maxWidth: 480,
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
-                '&:hover': {
-                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#000' }
-                  },
+                // border styles
+                '& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+                '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#000',
+                  borderWidth: '1.5px',
+                },
+                '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#ffdf01',
+                  borderWidth: '2px',
+                },
+                // label styles (hover + focus)
+                '& .MuiInputLabel-root': { color: '#999' },
+                '&:hover .MuiInputLabel-root': { color: '#999' },
+                '& .MuiInputLabel-root.Mui-focused': { color: '#000' },
               }}
               autoFocus 
             />
