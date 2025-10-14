@@ -63,9 +63,9 @@ const HomePage: React.FC = () => {
   const buttonSx = {
     width: { xs: '100%', sm: 320 },
     fontWeight: 800,
-    fontSize: '1.75rem',
+    fontSize: '1.5rem',
     py: 0.75,
-    borderRadius: 2,
+    borderRadius: 1,
     textTransform: 'none',
     mt: "1rem"
   };
@@ -73,6 +73,9 @@ const HomePage: React.FC = () => {
     alignSelf: 'center',
     maxWidth: 480,
     '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+    '&:hover': {
+      '& .MuiOutlinedInput-notchedOutline': { borderColor: '#000000' }
+    },
   };
 
   return (
@@ -155,14 +158,6 @@ const HomePage: React.FC = () => {
             gap: 4,
           }}
         >
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="h5" sx={{ fontWeight: 700, color: '#0f172a', mb: 1 }}>
-              Welcome back to Canary
-            </Typography>
-            <Typography variant="body1" sx={{ color: '#475569', maxWidth: 640, mx: 'auto' }}>
-              Continue collaborating on avian annotation projects, manage your data, or jump straight into an active session. Your latest work is only a click away.
-            </Typography>
-          </Box>
         </Box>
 
         {/* Join Session Modal */}
@@ -179,10 +174,10 @@ const HomePage: React.FC = () => {
               gap: 3,
             }}
           >
-            <IconButton sx={{ position: 'absolute', top: 12, right: 12 }} onClick={handleCloseJoin}>
+            <IconButton sx={{ position: 'absolute', top: 16, right: 16, color: '#000'}} onClick={handleCloseJoin}>
               <CloseIcon />
             </IconButton>
-            <Typography variant="h5" sx={{ fontWeight: 700, textAlign: 'center' }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, textAlign: 'center', color: '#000' }}>
               Join Session
             </Typography>
             <TextField
@@ -194,7 +189,7 @@ const HomePage: React.FC = () => {
               fullWidth
               autoComplete="off"
               InputProps={{ sx: { color: '#000', bgcolor: '#fff' } }}
-              InputLabelProps={{ sx: { color: '#999', '&.Mui-focused': { color: '#000' } } }}
+              InputLabelProps={{ sx: { color: '#999', '&.Mui-focused': { color: '#000' },  } }}
               sx={textFieldSx}
             />
             <TextField
@@ -210,7 +205,7 @@ const HomePage: React.FC = () => {
               InputLabelProps={{ sx: { color: '#999', '&.Mui-focused': { color: '#000' } } }}
               sx={textFieldSx}
             />
-            <Button variant="contained" sx={{ ...buttonSx, alignSelf: 'center', px: 4 }} onClick={handleJoinSession}>
+            <Button variant="contained" sx={{ ...buttonSx, alignSelf: 'center', px: 10 }} onClick={handleJoinSession}>
               Join
             </Button>
           </Paper>
