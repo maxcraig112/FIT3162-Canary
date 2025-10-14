@@ -189,11 +189,14 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
                         }
                       }}
                     >
-                      <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', fontSize: '0.75rem' }}>
+                      <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', fontSize: '0.9rem' }}>
                         Session active
                       </Typography>
-                      <Typography variant="caption" sx={{ display: 'block', fontSize: '0.7rem' }}>
+                      <Typography variant="caption" sx={{ display: 'block', fontSize: '0.8rem' }}>
                         Click to copy ID
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: 'block', fontSize: '0.8rem', fontFamily: 'monospace' }}>
+                        ID:{activeSessionForBatch.sessionID}
                       </Typography>
                     </Box>
                   )}
@@ -447,6 +450,9 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
               alignSelf: 'center',
               maxWidth: 480,
               '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+              '&:hover': {
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#000' }
+                  },
             }}
           />
         </DialogContent>
