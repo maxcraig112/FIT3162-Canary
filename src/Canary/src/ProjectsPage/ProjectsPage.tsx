@@ -137,7 +137,7 @@ const ProjectsPage: React.FC = () => {
                     borderRadius: 1,
                     '& fieldset': { borderColor: '#d1d5db' },
                     '&:hover fieldset': { borderColor: '#94a3b8' },
-                    '&.Mui-focused fieldset': { borderColor: '#ffdf01' },
+                    '&.Mui-focused fieldset': { borderColor: '#f7bd13' },
                     height: 52,
                   },
                   '& input::placeholder': { color: '#64748b', opacity: 0.8 },
@@ -168,13 +168,13 @@ const ProjectsPage: React.FC = () => {
                     background: '#ffffff',
                     '& fieldset': { borderColor: '#d1d5db' },
                     '&:hover fieldset': { borderColor: '#94a3b8' },
-                    '&.Mui-focused fieldset': { borderColor: '#ffdf01' },
+                    '&.Mui-focused fieldset': { borderColor: '#f7bd13' },
                     height: 52,
                   },
                   '& select': { paddingTop: '14px', paddingBottom: '14px' },
                   '& .MuiSelect-icon': { color: '#64748b' },
                   '& .MuiInputLabel-root': { color: '#64748b' },
-                  '& .MuiInputLabel-root.Mui-focused': { color: '#ffdf01' },
+                  '& .MuiInputLabel-root.Mui-focused': { color: '#f7bd13' },
                 }}
                 SelectProps={{ native: true }}
               >
@@ -258,7 +258,7 @@ const ProjectsPage: React.FC = () => {
                       color: '#0f172a',
                       transition: 'border-color 0.2s ease, box-shadow 0.25s ease, transform 0.25s ease',
                       '&:hover': {
-                        borderColor: '#ffdf01',
+                        borderColor: '#f7bd13',
                         boxShadow: 3, 
                         transform: 'translateY(-2px)',
                       },
@@ -447,7 +447,7 @@ const ProjectsPage: React.FC = () => {
                   borderWidth: '1.5px',
                 },
                 '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#ffdf01',
+                  borderColor: '#f7bd13',
                   borderWidth: '2px',
                 },
                 // label styles (hover + focus)
@@ -622,7 +622,7 @@ const ProjectsPage: React.FC = () => {
                   borderWidth: '1.5px',
                 },
                 '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#ffdf01',
+                  borderColor: '#f7bd13',
                   borderWidth: '2px',
                 },
                 // label styles (hover + focus)

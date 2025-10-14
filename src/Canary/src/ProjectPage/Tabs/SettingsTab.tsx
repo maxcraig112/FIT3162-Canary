@@ -111,7 +111,7 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
       borderWidth: '1.5px',
     },
     '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-      borderColor: '#ffdf01',
+      borderColor: '#f7bd13',
       borderWidth: '2px',
     },
     // label styles (hover + focus)

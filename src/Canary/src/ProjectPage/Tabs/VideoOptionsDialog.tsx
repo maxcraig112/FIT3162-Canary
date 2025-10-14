@@ -212,7 +212,7 @@ export const VideoOptionsDialog: React.FC<VideoOptionsDialogProps> = ({ open, vi
                           borderWidth: '1.5px',
                         },
                         '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                          borderColor: '#ffdf01',
+                          borderColor: '#f7bd13',
                           borderWidth: '2px',
                         },
                         // label styles (hover + focus)
@@ -255,7 +255,7 @@ export const VideoOptionsDialog: React.FC<VideoOptionsDialogProps> = ({ open, vi
                           borderWidth: '1.5px',
                         },
                         '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                          borderColor: '#ffdf01',
+                          borderColor: '#f7bd13',
                           borderWidth: '2px',
                         },
                         // label styles (hover + focus)
@@ -298,7 +298,7 @@ export const VideoOptionsDialog: React.FC<VideoOptionsDialogProps> = ({ open, vi
                           borderWidth: '1.5px',
                         },
                         '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                          borderColor: '#ffdf01',
+                          borderColor: '#f7bd13',
                           borderWidth: '2px',
                         },
                         // label styles (hover + focus)
@@ -341,7 +341,7 @@ export const VideoOptionsDialog: React.FC<VideoOptionsDialogProps> = ({ open, vi
                           borderWidth: '1.5px',
                         },
                         '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                          borderColor: '#ffdf01',
+                          borderColor: '#f7bd13',
                           borderWidth: '2px',
                         },
                         // label styles (hover + focus)

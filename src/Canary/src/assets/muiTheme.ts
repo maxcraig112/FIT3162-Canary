@@ -8,7 +8,7 @@ export const lightTheme = createTheme({
       paper: '#ffffffff',
     },
     primary: {
-      main: '#ffdf01',
+      main: '#f7bd13',
       contrastText: '#000',
     },
     secondary: {
@@ -26,7 +26,7 @@ export const lightTheme = createTheme({
           opacity: 1,
           '& svg': { color: '#000000' },
           '&.Mui-checked svg': {
-            color: '#ffdf01',
+            color: '#f7bd13',
           },
         },
       },

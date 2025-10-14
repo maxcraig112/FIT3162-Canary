@@ -10,6 +10,7 @@ import { handleProjectsPage } from './homeHandlers';
 import { clearCookie, setCookie } from '../utils/cookieUtils';
 import { useAuthGuard } from '../utils/authUtil';
 import { joinSession } from '../utils/interfaces/session';
+import canaryImg from '../images/canary.jpg';
 
 const HomePage: React.FC = () => {
   // validate the user authentication, otherwise redirect to login
@@ -80,7 +81,7 @@ const HomePage: React.FC = () => {
       borderWidth: '1.5px',
     },
     '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-      borderColor: '#ffdf01',
+      borderColor: '#f7bd13',
       borderWidth: '2px',
     },
   };
