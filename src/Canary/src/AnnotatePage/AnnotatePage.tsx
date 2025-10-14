@@ -27,6 +27,8 @@ import { ZoomHandler } from './zoomHandler';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import UndoIcon from '@mui/icons-material/Undo';
+import RedoIcon from '@mui/icons-material/Redo';
 import { useSearchParams } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { getBoundingBoxLabelNames, getKeypointLabelNames, getKeypointLabelName } from './labelRegistry';
@@ -38,6 +40,8 @@ import { initialiseSessionWebSocket, getActiveSessionID, sendActiveImageID, clos
 import { fetchActiveSessionForBatch, kickSessionMember, type Member } from '../utils/interfaces/session';
 import { sidebarHandler, type SidebarAnnotationItem } from './sidebarHandler';
 import Fade from '@mui/material/Fade';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { projectServiceUrl, CallAPI } from '../utils/apis';
 
 const AnnotatePage: React.FC = () => {
   // Helper for undo/redo actions
@@ -46,6 +50,9 @@ const AnnotatePage: React.FC = () => {
   useAuthGuard();
 
   const navigate = useNavigate();
+  const hideToolbarExtras = useMediaQuery('(max-width: 960px)');
+  const hideSidebar = hideToolbarExtras;
+  const hideBatchTitle = hideToolbarExtras;
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageHandler = useImageHandler();
@@ -61,6 +68,7 @@ const AnnotatePage: React.FC = () => {
   // inputImage is the value in the text box, separate from currentImageNumber
   const [inputImage, setInputImage] = useState(imageHandler.currentImageNumber.toString());
   const [selectedTool, setSelectedTool] = useState<string | null>('kp');
+  const [batchName, setBatchName] = useState<string>('');
   const [searchParams] = useSearchParams();
   const batchID = searchParams.get('batchID') || '';
   const projectID = searchParams.get('projectID') || '';
@@ -470,7 +478,7 @@ const AnnotatePage: React.FC = () => {
     }
   }, []);
 
-  // Listen for member join/left events dispatched by sessionHandler and show ephemeral notices
+  // Listen for member join/leave events dispatched by sessionHandler and show ephemeral notices
   useEffect(() => {
     const handler = (e: Event) => {
       const ce = e as CustomEvent<{ type: 'member_joined' | 'member_left' | 'owner_joined' | 'owner_left'; memberID: string; memberEmail?: string }>; // time optional
@@ -494,6 +502,25 @@ const AnnotatePage: React.FC = () => {
     return () => window.removeEventListener('canary-session-member-event', handler as EventListener);
   }, [refreshSessionMembers, sessionRole, viewMembersOpen]);
 
+  useEffect(() => {
+    if (!batchID) return;
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const data = await CallAPI<{ batchName?: string }>(`${projectServiceUrl()}/batch/${encodeURIComponent(batchID)}`, {
+          method: 'GET',
+          signal: controller.signal,
+        });
+        if (data?.batchName) {
+          setBatchName(data.batchName);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch batch name', err);
+      }
+    })();
+    return () => controller.abort();
+  }, [batchID]);
+
   return (
     <Box
       sx={{
@@ -503,19 +530,35 @@ const AnnotatePage: React.FC = () => {
         bgcolor: '#f5f5f5',
       }}
     >
-      <AppBar position="static" color="default" elevation={1}>
+      <AppBar position="static" color="default" elevation={1} >
         <Toolbar sx={{ position: 'relative', minHeight: 64 }}>
           {/* Back Button Top Left */}
           <IconButton
             aria-label="back"
             edge="start"
-            sx={{ position: 'absolute', left: 8, top: 8, mx: 'auto', }}
+            sx={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)' }}
             onClick={() => {
               closeSessionWebSocket(1000, 'navigate away');
             }}
           >
             <ArrowBack/>
           </IconButton>
+          {!hideBatchTitle && (
+            <Typography
+              variant="h6"
+              noWrap
+              sx={{
+                position: 'absolute',
+                left: 56,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontWeight: 600,
+                maxWidth: 280,
+              }}
+            >
+              {batchName || `Batch ${batchID}`}
+            </Typography>
+          )}
           <Box
             sx={{
               flexGrow: 1,
@@ -564,28 +607,33 @@ const AnnotatePage: React.FC = () => {
                 View members
               </Button>
             )}
-            <IconButton aria-label="previous image" onClick={handlePrev}>
-              <KeyboardArrowLeft />
-            </IconButton>
             <Paper
-              elevation={2}
+              elevation={0}
               sx={{
-                px: 2,
-                py: 1,
+                px: 1.5,
+                py: 0.75,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 1,
+                border: (theme) => `1px solid ${theme.palette.divider}`,
+                borderRadius: 1,
+                bgcolor: '#fff',
               }}
             >
+              <IconButton aria-label="previous image" size="small" onClick={handlePrev}>
+                <KeyboardArrowLeft />
+              </IconButton>
               <TextField
                 size="small"
                 type="number"
                 value={inputImage}
                 inputProps={{ style: { textAlign: 'center', width: 60 } }}
                 sx={{
-                  width: 40,
+                  width: 50,
                   '& input[type=number]': {
                     MozAppearance: 'textfield',
+                    fontSize: '20px',
+                    fontWeight: 700,
                   },
                   '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': {
                     WebkitAppearance: 'none',
@@ -608,114 +656,152 @@ const AnnotatePage: React.FC = () => {
               <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
                 / {imageHandler.getTotalImageCount()}
               </Typography>
+              <IconButton aria-label="next image" size="small" onClick={handleNext}>
+                <KeyboardArrowRight />
+              </IconButton>
             </Paper>
-            <IconButton aria-label="next image" onClick={handleNext}>
-              <KeyboardArrowRight />
-            </IconButton>
           </Box>
-          {/* Zoom Controls Top Right */}
-          <Box sx={{ position: 'absolute', right: 16, top: 8, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <IconButton aria-label="zoom out" size="small" onClick={handleZoomOut}>
-              <RemoveIcon />
-            </IconButton>
-            <Typography variant="body2" sx={{ minWidth: 40, textAlign: 'center' }}>
-              {Math.round(zoom * 100)}%
-            </Typography>
-            <IconButton aria-label="zoom in" size="small" onClick={handleZoomIn}>
-              <AddIcon />
-            </IconButton>
-            <IconButton aria-label="reset zoom" size="small" onClick={handleZoomReset}>
-              <RefreshIcon />
-            </IconButton>
-          </Box>
+          {/* Zoom & History Controls */}
+          {!hideToolbarExtras && (
+            <Box
+              sx={{
+                position: 'absolute',
+                right: 16,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pr: 1.5 }}>
+                <IconButton aria-label="undo" size="small" onClick={() => handleUndoRedo('undo')}>
+                  <UndoIcon />
+                </IconButton>
+                <IconButton aria-label="redo" size="small" onClick={() => handleUndoRedo('redo')}>
+                  <RedoIcon />
+                </IconButton>
+              </Box>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  borderLeft: (theme) => `2px solid ${theme.palette.divider}`,
+                  pl: 1.5,
+                }}
+              >
+                <IconButton aria-label="zoom out" size="small" onClick={handleZoomOut}>
+                  <RemoveIcon />
+                </IconButton>
+                <Typography variant="body2" sx={{ minWidth: 40, textAlign: 'center' }} fontFamily="monospace">
+                  {Math.round(zoom * 100)}%
+                </Typography>
+                <IconButton aria-label="zoom in" size="small" onClick={handleZoomIn}>
+                  <AddIcon />
+                </IconButton>
+                <Typography
+                  aria-label="reset zoom"
+                  onClick={handleZoomReset}
+                  fontFamily="monospace"
+                  sx={{ px: 1, py: 0.5, borderRadius: 1, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                >
+                  RESET
+                </Typography>
+              </Box>
+            </Box>
+          )}
         </Toolbar>
       </AppBar>
 
       <Box sx={{ display: 'flex', flexGrow: 1, overflow: 'hidden' }}>
         {/* Left Sidebar - Annotations List */}
-        <Paper
-          elevation={2}
-          sx={{
-            width: 280,
-            minWidth: 280,
-            maxWidth: 320,
-            p: 2,
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100%',
-            overflow: 'hidden',
-          }}
-        >
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-            Annotations
-          </Typography>
-          <Box
+        {!hideSidebar && (
+          <Paper
+            elevation={2}
             sx={{
-              flexGrow: 1,
-              overflow: 'auto',
-              maxHeight: 'calc(100vh - 120px)',
+              width: 280,
+              minWidth: 280,
+              maxWidth: 320,
+              p: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              overflow: 'hidden',
+              borderRadius: 0,
             }}
           >
-            {sidebarItems.length === 0 ? (
-              <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', textAlign: 'center', mt: 4 }}>
-                No annotations on this image
-              </Typography>
-            ) : (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {sidebarItems.map((item) => (
-                  <Paper
-                    key={item.id}
-                    elevation={1}
-                    sx={{
-                      p: 1.5,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      borderLeft: `4px solid ${item.type === 'keypoint' ? '#f97316' : '#2563eb'}`,
-                      ml: item.type === 'keypoint' ? 2 : 0,
-                      bgcolor: item.type === 'keypoint' ? 'rgba(249, 115, 22, 0.06)' : undefined,
-                      '&:hover': {
-                        elevation: 2,
-                        bgcolor: 'action.hover',
-                      },
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                      <Box
-                        sx={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: '50%',
-                          bgcolor: item.type === 'keypoint' ? '#f97316' : '#2563eb',
-                          flexShrink: 0,
-                        }}
-                      />
-                      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
-                        {item.type === 'keypoint' ? 'KP' : 'BB'}
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 500, flexGrow: 1 }}>
-                        {item.label}
-                      </Typography>
-                    </Box>
-                    {item.type === 'keypoint' ? (
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                          Position: ({item.position.x}, {item.position.y})
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+              Annotations
+            </Typography>
+            <Box
+              sx={{
+                flexGrow: 1,
+                overflow: 'auto',
+                maxHeight: 'calc(100vh - 120px)',
+              }}
+            >
+              {sidebarItems.length === 0 ? (
+                <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', textAlign: 'center', mt: 4 }}>
+                  No annotations on this image
+                </Typography>
+              ) : (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {sidebarItems.map((item) => (
+                    <Paper
+                      key={item.id}
+                      elevation={1}
+                      sx={{
+                        p: 1.5,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        borderLeft: `4px solid ${item.type === 'keypoint' ? '#f97316' : '#2563eb'}`,
+                        ml: item.type === 'keypoint' ? 2 : 0,
+                        bgcolor: item.type === 'keypoint' ? 'rgba(249, 115, 22, 0.06)' : undefined,
+                        '&:hover': {
+                          elevation: 2,
+                          bgcolor: 'action.hover',
+                        },
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                        <Box
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            bgcolor: item.type === 'keypoint' ? '#f97316' : '#2563eb',
+                            flexShrink: 0,
+                          }}
+                        />
+                        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                          {item.type === 'keypoint' ? 'KP' : 'BB'}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                          Bounding Box: {item.boundingBoxLabel ?? 'Unassigned'}
+                        <Typography variant="body2" sx={{ fontWeight: 500, flexGrow: 1 }}>
+                          {item.label}
                         </Typography>
                       </Box>
-                    ) : (
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                        Center: ({item.center.x}, {item.center.y}) | Size: {item.bounds.maxX - item.bounds.minX}×{item.bounds.maxY - item.bounds.minY}
-                      </Typography>
-                    )}
-                  </Paper>
-                ))}
-              </Box>
-            )}
-          </Box>
-        </Paper>
+                      {item.type === 'keypoint' ? (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                            Position: ({item.position.x}, {item.position.y})
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                            Bounding Box: {item.boundingBoxLabel ?? 'Unassigned'}
+                          </Typography>
+                        </Box>
+                      ) : (
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                          Center: ({item.center.x}, {item.center.y}) | Size: {item.bounds.maxX - item.bounds.minX}×{item.bounds.maxY - item.bounds.minY}
+                        </Typography>
+                      )}
+                    </Paper>
+                  ))}
+                </Box>
+              )}
+            </Box>
+          </Paper>
+        )}
 
         {/* Main Content */}
         <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
@@ -852,9 +938,10 @@ const AnnotatePage: React.FC = () => {
             alignItems: 'center',
             justifyContent: 'flex-start',
             height: '100%',
+            borderRadius: 0,
           }}
         >
-          <Typography variant="h6" sx={{ mb: 1, mt: 0 }}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
             Tools
           </Typography>
           {/* Centered tool controls container */}
