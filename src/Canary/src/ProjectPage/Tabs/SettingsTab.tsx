@@ -102,7 +102,6 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
     onAdd();
   };
 
-  const fieldLabel = placeholder || 'Label';
   const outlinedSx = { 
     // border styles
     '& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },

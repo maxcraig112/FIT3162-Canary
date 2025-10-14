@@ -26,7 +26,6 @@ import { annotateHandler, getCanvas, handleUndoRedo } from './annotateHandler';
 import { ZoomHandler } from './zoomHandler';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
-import RefreshIcon from '@mui/icons-material/Refresh';
 import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
 import { useSearchParams } from 'react-router-dom';
