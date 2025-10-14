@@ -1,6 +1,8 @@
 import React from 'react';
 import { Box, Button, Typography, Paper, Modal, IconButton, TextField } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import FolderIcon from '@mui/icons-material/Folder';
+import GroupIcon from '@mui/icons-material/Group';
 import AppThemeProvider from '../assets/AppThemeProvider';
 import { useNavigate } from 'react-router-dom';
 
@@ -144,10 +146,10 @@ const HomePage: React.FC = () => {
         </Box>
 
         <Box sx={{ width: '100%', maxWidth: 520, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, mt: '4rem' }}>
-          <Button variant="contained" sx={buttonSx} onClick={() => handleProjectsPage(navigate)}>
+          <Button variant="contained" sx={buttonSx} startIcon={<FolderIcon />} onClick={() => handleProjectsPage(navigate)}>
             Projects
           </Button>
-          <Button variant="contained" sx={buttonSx} onClick={handleOpenJoin}>
+          <Button variant="contained" sx={buttonSx} startIcon={<GroupIcon />} onClick={handleOpenJoin}>
             Join Session
           </Button>
         </Box>

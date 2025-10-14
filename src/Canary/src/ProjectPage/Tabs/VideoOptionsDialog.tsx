@@ -205,7 +205,20 @@ export const VideoOptionsDialog: React.FC<VideoOptionsDialogProps> = ({ open, vi
                         minWidth: 180,
                         alignSelf: 'center',
                         maxWidth: 480,
-                        '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+                        // border styles
+                        '& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+                        '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#000',
+                          borderWidth: '1.5px',
+                        },
+                        '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#ffdf01',
+                          borderWidth: '2px',
+                        },
+                        // label styles (hover + focus)
+                        '& .MuiInputLabel-root': { color: '#999' },
+                        '&:hover .MuiInputLabel-root': { color: '#000' },
+                        '& .MuiInputLabel-root.Mui-focused': { color: '#000' },
                         mb: "0.5rem",
                         mt: "0.5rem",
                       }}
@@ -235,7 +248,20 @@ export const VideoOptionsDialog: React.FC<VideoOptionsDialogProps> = ({ open, vi
                         minWidth: 160,
                         alignSelf: 'center',
                         maxWidth: 480,
-                        '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+                        // border styles
+                        '& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+                        '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#000',
+                          borderWidth: '1.5px',
+                        },
+                        '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#ffdf01',
+                          borderWidth: '2px',
+                        },
+                        // label styles (hover + focus)
+                        '& .MuiInputLabel-root': { color: '#999' },
+                        '&:hover .MuiInputLabel-root': { color: '#000' },
+                        '& .MuiInputLabel-root.Mui-focused': { color: '#000' },
                         mb: "0.5rem",
                         mt: "0.5rem",
                       }}
@@ -265,7 +291,20 @@ export const VideoOptionsDialog: React.FC<VideoOptionsDialogProps> = ({ open, vi
                         minWidth: 160,
                         alignSelf: 'center',
                         maxWidth: 480,
-                        '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+                        // border styles
+                        '& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+                        '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#000',
+                          borderWidth: '1.5px',
+                        },
+                        '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#ffdf01',
+                          borderWidth: '2px',
+                        },
+                        // label styles (hover + focus)
+                        '& .MuiInputLabel-root': { color: '#999' },
+                        '&:hover .MuiInputLabel-root': { color: '#000' },
+                        '& .MuiInputLabel-root.Mui-focused': { color: '#000' },
                         mb: "0.5rem",
                         mt: "0.5rem",
                       }}
@@ -295,7 +334,20 @@ export const VideoOptionsDialog: React.FC<VideoOptionsDialogProps> = ({ open, vi
                         minWidth: 180,
                         alignSelf: 'center',
                         maxWidth: 480,
-                        '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+                        // border styles
+                        '& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+                        '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#000',
+                          borderWidth: '1.5px',
+                        },
+                        '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#ffdf01',
+                          borderWidth: '2px',
+                        },
+                        // label styles (hover + focus)
+                        '& .MuiInputLabel-root': { color: '#999' },
+                        '&:hover .MuiInputLabel-root': { color: '#000' },
+                        '& .MuiInputLabel-root.Mui-focused': { color: '#000' },
                         mb: "0.5rem",
                         mt: "0.5rem",
                       }}
