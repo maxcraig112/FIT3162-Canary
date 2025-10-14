@@ -136,16 +136,16 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
         bgcolor: '#fff',
         color: '#000',
         border: '1px solid #e0e0e0',
-        boxShadow: 0,
+        boxShadow: '0 0px 0px 0 rgba(31, 38, 135, 0.55), 0 2px 4px 0 rgba(0,0,0,0.32)', // Darker shadow
         p: 2,
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
         minHeight: 0,
         width: '100%',
-        maxWidth: 420,
+        maxWidth: '100%',
         maxHeight: '65vh',
-        flexShrink: 0,
+        flexShrink: 1,
       }}
     >
       {title && (
@@ -304,10 +304,10 @@ export function SettingsTab({ project: _project }: SettingsTabProps) {
       </Box>
 
       {/* Two columns below the shared header */}
-      <Box sx={{ width: '100%', display: 'flex', justifyContent: 'space-between', gap: 4, minHeight: 'fit-content' }}>
+  <Box sx={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'stretch', gap: 4, minHeight: 'fit-content' }}>
         {/* Keypoints */}
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minHeight: '60vh'}}>
-          <Box sx={{ flexGrow: 1, minHeight: 0, display: 'flex', alignSelf: 'center' }}>
+          <Box sx={{ flexGrow: 1, minHeight: 0, display: 'flex', width: '100%' }}>
             <ListPanel
               title="Keypoint Labels"
               inputValue={keypointInput}
@@ -325,7 +325,7 @@ export function SettingsTab({ project: _project }: SettingsTabProps) {
 
         {/* Bounding Boxes */}
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minHeight: '60vh' }}>
-          <Box sx={{ flexGrow: 1, minHeight: 0, display: 'flex', alignSelf: 'center' }}>
+          <Box sx={{ flexGrow: 1, minHeight: 0, display: 'flex', width: '100%' }}>
             <ListPanel
               title="Bounding Box Labels"
               inputValue={bboxInput}
