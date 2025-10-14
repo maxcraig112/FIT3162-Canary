@@ -213,6 +213,9 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
               alignSelf: 'center',
               maxWidth: 480,
               '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+              '&:hover': {
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#000' }
+                  },
               mb: "0.5rem",
               mt: "0.5rem",
             }}

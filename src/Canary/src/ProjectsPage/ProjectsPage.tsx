@@ -433,6 +433,9 @@ const ProjectsPage: React.FC = () => {
                 alignSelf: 'center',
                 maxWidth: 480,
                 '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+                '&:hover': {
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#000' }
+                  },
                 mb: "1.5rem",
               }}
             />
@@ -595,6 +598,9 @@ const ProjectsPage: React.FC = () => {
                 alignSelf: 'center',
                 maxWidth: 480,
                 '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+                '&:hover': {
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#000' }
+                  },
               }}
               autoFocus 
             />

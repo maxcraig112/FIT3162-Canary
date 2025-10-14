@@ -263,6 +263,7 @@ const ProjectPage: React.FC = () => {
                   '&.Mui-selected': {
                     fontWeight: 700,
                     backgroundColor: 'rgba(250, 204, 21, 0.22)',
+                    color: '#000000',
                   },
                   '&:hover': {
                     backgroundColor: 'rgba(250, 204, 21, 0.12)',

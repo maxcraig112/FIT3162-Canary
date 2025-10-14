@@ -70,6 +70,9 @@ export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
             alignSelf: 'center',
             maxWidth: 480,
             '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+            '&:hover': {
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#000' }
+                  },
           }}
           placeholder={`Upload ${new Date().toLocaleDateString()}`}
         />

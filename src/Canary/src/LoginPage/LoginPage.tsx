@@ -152,6 +152,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               alignSelf: 'center',
               maxWidth: 480,
               '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+              '&:hover': {
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#000' }
+                  },
             }}
           />
           <TextField
@@ -177,6 +180,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               alignSelf: 'center',
               maxWidth: 480,
               '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+              '&:hover': {
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#000' }
+                  },
             }}
           />
           {result && (
