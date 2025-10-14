@@ -64,13 +64,13 @@ const HomePage: React.FC = () => {
   }
 
   const buttonSx = {
-    width: { xs: '100%', sm: 320 },
+    width: { xs: '100%', sm: 360, md: 420 },
     fontWeight: 800,
-    fontSize: '1.5rem',
-    py: 0.75,
-    borderRadius: 1,
+    fontSize: { xs: '1.35rem', sm: '1.7rem' },
+    py: { xs: 1.2, sm: 1.6 },
+    borderRadius: 2,
     textTransform: 'none',
-    mt: "1rem"
+    letterSpacing: 0.5,
   };
   const textFieldSx = {
     alignSelf: 'center',
@@ -90,82 +90,88 @@ const HomePage: React.FC = () => {
     <AppThemeProvider>
       <Box
         sx={{
+          position: 'relative',
+          overflow: 'hidden',
           minHeight: '100vh',
-          width: '100%',
-          bgcolor: '#ffffff',
+          height: '100vh',
+          width: '100vw',
           display: 'flex',
-          flexDirection: 'column',
+          justifyContent: 'center',
           alignItems: 'center',
-          pt: { xs: 4, md: 6 },
+          px: { xs: 2, sm: 4 },
+          py: { xs: 6, md: 8 },
+          boxSizing: 'border-box',
+          '&::before': {
+            content: '""',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundImage: `url(${canaryImg})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'grayscale(80%) blur(10px)',
+            zIndex: 0,
+          },
         }}
       >
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            px: 2,
-            textAlign: 'center',
-            userSelect: 'none',
-            gap: 0.5,
-          }}
-        >
+        <Box sx={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 960, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: { xs: 6, md: 8 } }}>
           <Box
-            component="img"
-            src="/logo.png"
-            alt="Canary Logo"
             sx={{
-              width: { xs: 96, md: 112 },
-              height: { xs: 96, md: 112 },
-              objectFit: 'contain',
-              mb: { xs: 1, md: 2 },
-            }}
-          />
-          <Typography
-            variant="h1"
-            sx={{
-              fontSize: { xs: '2.2rem', md: '3rem' },
-              fontWeight: 800,
-              lineHeight: 1,
-              background: 'linear-gradient(90deg,#0f172a,#334155)',
-              WebkitBackgroundClip: 'text',
-              color: 'transparent',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              px: 2,
+              textAlign: 'center',
+              userSelect: 'none',
+              gap: 1,
             }}
           >
-            Canary
-          </Typography>
-          <Typography
-            sx={{
-              fontSize: { xs: '1rem', md: '1.35rem' },
-              fontWeight: 500,
-              color: '#374151',
-              letterSpacing: 0.5,
-            }}
-          >
-            Bird annotation simplified
-          </Typography>
-        </Box>
+            <Box
+              component="img"
+              src="/logo-transparent.png"
+              alt="Canary Logo"
+              sx={{
+                width: { xs: 200, md: 200 },
+                height: { xs: 200, md: 200 },
+                objectFit: 'contain',
+                mb: { xs: 1, md: 2 },
+              }}
+            />
+            <Typography
+              variant="h1"
+              sx={{
+                fontSize: { xs: '2.4rem', md: '3.2rem' },
+                fontWeight: 800,
+                lineHeight: 1,
+                background: 'linear-gradient(90deg,#0f172a,#334155)',
+                WebkitBackgroundClip: 'text',
+                color: 'transparent',
+              }}
+            >
+              Canary
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: { xs: '1.05rem', md: '1.45rem' },
+                fontWeight: 500,
+                color: '#1f2937',
+                letterSpacing: 0.6,
+              }}
+            >
+              Bird annotation simplified
+            </Typography>
+          </Box>
 
-        <Box sx={{ width: '100%', maxWidth: 520, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, mt: '4rem' }}>
-          <Button variant="contained" sx={buttonSx} startIcon={<FolderIcon />} onClick={() => handleProjectsPage(navigate)}>
-            Projects
-          </Button>
-          <Button variant="contained" sx={buttonSx} startIcon={<GroupIcon />} onClick={handleOpenJoin}>
-            Join Session
-          </Button>
-        </Box>
-
-        <Box
-          sx={{
-            width: '100%',
-            maxWidth: 960,
-            mt: { xs: 6, md: 8 },
-            px: { xs: 3, md: 4 },
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 4,
-          }}
-        >
+          <Box sx={{ width: '100%', maxWidth: 520, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+            <Button variant="contained" sx={buttonSx} startIcon={<FolderIcon />} onClick={() => handleProjectsPage(navigate)}>
+              Projects
+            </Button>
+            <Button variant="contained" sx={buttonSx} startIcon={<GroupIcon />} onClick={handleOpenJoin}>
+              Join Session
+            </Button>
+          </Box>
         </Box>
 
         {/* Join Session Modal */}

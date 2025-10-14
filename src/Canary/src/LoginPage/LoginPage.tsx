@@ -57,12 +57,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'flex-start',
-          pt: { xs: 2, md: 3 },
-          pb: 0,
           gap: { xs: 2.5, md: 2.5 },
         }}
       >
-        {/* Header (logo + title + subtitle) */}
+        {/* Header (logo + title + subtitle) at the top */}
         <Box
           sx={{
             display: 'flex',
@@ -72,6 +70,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             textAlign: 'center',
             userSelect: 'none',
             gap: 0.5,
+            mt: { xs: 4, md: 6 },
+            mb: { xs: 2, md: 4 },
           }}
         >
           <Box
@@ -114,6 +114,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             Bird annotation simplified
           </Typography>
         </Box>
+        {/* Center the login box */}
         <Box
           component="form"
           noValidate
@@ -127,6 +128,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             flexDirection: 'column',
             gap: 2,
             p: { xs: 4, md: 5 },
+            boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37), 0 1.5px 8px 0 rgba(0,0,0,0.18)', // Large shadow
+            alignSelf: 'center',
+            mt: { xs: 6, md: 8 },
           }}
         >
           <Typography variant="h5" align="center" gutterBottom sx={{ fontWeight: 600, mb: 1, color: '#111827' }}>

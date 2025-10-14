@@ -240,11 +240,11 @@ const ProjectsPage: React.FC = () => {
                   <Paper
                     sx={{
                       p: 2,
-                      width: 220,
-                      maxWidth: 220,
+                      width: "15vw",
+                      maxWidth: "15vw",
                       textAlign: 'center',
                       position: 'relative',
-                      height: 200,
+                      height: '15vh',
                       cursor: 'pointer',
                       border: '1.5px solid #bfbfbfff',
                       borderRadius: 1,
@@ -575,6 +575,10 @@ const ProjectsPage: React.FC = () => {
               bgcolor: 'background.paper',
               border: '2px solid #000',
               p: 4,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center',
             }}
           >
             <IconButton
@@ -590,7 +594,7 @@ const ProjectsPage: React.FC = () => {
             >
               ✕
             </IconButton>
-            <Typography id="project-modal-title" variant="h5" component="h2" color="black" align="center" sx={{ mb: 2 }}>
+            <Typography id="project-modal-title" variant="h5" component="h2" color="black" sx={{ mb: 2, width: '100%' }}>
               Create a new project
             </Typography>
             <TextField 
@@ -615,6 +619,7 @@ const ProjectsPage: React.FC = () => {
               sx={{
                 alignSelf: 'center',
                 maxWidth: 480,
+                textAlign: 'center',
                 // border styles
                 '& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
                 '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
@@ -638,6 +643,7 @@ const ProjectsPage: React.FC = () => {
               sx={{
                 mb: 3,
                 color: 'black',
+                alignSelf: 'center',
               }}
             />
             <Button
@@ -650,6 +656,8 @@ const ProjectsPage: React.FC = () => {
                   bgcolor: '#e2e8f0',
                   color: '#94a3b8',
                 },
+                alignSelf: 'center',
+                mt: 2,
               }}
               onClick={async () => {
                 try {
