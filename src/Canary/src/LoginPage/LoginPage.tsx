@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Box, Button, TextField, Typography } from '@mui/material';
+import { Box, Button, TextField, Typography, IconButton, InputAdornment } from '@mui/material';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { handleLogin, handleRegister } from './authHandlers';
 import AppThemeProvider from '../assets/AppThemeProvider';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +17,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [result, setResult] = useState<string | null>(null);
 
   const handleLoginClick = async () => {
@@ -165,7 +168,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           <TextField
             label="Password"
             variant="outlined"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             onChange={(e) => setPassword(e.target.value)}
             fullWidth
             placeholder="••••••••"
@@ -174,6 +177,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 color: '#000',
                 bgcolor: '#fff',
               },
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton onClick={() => setShowPassword((prev) => !prev)} edge="end" sx={{ color: '#111827' }}>
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
             }}
             InputLabelProps={{
               sx: {
