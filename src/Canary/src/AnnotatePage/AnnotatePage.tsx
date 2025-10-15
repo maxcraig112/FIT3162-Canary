@@ -1014,7 +1014,7 @@ const AnnotatePage: React.FC = () => {
                 disabled={!hasPrev}
               >
                 <NotInterested fontSize="large" />
-                <Typography variant="body2">CPY</Typography>
+                <Typography variant="body2">COPY</Typography>
               </Button>
             </Box>
           </Box>
