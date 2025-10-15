@@ -21,13 +21,13 @@ import {
   Alert,
   Snackbar,
 } from '@mui/material';
-import { MyLocation, SelectAll, NotInterested, KeyboardArrowLeft, KeyboardArrowRight } from '@mui/icons-material';
-import ExitToAppIcon from '@mui/icons-material/ExitToApp';
+import { MyLocation, SelectAll, NotInterested, KeyboardArrowLeft, KeyboardArrowRight, ArrowBack } from '@mui/icons-material';
 import { annotateHandler, getCanvas, handleUndoRedo } from './annotateHandler';
 import { ZoomHandler } from './zoomHandler';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
-import RefreshIcon from '@mui/icons-material/Refresh';
+import UndoIcon from '@mui/icons-material/Undo';
+import RedoIcon from '@mui/icons-material/Redo';
 import { useSearchParams } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { getBoundingBoxLabelNames, getKeypointLabelNames, getKeypointLabelName } from './labelRegistry';
@@ -36,9 +36,11 @@ import { useAuthGuard } from '../utils/authUtil';
 // import { useSharedImageHandler } from './imagehandlercontext';
 import { useImageHandler } from './imageStateHandler';
 import { initialiseSessionWebSocket, getActiveSessionID, sendActiveImageID, closeSessionWebSocket, setNavigateAway } from './sessionHandler';
-import { fetchActiveSessionForBatch, kickSessionMember, type Member } from '../utils/intefaces/session';
+import { fetchActiveSessionForBatch, kickSessionMember, type Member } from '../utils/interfaces/session';
 import { sidebarHandler, type SidebarAnnotationItem } from './sidebarHandler';
 import Fade from '@mui/material/Fade';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { projectServiceUrl, CallAPI } from '../utils/apis';
 
 const AnnotatePage: React.FC = () => {
   // Helper for undo/redo actions
@@ -47,6 +49,9 @@ const AnnotatePage: React.FC = () => {
   useAuthGuard();
 
   const navigate = useNavigate();
+  const hideToolbarExtras = useMediaQuery('(max-width: 960px)');
+  const hideSidebar = hideToolbarExtras;
+  const hideBatchTitle = hideToolbarExtras;
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageHandler = useImageHandler();
@@ -62,6 +67,7 @@ const AnnotatePage: React.FC = () => {
   // inputImage is the value in the text box, separate from currentImageNumber
   const [inputImage, setInputImage] = useState(imageHandler.currentImageNumber.toString());
   const [selectedTool, setSelectedTool] = useState<string | null>('kp');
+  const [batchName, setBatchName] = useState<string>('');
   const [searchParams] = useSearchParams();
   const batchID = searchParams.get('batchID') || '';
   const projectID = searchParams.get('projectID') || '';
@@ -471,7 +477,7 @@ const AnnotatePage: React.FC = () => {
     }
   }, []);
 
-  // Listen for member join/left events dispatched by sessionHandler and show ephemeral notices
+  // Listen for member join/leave events dispatched by sessionHandler and show ephemeral notices
   useEffect(() => {
     const handler = (e: Event) => {
       const ce = e as CustomEvent<{ type: 'member_joined' | 'member_left' | 'owner_joined' | 'owner_left'; memberID: string; memberEmail?: string }>; // time optional
@@ -495,160 +501,73 @@ const AnnotatePage: React.FC = () => {
     return () => window.removeEventListener('canary-session-member-event', handler as EventListener);
   }, [refreshSessionMembers, sessionRole, viewMembersOpen]);
 
-  return (
-    <Box sx={{ display: 'flex', height: '100vh', bgcolor: '#f5f5f5' }}>
-      {/* Left Sidebar - Annotations List */}
-      <Paper
-        elevation={2}
-        sx={{
-          width: 280,
-          minWidth: 280,
-          maxWidth: 320,
-          p: 2,
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100%',
-          overflow: 'hidden',
-        }}
-      >
-        <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-          Annotations
-        </Typography>
-        <Box
-          sx={{
-            flexGrow: 1,
-            overflow: 'auto',
-            maxHeight: 'calc(100vh - 120px)',
-          }}
-        >
-          {sidebarItems.length === 0 ? (
-            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', textAlign: 'center', mt: 4 }}>
-              No annotations on this image
-            </Typography>
-          ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {sidebarItems.map((item) => (
-                <Paper
-                  key={item.id}
-                  elevation={1}
-                  sx={{
-                    p: 1.5,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    borderLeft: `4px solid ${item.type === 'keypoint' ? '#f97316' : '#2563eb'}`,
-                    ml: item.type === 'keypoint' ? 2 : 0,
-                    bgcolor: item.type === 'keypoint' ? 'rgba(249, 115, 22, 0.06)' : undefined,
-                    '&:hover': {
-                      elevation: 2,
-                      bgcolor: 'action.hover',
-                    },
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                    <Box
-                      sx={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        bgcolor: item.type === 'keypoint' ? '#f97316' : '#2563eb',
-                        flexShrink: 0,
-                      }}
-                    />
-                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
-                      {item.type === 'keypoint' ? 'KP' : 'BB'}
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 500, flexGrow: 1 }}>
-                      {item.label}
-                    </Typography>
-                  </Box>
-                  {item.type === 'keypoint' ? (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                        Position: ({item.position.x}, {item.position.y})
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                        Bounding Box: {item.boundingBoxLabel ?? 'Unassigned'}
-                      </Typography>
-                    </Box>
-                  ) : (
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                      Center: ({item.center.x}, {item.center.y}) | Size: {item.bounds.maxX - item.bounds.minX}×{item.bounds.maxY - item.bounds.minY}
-                    </Typography>
-                  )}
-                </Paper>
-              ))}
-            </Box>
-          )}
-        </Box>
-      </Paper>
+  useEffect(() => {
+    if (!batchID) return;
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const data = await CallAPI<{ batchName?: string }>(`${projectServiceUrl()}/batch/${encodeURIComponent(batchID)}`, {
+          method: 'GET',
+          signal: controller.signal,
+        });
+        if (data?.batchName) {
+          setBatchName(data.batchName);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch batch name', err);
+      }
+    })();
+    return () => controller.abort();
+  }, [batchID]);
 
-      {/* Main Content */}
-      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-        {/* Top Toolbar */}
-        <AppBar position="static" color="default" elevation={1}>
-          <Toolbar sx={{ position: 'relative', minHeight: 64 }}>
-            {/* Back Button Top Left */}
-            <IconButton
-              aria-label="back"
-              edge="start"
-              sx={{ position: 'absolute', left: 8, top: 8 }}
-              onClick={() => {
-                closeSessionWebSocket(1000, 'navigate away');
-              }}
-            >
-              <ExitToAppIcon />
-            </IconButton>
-            <Box
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        bgcolor: '#f5f5f5',
+      }}
+    >
+      <AppBar position="static" color="default" elevation={1} >
+        <Toolbar sx={{ position: 'relative', minHeight: 64 }}>
+          {/* Back Button Top Left */}
+          <IconButton
+            aria-label="back"
+            edge="start"
+            sx={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)' }}
+            onClick={() => {
+              closeSessionWebSocket(1000, 'navigate away');
+            }}
+          >
+            <ArrowBack/>
+          </IconButton>
+          {!hideBatchTitle && (
+            <Typography
+              variant="h6"
+              noWrap
               sx={{
-                flexGrow: 1,
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: 1,
+                position: 'absolute',
+                left: 56,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontWeight: 600,
+                maxWidth: 280,
               }}
             >
-              {sessionID && (
-                <Paper
-                  elevation={2}
-                  sx={{
-                    px: 2,
-                    py: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
-                    cursor: 'pointer',
-                    '&:hover': {
-                      bgcolor: 'action.hover',
-                    },
-                  }}
-                  onClick={(e) => handleCopySessionID(e, sessionID)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      handleCopySessionID(e as unknown as React.MouseEvent, sessionID);
-                    }
-                  }}
-                >
-                  <Typography variant="body2" sx={{ fontWeight: 'bold' }} title="Click to copy session ID">
-                    Session: {sessionID}
-                    {sessionRole ? ` (${sessionRole})` : ''}
-                  </Typography>
-                </Paper>
-              )}
-              {sessionRole === 'owner' && sessionID && (
-                <Button variant="outlined" size="small" onClick={openManageMembers} sx={{ textTransform: 'none', fontWeight: 600 }}>
-                  Manage members
-                </Button>
-              )}
-              {sessionRole === 'member' && sessionID && (
-                <Button variant="outlined" size="small" onClick={openViewMembers} sx={{ textTransform: 'none', fontWeight: 600 }}>
-                  View members
-                </Button>
-              )}
-              <IconButton aria-label="previous image" onClick={handlePrev}>
-                <KeyboardArrowLeft />
-              </IconButton>
+              {batchName || `Batch ${batchID}`}
+            </Typography>
+          )}
+          <Box
+            sx={{
+              flexGrow: 1,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: 1,
+            }}
+          >
+            {sessionID && (
               <Paper
                 elevation={2}
                 sx={{
@@ -657,277 +576,451 @@ const AnnotatePage: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 1,
+                  cursor: 'pointer',
+                  '&:hover': {
+                    bgcolor: 'action.hover',
+                  },
+                }}
+                onClick={(e) => handleCopySessionID(e, sessionID)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    handleCopySessionID(e as unknown as React.MouseEvent, sessionID);
+                  }
                 }}
               >
-                <TextField
-                  size="small"
-                  type="number"
-                  value={inputImage}
-                  inputProps={{ style: { textAlign: 'center', width: 60 } }}
-                  sx={{
-                    width: 40,
-                    '& input[type=number]': {
-                      MozAppearance: 'textfield',
-                    },
-                    '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': {
-                      WebkitAppearance: 'none',
-                      margin: 0,
-                    },
-                  }}
-                  onChange={(e) => {
-                    setInputImage(e.target.value);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      imageHandler.setInputImage(inputImage);
-                      (e.target as HTMLInputElement).blur();
-                    }
-                  }}
-                  onBlur={() => {
-                    imageHandler.setInputImage(inputImage);
-                  }}
-                />
-                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  / {imageHandler.getTotalImageCount()}
+                <Typography variant="body2" sx={{ fontWeight: 'bold' }} title="Click to copy session ID">
+                  Session: {sessionID}
+                  {sessionRole ? ` (${sessionRole})` : ''}
                 </Typography>
               </Paper>
-              <IconButton aria-label="next image" onClick={handleNext}>
-                <KeyboardArrowRight />
-              </IconButton>
-            </Box>
-            {/* Zoom Controls Top Right */}
-            <Box sx={{ position: 'absolute', right: 16, top: 8, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <IconButton aria-label="zoom out" size="small" onClick={handleZoomOut}>
-                <RemoveIcon />
-              </IconButton>
-              <Typography variant="body2" sx={{ minWidth: 40, textAlign: 'center' }}>
-                {Math.round(zoom * 100)}%
-              </Typography>
-              <IconButton aria-label="zoom in" size="small" onClick={handleZoomIn}>
-                <AddIcon />
-              </IconButton>
-              <IconButton aria-label="reset zoom" size="small" onClick={handleZoomReset}>
-                <RefreshIcon />
-              </IconButton>
-            </Box>
-          </Toolbar>
-        </AppBar>
-
-        {/* Canvas */}
-        <Box
-          sx={{
-            flexGrow: 1,
-            position: 'relative',
-            p: 2,
-            height: '100%',
-            maxHeight: 'calc(100vh - 64px)', // subtract toolbar height if needed
-            maxWidth: '100vw',
-            overflow: 'hidden',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          ref={boxRef}
-        >
-          {/* Ephemeral member join/leave notifications */}
-          <Box sx={{ position: 'absolute', top: 8, left: 8, display: 'flex', flexDirection: 'column', gap: 1, zIndex: 10 }}>
-            {memberNotices.map((n) => (
-              <Fade in key={n.id} timeout={{ enter: 200, exit: 300 }}>
-                <Paper
-                  elevation={4}
-                  sx={{
-                    px: 1.5,
-                    py: 0.5,
-                    bgcolor: n.type === 'member_joined' ? '#2e7d32' : n.type === 'member_left' ? '#c62828' : n.type === 'owner_joined' ? '#1d4ed8' : '#c62828',
-                    color: '#fff',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    borderRadius: 1,
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
-                  }}
-                >
-                  {n.type === 'member_joined' ? 'Member joined: ' : n.type === 'member_left' ? 'Member left: ' : n.type === 'owner_joined' ? 'Owner joined: ' : 'Owner left: '}
-                  {n.memberID}
-                </Paper>
-              </Fade>
-            ))}
-          </Box>
-          {/* Width/height are set programmatically in useEffect to match container; rely on style for initial sizing */}
-          <canvas
-            ref={canvasRef}
-            style={{
-              width: '100%',
-              height: '100%',
-              display: 'block',
-              maxWidth: '100%',
-              maxHeight: '100%',
-            }}
-          />
-          {labelPrompt.open && (
+            )}
+            {sessionRole === 'owner' && sessionID && (
+              <Button variant="outlined" size="small" onClick={openManageMembers} sx={{ textTransform: 'none', fontWeight: 600 }}>
+                Manage members
+              </Button>
+            )}
+            {sessionRole === 'member' && sessionID && (
+              <Button variant="outlined" size="small" onClick={openViewMembers} sx={{ textTransform: 'none', fontWeight: 600 }}>
+                View members
+              </Button>
+            )}
             <Paper
-              elevation={3}
+              elevation={0}
               sx={{
-                position: 'absolute',
-                left: labelPrompt.x + 12,
-                top: labelPrompt.y + 12,
-                p: 1,
+                px: 1.5,
+                py: 0.75,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 1,
+                border: (theme) => `1px solid ${theme.palette.divider}`,
+                borderRadius: 1,
+                bgcolor: '#fff',
               }}
             >
-              <FormControl size="small" sx={{ minWidth: 220 }}>
-                <InputLabel id="label-select">{labelPrompt.kind === 'kp' ? 'Keypoint label' : 'Box label'}</InputLabel>
-                <Select
-                  labelId="label-select"
-                  label={labelPrompt.kind === 'kp' ? 'Keypoint label' : 'Box label'}
-                  autoFocus
-                  value={labelValue}
-                  onChange={(e) => setLabelValue(e.target.value as string)}
-                >
-                  {(labelPrompt.kind === 'kp' ? kpOptions : bbOptions).map((opt) => (
-                    <MenuItem key={opt} value={opt}>
-                      {opt}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <Button
-                variant="contained"
+              <IconButton aria-label="previous image" size="small" onClick={handlePrev}>
+                <KeyboardArrowLeft />
+              </IconButton>
+              <TextField
                 size="small"
-                onClick={() => {
-                  if (labelValue) {
-                    annotateHandler.confirmLabel(labelValue, projectID);
-                  } else {
-                    annotateHandler.cancelLabel();
+                type="number"
+                value={inputImage}
+                inputProps={{ style: { textAlign: 'center', width: 60 } }}
+                sx={{
+                  width: 50,
+                  '& input[type=number]': {
+                    MozAppearance: 'textfield',
+                    fontSize: '20px',
+                    fontWeight: 700,
+                  },
+                  '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': {
+                    WebkitAppearance: 'none',
+                    margin: 0,
+                  },
+                }}
+                onChange={(e) => {
+                  setInputImage(e.target.value);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    imageHandler.setInputImage(inputImage);
+                    (e.target as HTMLInputElement).blur();
                   }
-                  setLabelPrompt({
-                    open: false,
-                    kind: null,
-                    x: 0,
-                    y: 0,
-                    mode: 'create',
-                  });
                 }}
-              >
-                OK
-              </Button>
-              <Button
-                variant="text"
-                size="small"
-                onClick={() => {
-                  annotateHandler.cancelLabel();
-                  setLabelPrompt({
-                    open: false,
-                    kind: null,
-                    x: 0,
-                    y: 0,
-                    mode: 'create',
-                  });
+                onBlur={() => {
+                  imageHandler.setInputImage(inputImage);
                 }}
-              >
-                Cancel
-              </Button>
+              />
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                / {imageHandler.getTotalImageCount()}
+              </Typography>
+              <IconButton aria-label="next image" size="small" onClick={handleNext}>
+                <KeyboardArrowRight />
+              </IconButton>
             </Paper>
+          </Box>
+          {/* Zoom & History Controls */}
+          {!hideToolbarExtras && (
+            <Box
+              sx={{
+                position: 'absolute',
+                right: 16,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pr: 1.5 }}>
+                <IconButton aria-label="undo" size="small" onClick={() => handleUndoRedo('undo')}>
+                  <UndoIcon />
+                </IconButton>
+                <IconButton aria-label="redo" size="small" onClick={() => handleUndoRedo('redo')}>
+                  <RedoIcon />
+                </IconButton>
+              </Box>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  borderLeft: (theme) => `2px solid ${theme.palette.divider}`,
+                  pl: 1.5,
+                }}
+              >
+                <IconButton aria-label="zoom out" size="small" onClick={handleZoomOut}>
+                  <RemoveIcon />
+                </IconButton>
+                <Typography variant="body2" sx={{ minWidth: 40, textAlign: 'center' }} fontFamily="monospace">
+                  {Math.round(zoom * 100)}%
+                </Typography>
+                <IconButton aria-label="zoom in" size="small" onClick={handleZoomIn}>
+                  <AddIcon />
+                </IconButton>
+                <Typography
+                  aria-label="reset zoom"
+                  onClick={handleZoomReset}
+                  fontFamily="monospace"
+                  sx={{ px: 1, py: 0.5, borderRadius: 1, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                >
+                  RESET
+                </Typography>
+              </Box>
+            </Box>
           )}
-        </Box>
-      </Box>
+        </Toolbar>
+      </AppBar>
 
-      {/* Right Sidebar (Tools moved here, centered) */}
-      <Paper
-        elevation={2}
-        sx={{
-          width: 140,
-          minWidth: 140,
-          maxWidth: 160,
-          flexShrink: 0,
-          p: 2,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'flex-start',
-          height: '100%',
-        }}
-      >
-        <Typography variant="h6" sx={{ mb: 1, mt: 0 }}>
-          Tools
-        </Typography>
-        {/* Centered tool controls container */}
-        <Box sx={{ flexGrow: 1, width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 3 }}>
-          <ToggleButtonGroup
-            orientation="vertical"
-            value={selectedTool}
-            exclusive
-            onChange={handleToolChange}
-            aria-label="tool selection"
+      <Box sx={{ display: 'flex', flexGrow: 1, overflow: 'hidden' }}>
+        {/* Left Sidebar - Annotations List */}
+        {!hideSidebar && (
+          <Paper
+            elevation={2}
             sx={{
-              alignItems: 'center',
-              gap: 2,
-              '& .MuiToggleButtonGroup-grouped': {
-                margin: 0,
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 2,
-              },
-              '& .MuiToggleButtonGroup-grouped:not(:first-of-type)': {
-                marginTop: 0,
-                borderTopLeftRadius: 2,
-                borderTopRightRadius: 2,
-              },
+              width: 280,
+              minWidth: 280,
+              maxWidth: 320,
+              p: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              overflow: 'hidden',
+              borderRadius: 0,
             }}
           >
-            <ToggleButton
-              value="kp"
-              aria-label="keypoint"
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+              Annotations
+            </Typography>
+            <Box
               sx={{
-                width: 100,
-                height: 100,
-                flexDirection: 'column',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                overflow: 'visible',
-                py: 1,
+                flexGrow: 1,
+                overflow: 'auto',
+                maxHeight: 'calc(100vh - 120px)',
               }}
             >
-              <MyLocation fontSize="large" />
-              <Typography variant="body2" sx={{ mt: 0.5 }}>
-                KP
-              </Typography>
-            </ToggleButton>
-            <ToggleButton
-              value="bb"
-              aria-label="bounding-box"
-              sx={{
-                width: 100,
-                height: 100,
-                flexDirection: 'column',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                overflow: 'visible',
-                py: 1,
+              {sidebarItems.length === 0 ? (
+                <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', textAlign: 'center', mt: 4 }}>
+                  No annotations on this image
+                </Typography>
+              ) : (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {sidebarItems.map((item) => (
+                    <Paper
+                      key={item.id}
+                      elevation={1}
+                      sx={{
+                        p: 1.5,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        borderLeft: `4px solid ${item.type === 'keypoint' ? '#f97316' : '#2563eb'}`,
+                        ml: item.type === 'keypoint' ? 2 : 0,
+                        bgcolor: item.type === 'keypoint' ? 'rgba(249, 115, 22, 0.06)' : undefined,
+                        '&:hover': {
+                          elevation: 2,
+                          bgcolor: 'action.hover',
+                        },
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                        <Box
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            bgcolor: item.type === 'keypoint' ? '#f97316' : '#2563eb',
+                            flexShrink: 0,
+                          }}
+                        />
+                        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                          {item.type === 'keypoint' ? 'KP' : 'BB'}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 500, flexGrow: 1 }}>
+                          {item.label}
+                        </Typography>
+                      </Box>
+                      {item.type === 'keypoint' ? (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                            Position: ({item.position.x}, {item.position.y})
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                            Bounding Box: {item.boundingBoxLabel ?? 'Unassigned'}
+                          </Typography>
+                        </Box>
+                      ) : (
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                          Center: ({item.center.x}, {item.center.y}) | Size: {item.bounds.maxX - item.bounds.minX}×{item.bounds.maxY - item.bounds.minY}
+                        </Typography>
+                      )}
+                    </Paper>
+                  ))}
+                </Box>
+              )}
+            </Box>
+          </Paper>
+        )}
+
+        {/* Main Content */}
+        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+          <Box
+            sx={{
+              flexGrow: 1,
+              position: 'relative',
+              p: 2,
+              height: '100%',
+              maxHeight: '100%',
+              maxWidth: '100%',
+              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            ref={boxRef}
+          >
+            {/* Ephemeral member join/leave notifications */}
+            <Box sx={{ position: 'absolute', top: 8, left: 8, display: 'flex', flexDirection: 'column', gap: 1, zIndex: 10 }}>
+              {memberNotices.map((n) => (
+                <Fade in key={n.id} timeout={{ enter: 200, exit: 300 }}>
+                  <Paper
+                    elevation={4}
+                    sx={{
+                      px: 1.5,
+                      py: 0.5,
+                      bgcolor: n.type === 'member_joined' ? '#2e7d32' : n.type === 'member_left' ? '#c62828' : n.type === 'owner_joined' ? '#1d4ed8' : '#c62828',
+                      color: '#fff',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      borderRadius: 1,
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+                    }}
+                  >
+                    {n.type === 'member_joined' ? 'Member joined: ' : n.type === 'member_left' ? 'Member left: ' : n.type === 'owner_joined' ? 'Owner joined: ' : 'Owner left: '}
+                    {n.memberID}
+                  </Paper>
+                </Fade>
+              ))}
+            </Box>
+            {/* Width/height are set programmatically in useEffect to match container; rely on style for initial sizing */}
+            <canvas
+              ref={canvasRef}
+              style={{
+                width: '100%',
+                height: '100%',
+                display: 'block',
+                maxWidth: '100%',
+                maxHeight: '100%',
               }}
-            >
-              <SelectAll fontSize="large" />
-              <Typography variant="body2" sx={{ mt: 0.5 }}>
-                BB
-              </Typography>
-            </ToggleButton>
-          </ToggleButtonGroup>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Button
-              variant="outlined"
-              sx={{ width: 100, height: 100, flexDirection: 'column' }}
-              onClick={() => annotateHandler.copyPrevAnnotations(imageHandler.currentImageID, batchID, projectID)}
-              disabled={!hasPrev}
-            >
-              <NotInterested fontSize="large" />
-              <Typography variant="body2">CPY</Typography>
-            </Button>
+            />
+            {labelPrompt.open && (
+              <Paper
+                elevation={3}
+                sx={{
+                  position: 'absolute',
+                  left: labelPrompt.x + 12,
+                  top: labelPrompt.y + 12,
+                  p: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                }}
+              >
+                <FormControl size="small" sx={{ minWidth: 220 }}>
+                  <InputLabel id="label-select">{labelPrompt.kind === 'kp' ? 'Keypoint label' : 'Box label'}</InputLabel>
+                  <Select
+                    labelId="label-select"
+                    label={labelPrompt.kind === 'kp' ? 'Keypoint label' : 'Box label'}
+                    autoFocus
+                    value={labelValue}
+                    onChange={(e) => setLabelValue(e.target.value as string)}
+                  >
+                    {(labelPrompt.kind === 'kp' ? kpOptions : bbOptions).map((opt) => (
+                      <MenuItem key={opt} value={opt}>
+                        {opt}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={() => {
+                    if (labelValue) {
+                      annotateHandler.confirmLabel(labelValue, projectID);
+                    } else {
+                      annotateHandler.cancelLabel();
+                    }
+                    setLabelPrompt({
+                      open: false,
+                      kind: null,
+                      x: 0,
+                      y: 0,
+                      mode: 'create',
+                    });
+                  }}
+                >
+                  OK
+                </Button>
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={() => {
+                    annotateHandler.cancelLabel();
+                    setLabelPrompt({
+                      open: false,
+                      kind: null,
+                      x: 0,
+                      y: 0,
+                      mode: 'create',
+                    });
+                  }}
+                >
+                  Cancel
+                </Button>
+              </Paper>
+            )}
           </Box>
         </Box>
-      </Paper>
+
+        {/* Right Sidebar (Tools moved here, centered) */}
+        <Paper
+          elevation={2}
+          sx={{
+            width: 140,
+            minWidth: 140,
+            maxWidth: 160,
+            flexShrink: 0,
+            p: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+            height: '100%',
+            borderRadius: 0,
+          }}
+        >
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+            Tools
+          </Typography>
+          {/* Centered tool controls container */}
+          <Box sx={{ flexGrow: 1, width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 3 }}>
+            <ToggleButtonGroup
+              orientation="vertical"
+              value={selectedTool}
+              exclusive
+              onChange={handleToolChange}
+              aria-label="tool selection"
+              sx={{
+                alignItems: 'center',
+                gap: 2,
+                '& .MuiToggleButtonGroup-grouped': {
+                  margin: 0,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                },
+                '& .MuiToggleButtonGroup-grouped:not(:first-of-type)': {
+                  marginTop: 0,
+                  borderTopLeftRadius: 2,
+                  borderTopRightRadius: 2,
+                },
+              }}
+            >
+              <ToggleButton
+                value="kp"
+                aria-label="keypoint"
+                sx={{
+                  width: 100,
+                  height: 100,
+                  flexDirection: 'column',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'visible',
+                  py: 1,
+                }}
+              >
+                <MyLocation fontSize="large" />
+                <Typography variant="body2" sx={{ mt: 0.5 }}>
+                  KP
+                </Typography>
+              </ToggleButton>
+              <ToggleButton
+                value="bb"
+                aria-label="bounding-box"
+                sx={{
+                  width: 100,
+                  height: 100,
+                  flexDirection: 'column',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'visible',
+                  py: 1,
+                }}
+              >
+                <SelectAll fontSize="large" />
+                <Typography variant="body2" sx={{ mt: 0.5 }}>
+                  BB
+                </Typography>
+              </ToggleButton>
+            </ToggleButtonGroup>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Button
+                variant="outlined"
+                sx={{ width: 100, height: 100, flexDirection: 'column' }}
+                onClick={() => annotateHandler.copyPrevAnnotations(imageHandler.currentImageID, batchID, projectID)}
+                disabled={!hasPrev}
+              >
+                <NotInterested fontSize="large" />
+                <Typography variant="body2">COPY</Typography>
+              </Button>
+            </Box>
+          </Box>
+        </Paper>
+      </Box>
+
       <Dialog open={manageMembersOpen} onClose={closeManageMembers} fullWidth maxWidth="sm">
         <DialogTitle>Session members</DialogTitle>
         <DialogContent dividers>

@@ -2,7 +2,7 @@ import * as fabric from 'fabric';
 import { createKeypointAnnotation, fabricGroupProps, fabricKPMarkerProps, fabricKPProps } from './constants';
 import { getKeypointLabelName } from './labelRegistry';
 import { CallAPI, projectServiceUrl } from '../utils/apis';
-import type { KeypointAnnotation } from '../utils/intefaces/interfaces';
+import type { KeypointAnnotation } from '../utils/interfaces/interfaces';
 
 export const KeyPointFabricHandler = {
   createFabricKeyPoint(canvas: fabric.Canvas, ann: KeypointAnnotation, transform?: { scale: number; offsetX: number; offsetY: number }): { group: fabric.Group } {

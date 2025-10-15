@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { Box, Button, Typography, LinearProgress, Alert, Fade, Stack, TextField } from '@mui/material';
 import { useUploadTab } from './uploadTabHandler';
 import { VideoOptionsDialog } from './VideoOptionsDialog';
-import type { Project } from '../../utils/intefaces/interfaces';
+import type { Project } from '../../utils/interfaces/interfaces';
 import { useAuthGuard } from '../../utils/authUtil';
 
 interface UploadTabProps {
@@ -62,7 +62,7 @@ export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
           }}
           InputLabelProps={{
             sx: {
-              color: '#000',
+              color: '#999',
               '&.Mui-focused': { color: '#000' },
             },
           }}
@@ -70,10 +70,20 @@ export const UploadTab: React.FC<UploadTabProps> = ({ project }) => {
             alignSelf: 'center',
             maxWidth: 480,
             '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
-            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#666' },
-            '& .Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: '#666',
+            // border styles
+            '& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+            '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#000',
+              borderWidth: '1.5px',
             },
+            '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#f7bd13',
+              borderWidth: '2px',
+            },
+            // label styles (hover + focus)
+            '& .MuiInputLabel-root': { color: '#999' },
+            '&:hover .MuiInputLabel-root': { color: '#999' },
+            '& .MuiInputLabel-root.Mui-focused': { color: '#000' },
           }}
           placeholder={`Upload ${new Date().toLocaleDateString()}`}
         />

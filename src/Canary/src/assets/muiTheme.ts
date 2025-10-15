@@ -1,18 +1,18 @@
 import { createTheme } from '@mui/material/styles';
 
-export const darkTheme = createTheme({
+export const lightTheme = createTheme({
   palette: {
     mode: 'dark',
     background: {
-      default: '#181A20',
-      paper: '#23272F',
+      default: '#ffffffff',
+      paper: '#ffffffff',
     },
     primary: {
-      main: '#00bcd4',
-      contrastText: '#fff',
+      main: '#f7bd13',
+      contrastText: '#000',
     },
     secondary: {
-      main: '#ff9800',
+      main: '#008080',
       contrastText: '#fff',
     },
   },
@@ -24,15 +24,17 @@ export const darkTheme = createTheme({
       styleOverrides: {
         root: {
           opacity: 1,
-          '& svg': {
-            // unchecked icon color
-            color: '#000000',
-          },
+          '& svg': { color: '#000000' },
           '&.Mui-checked svg': {
-            color: '#00bcd4',
+            color: '#f7bd13',
           },
         },
       },
+    },
+    MuiButton: {
+      defaultProps: {
+        disableElevation: true
+      }
     },
   },
 });

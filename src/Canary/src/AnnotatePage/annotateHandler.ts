@@ -10,7 +10,7 @@ import { isPointInPolygon, polygonCentroid, polygonFromTwoPoints } from './helpe
 import { type ImageHandler, imageDatabaseHandler } from './imageStateHandler.ts';
 import { getBoundingBoxLabelIdByName, getBoundingBoxLabelName, getKeypointLabelIdByName, getKeypointLabelName } from './labelRegistry.ts';
 import { UndoRedoHandler } from './undoRedoHandler.ts';
-import type { BoundingBoxAnnotation, KeypointAnnotation } from '../utils/intefaces/interfaces.ts';
+import type { BoundingBoxAnnotation, KeypointAnnotation } from '../utils/interfaces/interfaces.ts';
 import { sidebarHandler } from './sidebarHandler.ts';
 
 type ToolMode = 'kp' | 'bb' | 'none';

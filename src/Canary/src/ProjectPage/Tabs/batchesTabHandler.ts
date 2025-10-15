@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CallAPI, projectServiceUrl } from '../../utils/apis';
-import type { Batch } from '../../utils/intefaces/interfaces';
-import { createSession, endSession, fetchActiveSessions, joinSession, type ActiveSessionResponse } from '../../utils/intefaces/session';
+import type { Batch } from '../../utils/interfaces/interfaces';
+import { createSession, endSession, fetchActiveSessions, joinSession, type ActiveSessionResponse } from '../../utils/interfaces/session';
 import { setCookie, clearCookie, getUserIDFromCookie } from '../../utils/cookieUtils';
 
 // If you need stronger typing for the navigate function you can import from react-router-dom.

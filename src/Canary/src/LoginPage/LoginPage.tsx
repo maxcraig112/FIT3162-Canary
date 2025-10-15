@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Box, Button, TextField, Typography, Paper, Divider } from '@mui/material';
+import { Box, Button, TextField, Typography, IconButton, InputAdornment } from '@mui/material';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { handleLogin, handleRegister } from './authHandlers';
 import AppThemeProvider from '../assets/AppThemeProvider';
-import { CANARY_BUTTON_COLOR, CANARY_BUTTON_TEXT_COLOR } from '../assets/constants';
 import { useNavigate } from 'react-router-dom';
 import { useSkipLogin } from '../utils/authUtil';
 
@@ -16,6 +17,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [result, setResult] = useState<string | null>(null);
 
   const handleLoginClick = async () => {
@@ -52,27 +54,24 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           minWidth: '100vw',
           background: 'linear-gradient(135deg, #f5f7fa 0%, #ffffff 60%)',
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'center',
-          position: 'fixed',
-          inset: 0,
-          m: 0,
-          p: 2,
-          overflow: 'hidden',
+          justifyContent: 'flex-start',
+          gap: { xs: 2.5, md: 2.5 },
         }}
       >
-        {/* Header (logo + title + subtitle) */}
+        {/* Header (logo + title + subtitle) at the top */}
         <Box
           sx={{
-            position: 'absolute',
-            top: { xs: 16, md: 28 },
-            left: 0,
-            width: '100%',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            pointerEvents: 'none',
             px: 2,
+            textAlign: 'center',
+            userSelect: 'none',
+            gap: 0.5,
+            mt: { xs: 4, md: 6 },
+            mb: { xs: 2, md: 4 },
           }}
         >
           <Box
@@ -80,8 +79,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             src="/logo.png"
             alt="Canary Logo"
             sx={{
-              width: { xs: 120, md: 150 },
-              height: { xs: 120, md: 150 },
+              width: { xs: 96, md: 112 },
+              height: { xs: 96, md: 112 },
               objectFit: 'contain',
               mb: { xs: 1, md: 2 },
             }}
@@ -89,15 +88,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           <Typography
             variant="h1"
             sx={{
-              fontSize: { xs: '3.25rem', md: '4.25rem' },
+              fontSize: { xs: '2.2rem', md: '3rem' },
               fontWeight: 800,
-              letterSpacing: '-2px',
-              lineHeight: 1.05,
+              lineHeight: 1,
               background: 'linear-gradient(90deg,#0f172a,#334155)',
               WebkitBackgroundClip: 'text',
               color: 'transparent',
               textAlign: 'center',
-              textShadow: '0 2px 6px rgba(0,0,0,0.15)',
               userSelect: 'none',
             }}
           >
@@ -105,7 +102,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           </Typography>
           <Typography
             sx={{
-              fontSize: { xs: '1.15rem', md: '1.6rem' },
+              fontSize: { xs: '1rem', md: '1.35rem' },
               fontWeight: 500,
               color: '#374151',
               textAlign: 'center',
@@ -117,144 +114,149 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             Bird annotation simplified
           </Typography>
         </Box>
-        <Paper
-          elevation={10}
+        {/* Center the login box */}
+        <Box
+          component="form"
+          noValidate
           sx={{
-            p: { xs: 4, md: 6 },
-            borderRadius: 5,
-            minWidth: { xs: 340, sm: 420 },
-            maxWidth: 520,
             width: '100%',
+            maxWidth: 520,
+            border: '1px solid #d1d5db',
+            borderRadius: 1,
             bgcolor: '#ffffff',
-            border: '1px solid #e5e8ec',
-            boxShadow: '0 6px 14px rgba(0,0,0,0.10), 0 18px 42px -8px rgba(0,0,0,0.25), 0 28px 60px -12px rgba(0,0,0,0.30)',
-            backdropFilter: 'blur(2px)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+            p: { xs: 4, md: 5 },
+            boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37), 0 1.5px 8px 0 rgba(0,0,0,0.18)', // Large shadow
+            alignSelf: 'center',
+            mt: { xs: 6, md: 8 },
           }}
         >
-          <Divider sx={{ mb: 4, visibility: 'hidden' }} />
-          <Typography variant="h5" align="center" gutterBottom sx={{ fontWeight: 600, mb: 3, color: '#111827' }}>
+          <Typography variant="h5" align="center" gutterBottom sx={{ fontWeight: 600, mb: 1, color: '#111827' }}>
             Login
           </Typography>
-          <Box component="form" noValidate autoComplete="off" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField
-              label="Email"
-              variant="outlined"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              fullWidth
-              placeholder="you@example.com"
-              InputProps={{
-                sx: {
-                  borderRadius: 3,
-                  bgcolor: '#ffffff',
-                  '& .MuiOutlinedInput-notchedOutline': { borderColor: '#d1d5db' },
-                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#9ca3af' },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: CANARY_BUTTON_COLOR },
-                  '& input': { color: '#111827', fontWeight: 500 },
-                  '& .MuiInputBase-input::placeholder': { color: '#111827', opacity: 0.55 },
-                },
+          <TextField
+            label="Email"
+            autoComplete="off"
+            fullWidth
+            onChange={(e) => setEmail(e.target.value)}
+            variant="outlined"
+            placeholder="example@email.com"
+            InputProps={{
+              sx: {
+                color: '#000',
+                bgcolor: '#fff',
+              },
+            }}
+            InputLabelProps={{
+              sx: {
+                color: '#999',
+                '&.Mui-focused': { color: '#000' },
+              },
+            }}
+            sx={{
+              alignSelf: 'center',
+              maxWidth: 480,
+              '& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+              '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#000',
+                borderWidth: '1.5px',
+              },
+              '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#f7bd13',
+                borderWidth: '2px',
+              },
+            }}
+          />
+          <TextField
+            label="Password"
+            variant="outlined"
+            type={showPassword ? 'text' : 'password'}
+            onChange={(e) => setPassword(e.target.value)}
+            fullWidth
+            placeholder="••••••••"
+            InputProps={{
+              sx: {
+                color: '#000',
+                bgcolor: '#fff',
+              },
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton onClick={() => setShowPassword((prev) => !prev)} edge="end" sx={{ color: '#111827' }}>
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+            InputLabelProps={{
+              sx: {
+                color: '#999',
+                '&.Mui-focused': { color: '#000' },
+              },
+            }}
+            sx={{
+              alignSelf: 'center',
+              maxWidth: 480,
+              '& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+              '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#000',
+                borderWidth: '1.5px',
+              },
+              '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#f7bd13',
+                borderWidth: '2px',
+              },
+            }}
+          />
+          {result && (
+            <Typography
+              sx={{
+                mt: 1,
+                color: resultIsSuccess ? '#000000ff' : '#b91c1c',
+                wordBreak: 'break-word',
+                whiteSpace: 'pre-line',
+                maxWidth: '100%',
+                overflowWrap: 'break-word',
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                textAlign: 'center',
               }}
-              InputLabelProps={{
-                sx: {
-                  color: '#111827',
-                  '&.Mui-focused': { color: CANARY_BUTTON_COLOR },
-                },
+            >
+              {result}
+            </Typography>
+          )}
+          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 2 }}>
+            <Button
+              variant="contained"
+              sx={{
+                minWidth: 140,
+                fontWeight: 600,
+                fontSize: '1rem',
+                py: 1.1,
+                px: 3,
+                textTransform: 'none',
               }}
-            />
-            <TextField
-              label="Password"
-              variant="outlined"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              fullWidth
-              placeholder="••••••••"
-              InputProps={{
-                sx: {
-                  borderRadius: 3,
-                  bgcolor: '#ffffff',
-                  '& .MuiOutlinedInput-notchedOutline': { borderColor: '#d1d5db' },
-                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#9ca3af' },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: CANARY_BUTTON_COLOR },
-                  '& input': { color: '#111827', fontWeight: 500 },
-                  '& .MuiInputBase-input::placeholder': { color: '#111827', opacity: 0.55 },
-                },
+              onClick={handleLoginClick}
+            >
+              Login
+            </Button>
+            <Button
+              variant="contained"
+              sx={{
+                minWidth: 140,
+                fontWeight: 600,
+                fontSize: '1rem',
+                py: 1.1,
+                px: 3,
+                textTransform: 'none',
               }}
-              InputLabelProps={{
-                sx: {
-                  color: '#111827',
-                  '&.Mui-focused': { color: CANARY_BUTTON_COLOR },
-                },
-              }}
-            />
-            {result && (
-              <Typography
-                sx={{
-                  mt: 1,
-                  color: resultIsSuccess ? '#047857' : '#b91c1c',
-                  wordBreak: 'break-word',
-                  whiteSpace: 'pre-line',
-                  maxWidth: '100%',
-                  overflowWrap: 'break-word',
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  textAlign: 'center',
-                }}
-              >
-                {result}
-              </Typography>
-            )}
-            <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-              <Button
-                variant="contained"
-                fullWidth
-                sx={{
-                  borderRadius: 3,
-                  fontWeight: 600,
-                  fontSize: '1rem',
-                  letterSpacing: 1,
-                  py: 1.3,
-                  backgroundColor: CANARY_BUTTON_COLOR,
-                  color: CANARY_BUTTON_TEXT_COLOR,
-                  textTransform: 'none',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-                  '&:hover': {
-                    backgroundColor: '#0097a7',
-                    color: CANARY_BUTTON_TEXT_COLOR,
-                    boxShadow: '0 4px 14px rgba(0,0,0,0.18)',
-                  },
-                }}
-                onClick={handleLoginClick}
-              >
-                Login
-              </Button>
-              <Button
-                variant="contained"
-                fullWidth
-                sx={{
-                  borderRadius: 3,
-                  fontWeight: 600,
-                  fontSize: '1rem',
-                  letterSpacing: 1,
-                  py: 1.3,
-                  backgroundColor: CANARY_BUTTON_COLOR,
-                  color: CANARY_BUTTON_TEXT_COLOR,
-                  textTransform: 'none',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-                  '&:hover': {
-                    backgroundColor: '#0097a7',
-                    color: CANARY_BUTTON_TEXT_COLOR,
-                    boxShadow: '0 4px 14px rgba(0,0,0,0.18)',
-                  },
-                }}
-                onClick={handleRegisterClick}
-              >
-                Register
-              </Button>
-            </Box>
+              onClick={handleRegisterClick}
+            >
+              Register
+            </Button>
           </Box>
-        </Paper>
+        </Box>
       </Box>
     </AppThemeProvider>
   );

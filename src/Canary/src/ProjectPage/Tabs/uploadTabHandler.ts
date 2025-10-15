@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { CallAPI, projectServiceUrl } from '../../utils/apis';
-import type { Project } from '../../utils/intefaces/interfaces';
+import type { Project } from '../../utils/interfaces/interfaces';
 
 const DEFAULT_FRAME_INTERVAL = 1;
 
@@ -74,7 +74,8 @@ export function useUploadTab(project: Project | null) {
 
   const createBatch = useCallback(async (projectID: string, nameHint?: string): Promise<{ batchID: string; batchName: string }> => {
     const url = `${projectServiceUrl()}/batch`;
-    const finalName = (nameHint && nameHint.trim()) || `Upload ${new Date().toLocaleString('en-GB')}`;
+    const formattedDate = new Date().toLocaleDateString('en-GB');
+    const finalName = (nameHint && nameHint.trim()) || `Upload ${formattedDate}`;
 
     const data = await CallAPI<{
       batchID?: string;

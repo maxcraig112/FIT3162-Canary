@@ -1,6 +1,6 @@
 import { CallAPI, projectServiceUrl } from '../utils/apis';
 import { getUserIDFromCookie, getAuthTokenFromCookie } from '../utils/cookieUtils';
-import type { Project } from '../utils/intefaces/interfaces';
+import type { Project } from '../utils/interfaces/interfaces';
 
 // Rename a project (uses golang-project-service PATCH /projects/{projectID})
 export async function renameProject(projectID: string, newProjectName: string): Promise<string> {

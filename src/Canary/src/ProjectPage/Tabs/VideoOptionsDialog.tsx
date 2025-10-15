@@ -159,10 +159,10 @@ export const VideoOptionsDialog: React.FC<VideoOptionsDialogProps> = ({ open, vi
 
   return (
     <Dialog open={open} onClose={onCancel} maxWidth="md" fullWidth>
-      <DialogTitle>Configure video processing</DialogTitle>
+      <DialogTitle sx={{ color: '#000' }}>Configure video processing</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={3}>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="#000">
             Set how frames should be extracted for each uploaded video. Defaults capture every frame for the full duration.
           </Typography>
           {formState.map((video, index) => {
@@ -172,7 +172,7 @@ export const VideoOptionsDialog: React.FC<VideoOptionsDialogProps> = ({ open, vi
               <React.Fragment key={`${video.sanitizedName}-${index}`}>
                 <Stack spacing={2}>
                   <Stack spacing={0.5}>
-                    <Typography variant="subtitle1" fontWeight={600}>
+                    <Typography variant="subtitle1" fontWeight={600} sx={{ color: '#000' }}>
                       {video.originalName}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -189,7 +189,39 @@ export const VideoOptionsDialog: React.FC<VideoOptionsDialogProps> = ({ open, vi
                       helperText={errors?.frameIntervalError ?? 'Extract every Nth frame'}
                       size="small"
                       inputProps={{ min: 1, step: 1 }}
-                      sx={{ minWidth: 180 }}
+                      InputProps={{
+                        sx: {
+                          color: '#000',
+                          bgcolor: '#fff',
+                        },
+                      }}
+                      InputLabelProps={{
+                        sx: {
+                          color: '#999',
+                          '&.Mui-focused': { color: '#000' },
+                        },
+                      }}
+                      sx={{
+                        minWidth: 180,
+                        alignSelf: 'center',
+                        maxWidth: 480,
+                        // border styles
+                        '& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+                        '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#000',
+                          borderWidth: '1.5px',
+                        },
+                        '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#f7bd13',
+                          borderWidth: '2px',
+                        },
+                        // label styles (hover + focus)
+                        '& .MuiInputLabel-root': { color: '#999' },
+                        '&:hover .MuiInputLabel-root': { color: '#000' },
+                        '& .MuiInputLabel-root.Mui-focused': { color: '#000' },
+                        mb: "0.5rem",
+                        mt: "0.5rem",
+                      }}
                     />
                     <TextField
                       label="Start time (s)"
@@ -200,7 +232,39 @@ export const VideoOptionsDialog: React.FC<VideoOptionsDialogProps> = ({ open, vi
                       helperText={errors?.startError ?? 'Beginning of extraction'}
                       size="small"
                       inputProps={{ min: 0, max: video.duration, step: 0.1 }}
-                      sx={{ minWidth: 160 }}
+                      InputProps={{
+                        sx: {
+                          color: '#000',
+                          bgcolor: '#fff',
+                        },
+                      }}
+                      InputLabelProps={{
+                        sx: {
+                          color: '#999',
+                          '&.Mui-focused': { color: '#000' },
+                        },
+                      }}
+                      sx={{
+                        minWidth: 160,
+                        alignSelf: 'center',
+                        maxWidth: 480,
+                        // border styles
+                        '& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+                        '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#000',
+                          borderWidth: '1.5px',
+                        },
+                        '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#f7bd13',
+                          borderWidth: '2px',
+                        },
+                        // label styles (hover + focus)
+                        '& .MuiInputLabel-root': { color: '#999' },
+                        '&:hover .MuiInputLabel-root': { color: '#000' },
+                        '& .MuiInputLabel-root.Mui-focused': { color: '#000' },
+                        mb: "0.5rem",
+                        mt: "0.5rem",
+                      }}
                     />
                     <TextField
                       label="End time (s)"
@@ -211,7 +275,39 @@ export const VideoOptionsDialog: React.FC<VideoOptionsDialogProps> = ({ open, vi
                       helperText={errors?.endError ?? 'Exclusive end time'}
                       size="small"
                       inputProps={{ min: 0, max: video.duration, step: 0.1 }}
-                      sx={{ minWidth: 160 }}
+                      InputProps={{
+                        sx: {
+                          color: '#000',
+                          bgcolor: '#fff',
+                        },
+                      }}
+                      InputLabelProps={{
+                        sx: {
+                          color: '#999',
+                          '&.Mui-focused': { color: '#000' },
+                        },
+                      }}
+                      sx={{
+                        minWidth: 160,
+                        alignSelf: 'center',
+                        maxWidth: 480,
+                        // border styles
+                        '& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+                        '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#000',
+                          borderWidth: '1.5px',
+                        },
+                        '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#f7bd13',
+                          borderWidth: '2px',
+                        },
+                        // label styles (hover + focus)
+                        '& .MuiInputLabel-root': { color: '#999' },
+                        '&:hover .MuiInputLabel-root': { color: '#000' },
+                        '& .MuiInputLabel-root.Mui-focused': { color: '#000' },
+                        mb: "0.5rem",
+                        mt: "0.5rem",
+                      }}
                     />
                     <TextField
                       label="Max frames"
@@ -222,7 +318,39 @@ export const VideoOptionsDialog: React.FC<VideoOptionsDialogProps> = ({ open, vi
                       helperText={errors?.maxFramesError ?? 'Leave blank for all frames'}
                       size="small"
                       inputProps={{ min: 1, step: 1 }}
-                      sx={{ minWidth: 180 }}
+                      InputProps={{
+                        sx: {
+                          color: '#000',
+                          bgcolor: '#fff',
+                        },
+                      }}
+                      InputLabelProps={{
+                        sx: {
+                          color: '#999',
+                          '&.Mui-focused': { color: '#000' },
+                        },
+                      }}
+                      sx={{
+                        minWidth: 180,
+                        alignSelf: 'center',
+                        maxWidth: 480,
+                        // border styles
+                        '& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+                        '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#000',
+                          borderWidth: '1.5px',
+                        },
+                        '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#f7bd13',
+                          borderWidth: '2px',
+                        },
+                        // label styles (hover + focus)
+                        '& .MuiInputLabel-root': { color: '#999' },
+                        '&:hover .MuiInputLabel-root': { color: '#000' },
+                        '& .MuiInputLabel-root.Mui-focused': { color: '#000' },
+                        mb: "0.5rem",
+                        mt: "0.5rem",
+                      }}
                     />
                   </Stack>
                 </Stack>
@@ -233,7 +361,7 @@ export const VideoOptionsDialog: React.FC<VideoOptionsDialogProps> = ({ open, vi
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onCancel} color="inherit">
+        <Button onClick={onCancel} color="secondary" variant="outlined">
           Cancel
         </Button>
         <Button onClick={handleConfirm} variant="contained" disabled={confirmDisabled}>

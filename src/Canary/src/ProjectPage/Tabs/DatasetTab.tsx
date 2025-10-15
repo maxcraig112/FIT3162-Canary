@@ -1,10 +1,10 @@
 import React from 'react';
-import { Box, Paper, IconButton, Menu, MenuItem, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
+import { Box, IconButton, Menu, MenuItem, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
 // Using Box + CSS grid for precise gaps and alignment
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useDatasetTab } from './datasetTabHandler';
 import { useParams } from 'react-router-dom';
-import type { Project } from '../../utils/intefaces/interfaces';
+import type { Project } from '../../utils/interfaces/interfaces';
 import { useAuthGuard } from '../../utils/authUtil';
 
 export const DatasetTab: React.FC<{ project: Project | null }> = () => {
@@ -36,12 +36,27 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
     closeDelete,
   } = useDatasetTab(projectID);
 
+  const renameOriginalValueRef = React.useRef<string>('');
+
   // Log batches whenever they change so you can inspect the data
   React.useEffect(() => {
     if (batches) {
       // console.log('[BatchesTab] Batches state:', batches);
     }
   }, [batches]);
+  React.useEffect(() => {
+    if (renameOpen) {
+      if (!renameOriginalValueRef.current && renameValue) {
+        renameOriginalValueRef.current = renameValue;
+      }
+    } else {
+      renameOriginalValueRef.current = '';
+    }
+  }, [renameOpen, renameValue]);
+  const isRenameDisabled =
+    renaming ||
+    !renameValue.trim() ||
+    renameValue.trim().toLowerCase() === renameOriginalValueRef.current.trim().toLowerCase();
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -70,118 +85,70 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
             })();
             return (
               <Box key={b.batchID} sx={{ minHeight: '10vh' }}>
-                <Paper
+                <Box
                   sx={{
-                    p: 4,
-                    textAlign: 'center',
                     position: 'relative',
-                    minHeight: 220,
-                    height: '100%',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    pt: 2,
-                    pb: 7, // space for bottom count
-                    bgcolor: b.previewURL ? 'transparent' : '#ffffff',
-                    color: '#000',
-                    boxShadow: 8,
+                    border: '1.5px solid #bfbfbfff',
+                    borderRadius: 1,
+                    overflow: 'hidden',
+                    boxShadow: 0,
                     transition: 'box-shadow 0.25s ease, transform 0.25s ease',
-                    '&:hover': {
-                      boxShadow: 16,
-                      transform: 'translateY(-3px)',
-                    },
-                    overflow: 'hidden', // clip blurred bg to card
+                    bgcolor: '#fff',
+                    '&:hover': { boxShadow: 2, transform: 'translateY(-2px)' },
                   }}
                 >
-                  {/* blurred background preview */}
-                  {b.previewURL && (
-                    <Box
-                      aria-hidden
-                      sx={{
-                        position: 'absolute',
-                        inset: 0,
-                        backgroundImage: `url(${b.previewURL})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        filter: 'blur(3px)',
-                        transform: 'scale(1.06)', // avoid edge transparency from blur
-                        zIndex: 1,
-                        opacity: 0.5,
-                        pointerEvents: 'none',
-                      }}
-                    />
-                  )}
-                  {/* dim overlay to improve text contrast */}
-                  {b.previewURL && <Box aria-hidden sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(255,255,255,0)', zIndex: 2, pointerEvents: 'none' }} />}
                   <Box
+                    aria-hidden
                     sx={{
-                      flexGrow: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '100%',
-                      px: 1,
                       position: 'relative',
-                      zIndex: 3,
+                      width: '100%',
+                      pt: '56.25%',
+                      bgcolor: '#f1f5f9',
+                      backgroundImage: b.previewURL ? `url(${b.previewURL})` : 'linear-gradient(135deg,#e2e8f0 0%,#cbd5f5 100%)',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
                     }}
-                  >
-                    <IconButton
-                      sx={{
-                        position: 'absolute',
-                        top: 8,
-                        right: 8,
-                        fontSize: 32,
-                        color: (theme) => theme.palette.grey[600],
-                        zIndex: 2,
-                      }}
-                      size="large"
-                      onClick={(e) => openMenu(e, b.batchID)}
-                    >
-                      <MoreVertIcon sx={{ fontSize: 32 }} />
-                    </IconButton>
-                    <Typography
-                      sx={{
-                        fontWeight: 800,
-                        fontSize: '1.75rem',
-                        letterSpacing: 0.4,
-                        lineHeight: 1.1,
-                        px: 1,
-                        maxWidth: '100%',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                      title={b.batchName}
-                    >
-                      {b.batchName}
-                    </Typography>
-                    {formattedUpdated && (
+                  />
+
+                  <Box sx={{ px: 2, py: 1.75, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
                       <Typography
                         sx={{
-                          mt: 1,
-                          color: '#555',
-                          fontSize: '0.95rem',
-                          fontWeight: 500,
-                          letterSpacing: 0.2,
+                          flexGrow: 1,
+                          fontWeight: 700,
+                          fontSize: '1.1rem',
+                          lineHeight: 1.3,
+                          color: '#0f172a',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
-                          maxWidth: '100%',
                         }}
-                        title={`Updated ${formattedUpdated}`}
                       >
+                        {b.batchName}
+                      </Typography>
+                      <IconButton
+                        size="small"
+                        sx={{ color: '#475569' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openMenu(e, b.batchID);
+                        }}
+                      >
+                        <MoreVertIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.9rem', color: '#1f2937' }}>
+                      {b.numberOfTotalFiles} {b.numberOfTotalFiles === 1 ? 'image' : 'images'}
+                    </Typography>
+
+                    {formattedUpdated && (
+                      <Typography variant="body2" sx={{ color: '#475569' }}>
                         Updated {formattedUpdated}
                       </Typography>
                     )}
                   </Box>
-                  <Box sx={{ position: 'absolute', bottom: 16, left: 0, right: 0, zIndex: 3 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.95rem', color: '#222' }}>
-                      {b.numberOfTotalFiles} {b.numberOfTotalFiles === 1 ? 'image' : 'images'}
-                    </Typography>
-                  </Box>
-                </Paper>
+                </Box>
               </Box>
             );
           })}
@@ -206,20 +173,85 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
           },
         }}
       >
-        <MenuItem onClick={handleFinish}>Mark as Incomplete</MenuItem>
-        <MenuItem onClick={openRename}>Rename</MenuItem>
-        <MenuItem onClick={openDelete}>Delete</MenuItem>
+        <MenuItem onClick={handleFinish} sx={{'&:hover': {bgcolor: '#dededeff'}}}>Mark as Incomplete</MenuItem>
+        <MenuItem onClick={openRename} sx={{'&:hover': {bgcolor: '#dededeff'}}}>Rename</MenuItem>
+        <MenuItem 
+          onClick={openDelete} 
+          sx={{
+            color: '#b91c1c',
+            '&:hover': {bgcolor: '#fee2e2', color: '#7f1d1d'}
+            }}
+        >
+          Delete
+        </MenuItem>
       </Menu>
 
       {/* Rename Dialog */}
       <Dialog open={renameOpen} onClose={closeRename} fullWidth maxWidth="xs">
-        <DialogTitle>Rename Batch</DialogTitle>
+        <DialogTitle sx={{ color: '#000' }}>Rename Batch</DialogTitle>
         <DialogContent>
-          <TextField autoFocus margin="dense" label="New name" type="text" fullWidth value={renameValue} onChange={(e) => setRenameValue(e.target.value)} />
+          <TextField 
+            autoFocus 
+            label="New name" 
+            type="text" 
+            fullWidth 
+            value={renameValue} 
+            onChange={(e) => setRenameValue(e.target.value)} 
+            InputProps={{
+              sx: {
+                color: '#000',
+                bgcolor: '#fff',
+              },
+            }}
+            InputLabelProps={{
+              sx: {
+                color: '#999',
+                '&.Mui-focused': { color: '#000' },
+              },
+            }}
+            sx={{
+              alignSelf: 'center',
+              maxWidth: 480,
+              // border styles
+              '& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
+              '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#000',
+                borderWidth: '1.5px',
+              },
+              '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#f7bd13',
+                borderWidth: '2px',
+              },
+              // label styles (hover + focus)
+              '& .MuiInputLabel-root': { color: '#999' },
+              '&:hover .MuiInputLabel-root': { color: '#000' },
+              '& .MuiInputLabel-root.Mui-focused': { color: '#000' },
+              mb: "0.5rem",
+              mt: "0.5rem",
+            }}
+          />
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeRename}>Cancel</Button>
-          <Button onClick={submitRename} disabled={renaming || !renameValue.trim()} variant="contained">
+          <Button 
+            onClick={closeRename}
+            variant="outlined"
+            color="secondary"
+            sx = {{
+              mb: "1rem",
+            }}
+          >
+              Cancel
+          </Button>
+          <Button
+            onClick={submitRename}
+            disabled={isRenameDisabled}
+            variant="contained"
+            sx={{
+              mb: "1rem",
+              mr: "1rem",
+              '&.Mui-disabled': { bgcolor: '#e2e8f0', color: '#94a3b8' },
+            }}
+          >
             {renaming ? 'Renaming...' : 'Rename'}
           </Button>
         </DialogActions>
@@ -227,13 +259,24 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
 
       {/* Delete Dialog */}
       <Dialog open={deleteOpen} onClose={closeDelete} fullWidth maxWidth="xs">
-        <DialogTitle>Delete Batch</DialogTitle>
+        <DialogTitle sx={{color: "#000"}}>Delete Batch</DialogTitle>
         <DialogContent>
-          <Typography>Are you sure you want to delete this batch?</Typography>
+          <Typography sx={{color: "#000"}}>Are you sure you want to delete this batch?</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeDelete}>Cancel</Button>
-          <Button onClick={confirmDelete} disabled={deleting} color="error" variant="contained">
+          <Button 
+            onClick={closeDelete} 
+            variant="outlined"
+            color="secondary"
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={confirmDelete} 
+            disabled={deleting} 
+            color="error" 
+            variant="contained"
+          >
             {deleting ? 'Deleting...' : 'Delete'}
           </Button>
         </DialogActions>
