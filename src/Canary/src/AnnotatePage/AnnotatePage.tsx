@@ -529,7 +529,7 @@ const AnnotatePage: React.FC = () => {
         bgcolor: '#f5f5f5',
       }}
     >
-      <AppBar position="static" color="default" elevation={1} >
+      <AppBar position="static" color="default" elevation={1}>
         <Toolbar sx={{ position: 'relative', minHeight: 64 }}>
           {/* Back Button Top Left */}
           <IconButton
@@ -540,7 +540,7 @@ const AnnotatePage: React.FC = () => {
               closeSessionWebSocket(1000, 'navigate away');
             }}
           >
-            <ArrowBack/>
+            <ArrowBack />
           </IconButton>
           {!hideBatchTitle && (
             <Typography

@@ -102,7 +102,7 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
     onAdd();
   };
 
-  const outlinedSx = { 
+  const outlinedSx = {
     // border styles
     '& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
     '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
@@ -127,7 +127,7 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
   const labelSx = {
     fontSize: '0.875rem',
     color: '#4f4f4fff',
-    '&.Mui-focused': { color: 'primary' }
+    '&.Mui-focused': { color: 'primary' },
   };
 
   return (
@@ -250,10 +250,10 @@ const ListPanel: React.FC<ListPanelProps> = React.memo(({ inputValue, onInputCha
           },
         }}
       >
-        <MenuItem onClick={handleMenuRename} sx={{ color: '#000', '&:hover': { bgcolor: '#dededeff'} }}>
+        <MenuItem onClick={handleMenuRename} sx={{ color: '#000', '&:hover': { bgcolor: '#dededeff' } }}>
           Rename
         </MenuItem>
-        <MenuItem onClick={handleMenuDelete} sx={{ color: '#b91c1c', '&:hover': { bgcolor: '#fee2e2', color: '#7f1d1d' },}}>
+        <MenuItem onClick={handleMenuDelete} sx={{ color: '#b91c1c', '&:hover': { bgcolor: '#fee2e2', color: '#7f1d1d' } }}>
           Delete
         </MenuItem>
       </Menu>
@@ -296,7 +296,7 @@ export function SettingsTab({ project: _project }: SettingsTabProps) {
         </Typography>
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
           <Typography variant="body1" sx={{ color: '#000', textAlign: 'center', maxWidth: 900 }}>
-            Labels are shared across all images within this project. 
+            Labels are shared across all images within this project.
             <br />
             WARNING: Deleting a label that is currently in use will remove it from all annotations.
           </Typography>
@@ -304,9 +304,9 @@ export function SettingsTab({ project: _project }: SettingsTabProps) {
       </Box>
 
       {/* Two columns below the shared header */}
-  <Box sx={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'stretch', gap: 4, minHeight: 'fit-content' }}>
+      <Box sx={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'stretch', gap: 4, minHeight: 'fit-content' }}>
         {/* Keypoints */}
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minHeight: '60vh'}}>
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minHeight: '60vh' }}>
           <Box sx={{ flexGrow: 1, minHeight: 0, display: 'flex', width: '100%' }}>
             <ListPanel
               title="Keypoint Labels"

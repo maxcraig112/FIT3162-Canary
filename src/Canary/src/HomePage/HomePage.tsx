@@ -188,7 +188,7 @@ const HomePage: React.FC = () => {
               gap: 3,
             }}
           >
-            <IconButton sx={{ position: 'absolute', top: 16, right: 16, color: '#000'}} onClick={handleCloseJoin}>
+            <IconButton sx={{ position: 'absolute', top: 16, right: 16, color: '#000' }} onClick={handleCloseJoin}>
               <CloseIcon />
             </IconButton>
             <Typography variant="h5" sx={{ fontWeight: 700, textAlign: 'center', color: '#000' }}>
@@ -203,7 +203,7 @@ const HomePage: React.FC = () => {
               fullWidth
               autoComplete="off"
               InputProps={{ sx: { color: '#000', bgcolor: '#fff' } }}
-              InputLabelProps={{ sx: { color: '#999', '&.Mui-focused': { color: '#000' },  } }}
+              InputLabelProps={{ sx: { color: '#999', '&.Mui-focused': { color: '#000' } } }}
               sx={textFieldSx}
             />
             <TextField

@@ -208,7 +208,7 @@ const ProjectsPage: React.FC = () => {
                 py: 1.5,
                 color: '#000',
                 '&:hover': {
-                  backgroundColor: '#e6c200',           // darker hover
+                  backgroundColor: '#e6c200', // darker hover
                 },
               }}
               onClick={handleNewProject}
@@ -240,8 +240,8 @@ const ProjectsPage: React.FC = () => {
                   <Paper
                     sx={{
                       p: 2,
-                      width: "15vw",
-                      maxWidth: "15vw",
+                      width: '15vw',
+                      maxWidth: '15vw',
                       textAlign: 'center',
                       position: 'relative',
                       height: '15vh',
@@ -259,7 +259,7 @@ const ProjectsPage: React.FC = () => {
                       transition: 'border-color 0.2s ease, box-shadow 0.25s ease, transform 0.25s ease',
                       '&:hover': {
                         borderColor: '#f7bd13',
-                        boxShadow: 3, 
+                        boxShadow: 3,
                         transform: 'translateY(-2px)',
                       },
                     }}
@@ -325,7 +325,7 @@ const ProjectsPage: React.FC = () => {
                         onClick={(e) => e.stopPropagation()}
                       >
                         <MenuItem
-                          sx={{ borderRadius: 0, '&:hover': { bgcolor: '#dededeff'} }}
+                          sx={{ borderRadius: 0, '&:hover': { bgcolor: '#dededeff' } }}
                           onClick={(e) => {
                             e.stopPropagation();
                             setRenameProjectId(project.projectID);
@@ -416,15 +416,15 @@ const ProjectsPage: React.FC = () => {
               p: 3,
             }}
           >
-            <Typography id="rename-project-modal-title" variant="h6" align="center" sx={{ mb: 2, color: "#000" }}>
-              Rename Project 
+            <Typography id="rename-project-modal-title" variant="h6" align="center" sx={{ mb: 2, color: '#000' }}>
+              Rename Project
             </Typography>
-            <TextField 
-              label="New Project Name" 
-              value={renameValue} 
-              onChange={(e) => setRenameValue(e.target.value)} 
-              fullWidth 
-              autoFocus 
+            <TextField
+              label="New Project Name"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              fullWidth
+              autoFocus
               InputProps={{
                 sx: {
                   color: '#000',
@@ -475,10 +475,7 @@ const ProjectsPage: React.FC = () => {
                 variant="contained"
                 color="primary"
                 fullWidth
-                disabled={
-                  !renameValue.trim() ||
-                  renameValue.trim().toLowerCase() === renameOriginalName.trim().toLowerCase()
-                }
+                disabled={!renameValue.trim() || renameValue.trim().toLowerCase() === renameOriginalName.trim().toLowerCase()}
                 sx={{
                   '&.Mui-disabled': {
                     bgcolor: '#e2e8f0',
@@ -521,7 +518,7 @@ const ProjectsPage: React.FC = () => {
               p: 3,
             }}
           >
-            <Typography id="delete-project-modal-title" variant="h6" align="center" sx={{ mb: 2, color: "#000" }}>
+            <Typography id="delete-project-modal-title" variant="h6" align="center" sx={{ mb: 2, color: '#000' }}>
               Delete Project
             </Typography>
             <Typography align="center" sx={{ mb: 3, color: '#000' }}>
@@ -588,8 +585,8 @@ const ProjectsPage: React.FC = () => {
                 position: 'absolute',
                 right: 22,
                 top: 22,
-                color: "#000",
-                fontSize: "1.5rem",
+                color: '#000',
+                fontSize: '1.5rem',
               }}
             >
               ✕
@@ -597,13 +594,13 @@ const ProjectsPage: React.FC = () => {
             <Typography id="project-modal-title" variant="h5" component="h2" color="black" sx={{ mb: 2, width: '100%' }}>
               Create a new project
             </Typography>
-            <TextField 
-              variant="outlined" 
-              label="Project name" 
-              value={newProjectName} 
-              onChange={(e) => setNewProjectName(e.target.value)} 
-              size="medium" 
-              fullWidth 
+            <TextField
+              variant="outlined"
+              label="Project name"
+              value={newProjectName}
+              onChange={(e) => setNewProjectName(e.target.value)}
+              size="medium"
+              fullWidth
               InputProps={{
                 sx: {
                   color: '#000',
@@ -635,7 +632,7 @@ const ProjectsPage: React.FC = () => {
                 '&:hover .MuiInputLabel-root': { color: '#999' },
                 '& .MuiInputLabel-root.Mui-focused': { color: '#000' },
               }}
-              autoFocus 
+              autoFocus
             />
             <FormControlLabel
               control={<Checkbox checked={createDefaultLabels} onChange={(e) => setCreateDefaultLabels(e.target.checked)} />}
@@ -681,6 +678,5 @@ const ProjectsPage: React.FC = () => {
     </AppThemeProvider>
   );
 };
-
 
 export default ProjectsPage;

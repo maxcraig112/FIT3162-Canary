@@ -219,8 +219,8 @@ export const VideoOptionsDialog: React.FC<VideoOptionsDialogProps> = ({ open, vi
                         '& .MuiInputLabel-root': { color: '#999' },
                         '&:hover .MuiInputLabel-root': { color: '#000' },
                         '& .MuiInputLabel-root.Mui-focused': { color: '#000' },
-                        mb: "0.5rem",
-                        mt: "0.5rem",
+                        mb: '0.5rem',
+                        mt: '0.5rem',
                       }}
                     />
                     <TextField
@@ -262,8 +262,8 @@ export const VideoOptionsDialog: React.FC<VideoOptionsDialogProps> = ({ open, vi
                         '& .MuiInputLabel-root': { color: '#999' },
                         '&:hover .MuiInputLabel-root': { color: '#000' },
                         '& .MuiInputLabel-root.Mui-focused': { color: '#000' },
-                        mb: "0.5rem",
-                        mt: "0.5rem",
+                        mb: '0.5rem',
+                        mt: '0.5rem',
                       }}
                     />
                     <TextField
@@ -305,8 +305,8 @@ export const VideoOptionsDialog: React.FC<VideoOptionsDialogProps> = ({ open, vi
                         '& .MuiInputLabel-root': { color: '#999' },
                         '&:hover .MuiInputLabel-root': { color: '#000' },
                         '& .MuiInputLabel-root.Mui-focused': { color: '#000' },
-                        mb: "0.5rem",
-                        mt: "0.5rem",
+                        mb: '0.5rem',
+                        mt: '0.5rem',
                       }}
                     />
                     <TextField
@@ -348,8 +348,8 @@ export const VideoOptionsDialog: React.FC<VideoOptionsDialogProps> = ({ open, vi
                         '& .MuiInputLabel-root': { color: '#999' },
                         '&:hover .MuiInputLabel-root': { color: '#000' },
                         '& .MuiInputLabel-root.Mui-focused': { color: '#000' },
-                        mb: "0.5rem",
-                        mt: "0.5rem",
+                        mb: '0.5rem',
+                        mt: '0.5rem',
                       }}
                     />
                   </Stack>

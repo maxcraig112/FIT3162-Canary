@@ -346,7 +346,11 @@ const ProjectPage: React.FC = () => {
                     px: { xs: 2, md: 4 },
                   }}
                 >
-                  {loading && !projectData && <Typography variant="body1" sx={{color: '#000000ff'}}>Loading content...</Typography>}
+                  {loading && !projectData && (
+                    <Typography variant="body1" sx={{ color: '#000000ff' }}>
+                      Loading content...
+                    </Typography>
+                  )}
                   {(!loading || projectData) && !error && (
                     <>
                       {isSettingsSelected ? (

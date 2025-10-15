@@ -97,7 +97,7 @@ export const ExportTab: React.FC<{ project: Project | null }> = ({ project }) =>
 
   /* ---------- render ---------- */
   const selectSx = {
-    color: "#000",
+    color: '#000',
     '& .MuiSelect-select': {
       color: '#000',
       bgcolor: '#fff',

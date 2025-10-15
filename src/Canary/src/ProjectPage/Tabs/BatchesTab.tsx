@@ -91,10 +91,7 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
       renameOriginalValueRef.current = '';
     }
   }, [renameOpen, renameValue]);
-  const isRenameDisabled =
-    renaming ||
-    !renameValue.trim() ||
-    renameValue.trim().toLowerCase() === renameOriginalValueRef.current.trim().toLowerCase();
+  const isRenameDisabled = renaming || !renameValue.trim() || renameValue.trim().toLowerCase() === renameOriginalValueRef.current.trim().toLowerCase();
 
   const handleCopySessionID = React.useCallback(async (event: React.MouseEvent, sessionID?: string) => {
     event.stopPropagation();
@@ -137,7 +134,7 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
             alignItems: 'start',
           }}
         >
-          {loading && batches.length === 0 && <Typography sx={{color: '#000000ff'}}>Loading batches...</Typography>}
+          {loading && batches.length === 0 && <Typography sx={{ color: '#000000ff' }}>Loading batches...</Typography>}
           {batches.map((b) => {
             const activeSessionForBatch = activeSessionsByBatch[b.batchID];
             const isSessionActive = Boolean(activeSessionForBatch);
@@ -301,30 +298,34 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
         }}
       >
         {isSessionMenuVisible && !sessionActiveForMenuBatch && (
-          <MenuItem onClick={startSession} disabled={sessionPending} sx={{'&:hover': {bgcolor: '#dededeff'}}}>
+          <MenuItem onClick={startSession} disabled={sessionPending} sx={{ '&:hover': { bgcolor: '#dededeff' } }}>
             {sessionPending ? 'Starting session…' : startLabel}
           </MenuItem>
         )}
         {isSessionMenuVisible && sessionActiveForMenuBatch && sessionOwnedByCurrentUser && (
-          <MenuItem onClick={stopSession} disabled={sessionPending} sx={{'&:hover': {bgcolor: '#dededeff'}}}>
+          <MenuItem onClick={stopSession} disabled={sessionPending} sx={{ '&:hover': { bgcolor: '#dededeff' } }}>
             {sessionPending ? 'Stopping session…' : 'Stop Session'}
           </MenuItem>
         )}
         {isSessionMenuVisible && sessionActiveForMenuBatch && !sessionOwnedByCurrentUser && (
-          <MenuItem onClick={stopSession} disabled={sessionPending} sx={{ color: 'warning.main', '&:hover': {bgcolor: '#dededeff'}}}>
+          <MenuItem onClick={stopSession} disabled={sessionPending} sx={{ color: 'warning.main', '&:hover': { bgcolor: '#dededeff' } }}>
             {sessionPending ? 'Stopping session…' : 'End Session (Session in progress by another user)'}
           </MenuItem>
         )}
-        <MenuItem onClick={handleFinish} sx={{'&:hover': {bgcolor: '#dededeff'}}}>Finish</MenuItem>
-        <MenuItem onClick={openRename} sx={{'&:hover': {bgcolor: '#dededeff'}}}>Rename</MenuItem>
-        <MenuItem 
-          onClick={openDelete} 
+        <MenuItem onClick={handleFinish} sx={{ '&:hover': { bgcolor: '#dededeff' } }}>
+          Finish
+        </MenuItem>
+        <MenuItem onClick={openRename} sx={{ '&:hover': { bgcolor: '#dededeff' } }}>
+          Rename
+        </MenuItem>
+        <MenuItem
+          onClick={openDelete}
           sx={{
             color: '#b91c1c',
-            '&:hover': {bgcolor: '#fee2e2', color: '#7f1d1d'}
-            }}
+            '&:hover': { bgcolor: '#fee2e2', color: '#7f1d1d' },
+          }}
         >
-        Delete
+          Delete
         </MenuItem>
       </Menu>
 
@@ -332,13 +333,13 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
       <Dialog open={renameOpen} onClose={closeRename} fullWidth maxWidth="xs">
         <DialogTitle sx={{ color: '#000' }}>Rename Batch</DialogTitle>
         <DialogContent>
-          <TextField 
-            autoFocus 
-            label="New name" 
-            type="text" 
-            fullWidth 
-            value={renameValue} 
-            onChange={(e) => setRenameValue(e.target.value)} 
+          <TextField
+            autoFocus
+            label="New name"
+            type="text"
+            fullWidth
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
             InputProps={{
               sx: {
                 color: '#000',
@@ -368,29 +369,29 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
               '& .MuiInputLabel-root': { color: '#999' },
               '&:hover .MuiInputLabel-root': { color: '#000' },
               '& .MuiInputLabel-root.Mui-focused': { color: '#000' },
-              mb: "0.5rem",
-              mt: "0.5rem",
+              mb: '0.5rem',
+              mt: '0.5rem',
             }}
           />
         </DialogContent>
         <DialogActions>
-          <Button 
+          <Button
             onClick={closeRename}
             variant="outlined"
             color="secondary"
-            sx = {{
-              mb: "1rem",
+            sx={{
+              mb: '1rem',
             }}
           >
-              Cancel
+            Cancel
           </Button>
           <Button
             onClick={submitRename}
             disabled={isRenameDisabled}
             variant="contained"
             sx={{
-              mb: "1rem",
-              mr: "1rem",
+              mb: '1rem',
+              mr: '1rem',
               '&.Mui-disabled': { bgcolor: '#e2e8f0', color: '#94a3b8' },
             }}
           >
@@ -401,24 +402,15 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
 
       {/* Delete Dialog */}
       <Dialog open={deleteOpen} onClose={closeDelete} fullWidth maxWidth="xs">
-        <DialogTitle sx={{color: "#000"}}>Delete Batch</DialogTitle>
+        <DialogTitle sx={{ color: '#000' }}>Delete Batch</DialogTitle>
         <DialogContent>
-          <Typography sx={{color: "#000"}}>Are you sure you want to delete this batch?</Typography>
+          <Typography sx={{ color: '#000' }}>Are you sure you want to delete this batch?</Typography>
         </DialogContent>
         <DialogActions>
-          <Button 
-            onClick={closeDelete} 
-            variant="outlined"
-            color="secondary"
-          >
+          <Button onClick={closeDelete} variant="outlined" color="secondary">
             Cancel
           </Button>
-          <Button 
-            onClick={confirmDelete} 
-            disabled={deleting} 
-            color="error" 
-            variant="contained"
-          >
+          <Button onClick={confirmDelete} disabled={deleting} color="error" variant="contained">
             {deleting ? 'Deleting...' : 'Delete'}
           </Button>
         </DialogActions>
@@ -435,18 +427,18 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
       >
         <DialogTitle sx={{ color: '#000' }}>Start Session</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Typography sx={{color: '#000'}}>{sessionCreationBatch ? `Start a new session for "${sessionCreationBatch.batchName}".` : 'Start a new session.'}</Typography>
+          <Typography sx={{ color: '#000' }}>{sessionCreationBatch ? `Start a new session for "${sessionCreationBatch.batchName}".` : 'Start a new session.'}</Typography>
           <Typography variant="body2" color="#2f2f2fff">
             Set an optional password so only people with the password can join. Leave blank to allow anyone with the session ID to join.
           </Typography>
-          <TextField 
-            label="Session password" 
-            type="password" 
-            value={sessionPasswordValue} 
-            onChange={(e) => setSessionPasswordValue(e.target.value)} 
-            disabled={sessionPending} 
-            fullWidth 
-            autoFocus 
+          <TextField
+            label="Session password"
+            type="password"
+            value={sessionPasswordValue}
+            onChange={(e) => setSessionPasswordValue(e.target.value)}
+            disabled={sessionPending}
+            fullWidth
+            autoFocus
             InputProps={{
               sx: {
                 color: '#000',
@@ -464,8 +456,8 @@ export const BatchesTab: React.FC<{ project: Project | null }> = () => {
               maxWidth: 480,
               '& .MuiOutlinedInput-notchedOutline': { borderColor: '#999' },
               '&:hover': {
-                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#000000ff' }
-                  },
+                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#000000ff' },
+              },
             }}
           />
         </DialogContent>

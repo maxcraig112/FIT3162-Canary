@@ -53,10 +53,7 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
       renameOriginalValueRef.current = '';
     }
   }, [renameOpen, renameValue]);
-  const isRenameDisabled =
-    renaming ||
-    !renameValue.trim() ||
-    renameValue.trim().toLowerCase() === renameOriginalValueRef.current.trim().toLowerCase();
+  const isRenameDisabled = renaming || !renameValue.trim() || renameValue.trim().toLowerCase() === renameOriginalValueRef.current.trim().toLowerCase();
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -173,14 +170,18 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
           },
         }}
       >
-        <MenuItem onClick={handleFinish} sx={{'&:hover': {bgcolor: '#dededeff'}}}>Mark as Incomplete</MenuItem>
-        <MenuItem onClick={openRename} sx={{'&:hover': {bgcolor: '#dededeff'}}}>Rename</MenuItem>
-        <MenuItem 
-          onClick={openDelete} 
+        <MenuItem onClick={handleFinish} sx={{ '&:hover': { bgcolor: '#dededeff' } }}>
+          Mark as Incomplete
+        </MenuItem>
+        <MenuItem onClick={openRename} sx={{ '&:hover': { bgcolor: '#dededeff' } }}>
+          Rename
+        </MenuItem>
+        <MenuItem
+          onClick={openDelete}
           sx={{
             color: '#b91c1c',
-            '&:hover': {bgcolor: '#fee2e2', color: '#7f1d1d'}
-            }}
+            '&:hover': { bgcolor: '#fee2e2', color: '#7f1d1d' },
+          }}
         >
           Delete
         </MenuItem>
@@ -190,13 +191,13 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
       <Dialog open={renameOpen} onClose={closeRename} fullWidth maxWidth="xs">
         <DialogTitle sx={{ color: '#000' }}>Rename Batch</DialogTitle>
         <DialogContent>
-          <TextField 
-            autoFocus 
-            label="New name" 
-            type="text" 
-            fullWidth 
-            value={renameValue} 
-            onChange={(e) => setRenameValue(e.target.value)} 
+          <TextField
+            autoFocus
+            label="New name"
+            type="text"
+            fullWidth
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
             InputProps={{
               sx: {
                 color: '#000',
@@ -226,29 +227,29 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
               '& .MuiInputLabel-root': { color: '#999' },
               '&:hover .MuiInputLabel-root': { color: '#000' },
               '& .MuiInputLabel-root.Mui-focused': { color: '#000' },
-              mb: "0.5rem",
-              mt: "0.5rem",
+              mb: '0.5rem',
+              mt: '0.5rem',
             }}
           />
         </DialogContent>
         <DialogActions>
-          <Button 
+          <Button
             onClick={closeRename}
             variant="outlined"
             color="secondary"
-            sx = {{
-              mb: "1rem",
+            sx={{
+              mb: '1rem',
             }}
           >
-              Cancel
+            Cancel
           </Button>
           <Button
             onClick={submitRename}
             disabled={isRenameDisabled}
             variant="contained"
             sx={{
-              mb: "1rem",
-              mr: "1rem",
+              mb: '1rem',
+              mr: '1rem',
               '&.Mui-disabled': { bgcolor: '#e2e8f0', color: '#94a3b8' },
             }}
           >
@@ -259,24 +260,15 @@ export const DatasetTab: React.FC<{ project: Project | null }> = () => {
 
       {/* Delete Dialog */}
       <Dialog open={deleteOpen} onClose={closeDelete} fullWidth maxWidth="xs">
-        <DialogTitle sx={{color: "#000"}}>Delete Batch</DialogTitle>
+        <DialogTitle sx={{ color: '#000' }}>Delete Batch</DialogTitle>
         <DialogContent>
-          <Typography sx={{color: "#000"}}>Are you sure you want to delete this batch?</Typography>
+          <Typography sx={{ color: '#000' }}>Are you sure you want to delete this batch?</Typography>
         </DialogContent>
         <DialogActions>
-          <Button 
-            onClick={closeDelete} 
-            variant="outlined"
-            color="secondary"
-          >
+          <Button onClick={closeDelete} variant="outlined" color="secondary">
             Cancel
           </Button>
-          <Button 
-            onClick={confirmDelete} 
-            disabled={deleting} 
-            color="error" 
-            variant="contained"
-          >
+          <Button onClick={confirmDelete} disabled={deleting} color="error" variant="contained">
             {deleting ? 'Deleting...' : 'Delete'}
           </Button>
         </DialogActions>

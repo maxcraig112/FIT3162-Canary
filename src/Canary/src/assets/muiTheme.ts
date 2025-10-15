@@ -33,8 +33,8 @@ export const lightTheme = createTheme({
     },
     MuiButton: {
       defaultProps: {
-        disableElevation: true
-      }
+        disableElevation: true,
+      },
     },
   },
 });
