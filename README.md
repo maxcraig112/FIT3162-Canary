@@ -1,6 +1,12 @@
+
+<p align="center">
+  <img src="src/Canary/public/logo-transparent.png" alt="Logo" width="100" />
+</p>
+
+
 # FIT3162-Canary
 
-Canary is a Web Based Cloud Native application designed for the uploading, storing, annotation, and exporting of Bird images and videos, for the purpose of training machine learning models.
+Canary is a Web Based Cloud Native application designed for the uploading, storing, annotation, and exporting of Bird images and videos, for the purpose of training machine learning models. This software was developed as part of FIT3161 and FIT3162 Computer Science Project
 
 # Architecture
 
@@ -9,9 +15,3 @@ Canary utilises a microservice architecture, in which core processes are develop
 # Additional Documentation
 
 `README` files can be found under each microservice describing it's purpose and any other important information.
-
-[Link to Kanban Board](https://github.com/users/maxcraig112/projects/1/views/1)
-
-[Link to Team Google Drive](https://drive.google.com/drive/u/1/folders/1avlKg3EA2USdDx3O2Tx6xNBBt6gMvtRv)
-
-[Link to Class Submissions Google Drive](https://drive.google.com/drive/u/1/folders/100zGEJX65vuoiXu7qcaA7vdrChRHsZ6q)
