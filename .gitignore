@@ -1,2 +1,8 @@
 **/node_modules/
 **/.terraform
+
+# Go binaries
+**/project-service
+**/golang-auth-service
+**/golang-websocket-service
+**/service-runner
