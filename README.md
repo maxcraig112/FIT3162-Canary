@@ -27,3 +27,17 @@ The following RTM was used as a benchmark for what features needed to be develop
 |       7 | All uploaded images & annotations stored in a database for later retrieval (not local).                                                                                                                                                                              | Database       | FR   | Additional Info: GCP Buckets                                                                                                         | Done   |
 |       8 | UI pages: Login/Signup; Home (single user, multi-user session, view saved); Projects list; Project detail (uploading, properties, dataset export formats); Image viewer with annotations/controls; Annotation controls sidebar with auto-loading images/annotations. | UI/UX          | NFR  | Existing Solution: Roboflow                                                                                                          | Done   |
 
+# Software Screenshots
+
+### Home Page
+
+<img width="1416" height="765" alt="image" src="https://github.com/user-attachments/assets/aeba3f09-cf87-4b14-b27b-31f9d675f2a2" />
+
+### Project Page
+
+<img width="1371" height="745" alt="image" src="https://github.com/user-attachments/assets/7c8e15f4-858d-4ec1-917f-574078e13318" />
+
+### Annotation Page
+
+<img width="1269" height="680" alt="image" src="https://github.com/user-attachments/assets/e8f7bb07-29dc-426a-976c-70be494b331d" />
+
