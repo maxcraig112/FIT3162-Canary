@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"image"
 	_ "image/gif"
+	"image/jpeg"
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
@@ -67,6 +68,32 @@ type ImageHandler struct {
 	// These are embedded fields so you don't need to call .Stores to get the inner fields
 	Stores
 	Buckets
+}
+
+// convertToJPEG converts an image from any supported format to JPEG format.
+// It returns the JPEG-encoded data, width, and height of the image.
+func (h *ImageHandler) convertToJPEG(data []byte) ([]byte, int, int, error) {
+	// Decode the image from the input data
+	img, format, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil, 0, 0, fmt.Errorf("failed to decode image: %w", err)
+	}
+
+	log.Debug().Str("format", format).Msg("Converting image to JPEG")
+
+	// Get image dimensions
+	bounds := img.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
+
+	// Encode to JPEG
+	var buf bytes.Buffer
+	err = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 95})
+	if err != nil {
+		return nil, 0, 0, fmt.Errorf("failed to encode image to JPEG: %w", err)
+	}
+
+	return buf.Bytes(), width, height, nil
 }
 
 func extractVideoConfigs(form *multipart.Form) (map[string]VideoExtractionConfig, error) {
@@ -184,7 +211,7 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	noImagesUploaded := false
-	imageObjects, err := generateImageData(batchID, r.MultipartForm)
+	imageObjects, err := h.generateImageData(batchID, r.MultipartForm)
 	if err == ErrNoMediaFound {
 		noImagesUploaded = true
 	} else if err != nil {
@@ -201,7 +228,7 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	videoFrameObjects, cleanupVideo, err := generateVideoData(batchID, r.MultipartForm, videoConfigs)
+	videoFrameObjects, cleanupVideo, err := h.generateVideoData(batchID, r.MultipartForm, videoConfigs)
 	// Ensure any temp files/dirs from video processing are cleaned up at the very end of this handler
 	if cleanupVideo != nil {
 		defer cleanupVideo()
@@ -306,7 +333,7 @@ func (h *ImageHandler) UploadImagesHandler(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-func generateImageData(batchID string, form *multipart.Form) (bucket.ObjectList, error) {
+func (h *ImageHandler) generateImageData(batchID string, form *multipart.Form) (bucket.ObjectList, error) {
 	files := form.File["images"]
 	if len(files) == 0 {
 		return nil, ErrNoMediaFound
@@ -326,21 +353,24 @@ func generateImageData(batchID string, form *multipart.Form) (bucket.ObjectList,
 			return nil, fmt.Errorf("failed to read image %s: %w", fileHeader.Filename, err)
 		}
 
-		cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
+		// Convert to JPEG
+		jpegData, width, height, err := h.convertToJPEG(data)
 		if err != nil {
-			return nil, fmt.Errorf("failed to decode image config for %s: %w", fileHeader.Filename, err)
+			return nil, fmt.Errorf("failed to convert image %s to JPEG: %w", fileHeader.Filename, err)
 		}
-		width, height := cfg.Width, cfg.Height
-		log.Debug().Str("file", fileHeader.Filename).Str("format", format).Int("w", width).Int("h", height).Msg("decoded image dimensions")
+
+		log.Debug().Str("file", fileHeader.Filename).Int("w", width).Int("h", height).Msg("converted image to JPEG")
 
 		uuid := GenerateUUID()
-		objectName := fmt.Sprintf("%s/%s_%s", batchID, fileHeader.Filename, uuid)
+		// Change extension to .jpg
+		baseName := strings.TrimSuffix(fileHeader.Filename, filepath.Ext(fileHeader.Filename))
+		objectName := fmt.Sprintf("%s/%s_%s.jpg", batchID, baseName, uuid)
 		objects[i] = bucket.ObjectData{
 			ImageName: objectName,
 			ImageData: bucket.ImageData{
 				Width:        int64(width),
 				Height:       int64(height),
-				ObjectReader: io.NopCloser(bytes.NewReader(data)),
+				ObjectReader: io.NopCloser(bytes.NewReader(jpegData)),
 			},
 		}
 	}
@@ -349,7 +379,7 @@ func generateImageData(batchID string, form *multipart.Form) (bucket.ObjectList,
 
 }
 
-func generateVideoData(batchID string, form *multipart.Form, configs map[string]VideoExtractionConfig) (bucket.ObjectList, func(), error) {
+func (h *ImageHandler) generateVideoData(batchID string, form *multipart.Form, configs map[string]VideoExtractionConfig) (bucket.ObjectList, func(), error) {
 	files := form.File["videos"]
 	if len(files) == 0 {
 		return nil, nil, ErrNoMediaFound
@@ -436,6 +466,7 @@ func generateVideoData(batchID string, form *multipart.Form, configs map[string]
 		outputArgs := ffmpeg.KwArgs{
 			"f":     "image2",
 			"vsync": "0",
+			"q:v":   "2", // JPEG quality (2 is high quality, scale is 2-31)
 		}
 
 		if cfg.EndTime > cfg.StartTime {
@@ -453,12 +484,12 @@ func generateVideoData(batchID string, form *multipart.Form, configs map[string]
 			outputArgs["frames:v"] = *cfg.MaxFrames
 		}
 
-		outPattern := filepath.Join(dname, "frame_%04d.png")
+		outPattern := filepath.Join(dname, "frame_%04d.jpg")
 		if err = stream.Output(outPattern, outputArgs).OverWriteOutput().Run(); err != nil {
 			return nil, cleanup, fmt.Errorf("failed to extract frames using ffmpeg-go: %w", err)
 		}
 
-		// Read all PNG files from the temp directory and add to objects
+		// Read all JPEG files from the temp directory and add to objects
 		files, err := os.ReadDir(dname)
 		if err != nil {
 			return nil, cleanup, fmt.Errorf("failed to read frames directory: %w", err)
@@ -466,7 +497,7 @@ func generateVideoData(batchID string, form *multipart.Form, configs map[string]
 
 		uuid := GenerateUUID()
 		for i, f := range files {
-			if !strings.HasSuffix(f.Name(), ".png") {
+			if !strings.HasSuffix(f.Name(), ".jpg") {
 				continue
 			}
 			framePath := filepath.Join(dname, f.Name())
@@ -492,7 +523,7 @@ func generateVideoData(batchID string, form *multipart.Form, configs map[string]
 			}
 
 			closers = append(closers, frameFile)
-			frameName := fmt.Sprintf("%s/%s/%s_frame_%04d_w%d_h%d.png",
+			frameName := fmt.Sprintf("%s/%s/%s_frame_%04d_w%d_h%d.jpg",
 				batchID, uuid, fileHeader.Filename, i+1, width, height)
 			objects = append(objects, bucket.ObjectData{
 				ImageName: frameName,
